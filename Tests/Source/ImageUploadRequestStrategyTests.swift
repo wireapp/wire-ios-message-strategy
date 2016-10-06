@@ -107,7 +107,7 @@ class ImageUploadRequestStrategyTests: MessagingTest {
             let message = self.createImageMessage()
             let properties = ZMIImageProperties(size: CGSize(width: 100, height: 100), length: UInt(100), mimeType: "")
             
-            message.add(ZMGenericMessage(
+            message.add(ZMGenericMessage.genericMessage(
                 mediumImageProperties: properties,
                 processedImageProperties: properties,
                 encryptionKeys: nil,

@@ -79,7 +79,7 @@ import ZMTransport
     
     fileprivate func handleResponse(_ response: ZMTransportResponse, forMessage assetClientMessage: ZMAssetClientMessage) {
         if response.result == .success {
-            guard let fileMessageData = assetClientMessage.fileMessageData, let asset = assetClientMessage.genericAssetMessage?.asset else { return }
+            guard let fileMessageData = assetClientMessage.fileMessageData, let asset = assetClientMessage.genericAssetMessage?.assetData else { return }
             // TODO: create request that streams directly to the cache file, otherwise the memory would overflow on big files
             let fileCache = self.managedObjectContext.zm_fileAssetCache
             fileCache.storeAssetData(assetClientMessage.nonce, fileName: fileMessageData.filename, encrypted: true, data: response.rawData!)

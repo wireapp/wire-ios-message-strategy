@@ -78,7 +78,7 @@ import ZMCDataModel
         objectsBeingProcessed.remove(message)
         
         if let preview = linkPreviews.first, let messsageText = message.textMessageData?.messageText {
-            let updatedMessage = ZMGenericMessage(text: messsageText, linkPreview: preview.protocolBuffer, nonce: message.nonce.transportString())
+            let updatedMessage = ZMGenericMessage.message(text: messsageText, linkPreview: preview.protocolBuffer, nonce: message.nonce.transportString())
             message.add(updatedMessage.data())
             
             if let imageData = preview.imageData.first {

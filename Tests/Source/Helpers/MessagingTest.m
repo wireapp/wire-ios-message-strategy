@@ -418,7 +418,7 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
 {
     ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.syncMOC];
     NSUUID *messageNonce = [NSUUID createUUID];
-    ZMGenericMessage *textMessage = [ZMGenericMessage messageWithText:text nonce:messageNonce.transportString];
+    ZMGenericMessage *textMessage = [ZMGenericMessage messageWithText:text nonce:messageNonce.transportString expiresAfter:nil];
     [message addData:textMessage.data];
     message.isEncrypted = encrypted;
     return message;
@@ -427,7 +427,7 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
 - (ZMAssetClientMessage *)createImageMessageWithImageData:(NSData *)imageData format:(ZMImageFormat)format processed:(BOOL)processed stored:(BOOL)stored encrypted:(BOOL)encrypted moc:(NSManagedObjectContext *)moc
 {
     NSUUID *nonce = [NSUUID createUUID];
-    ZMAssetClientMessage *imageMessage = [ZMAssetClientMessage assetClientMessageWithOriginalImageData:imageData nonce:nonce managedObjectContext:moc];
+    ZMAssetClientMessage *imageMessage = [ZMAssetClientMessage assetClientMessageWithOriginalImageData:imageData nonce:nonce managedObjectContext:moc expiresAfter:0.0];
     imageMessage.isEncrypted = encrypted;
     
     if(processed) {
@@ -443,7 +443,7 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
                                                                   mac:[NSData zmRandomSHA256Key]];
         }
         
-        ZMGenericMessage *message = [ZMGenericMessage messageWithMediumImageProperties:properties processedImageProperties:properties encryptionKeys:keys nonce:nonce.transportString format:format];
+        ZMGenericMessage *message = [ZMGenericMessage genericMessageWithMediumImageProperties:properties processedImageProperties:properties encryptionKeys:keys nonce:nonce.transportString format:format expiresAfter:nil];
         [imageMessage addGenericMessage:message];
         
         ImageAssetCache *directory = self.uiMOC.zm_imageAssetCache;

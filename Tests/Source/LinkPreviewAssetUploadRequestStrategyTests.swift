@@ -40,7 +40,7 @@ class LinkPreviewAssetUploadRequestStrategyTests: MessagingTest {
         
         let message = conversation.appendMessage(withText: text) as! ZMClientMessage
         message.linkPreviewState = linkPreviewState
-        message.add(ZMGenericMessage(text: text, linkPreview: linkPreview.protocolBuffer, nonce: message.nonce.transportString()).data())
+        message.add(ZMGenericMessage.message(text: text, linkPreview: linkPreview.protocolBuffer, nonce: message.nonce.transportString()).data())
         self.syncMOC.saveOrRollback()
         
         return message
@@ -75,10 +75,10 @@ class LinkPreviewAssetUploadRequestStrategyTests: MessagingTest {
         let otrKey = "1".data(using: String.Encoding.utf8, allowLossyConversion: false)!
         let sha256 = "2".data(using: String.Encoding.utf8, allowLossyConversion: false)!
         
-        var linkPreview = message.genericMessage!.text.linkPreview.first as! ZMLinkPreview
+        var linkPreview = message.genericMessage!.linkPreviews.first!
         linkPreview = linkPreview.update(withOtrKey: otrKey, sha256: sha256)
         
-        message.add(ZMGenericMessage.init(text: (message.textMessageData?.messageText)!, linkPreview: linkPreview, nonce: message.nonce.transportString()).data())
+        message.add(ZMGenericMessage.message(text: (message.textMessageData?.messageText)!, linkPreview: linkPreview, nonce: message.nonce.transportString()).data())
         
         return (otrKey, sha256)
     }
@@ -185,7 +185,7 @@ extension LinkPreviewAssetUploadRequestStrategyTests {
         completeRequest(message, request: request, assetKey: assetKey, token: token)
         
         // then
-        let linkPreviews = message.genericMessage!.text.linkPreview as! [ZMLinkPreview]
+        let linkPreviews = message.genericMessage!.linkPreviews
         let articleProtocol: ZMArticle = linkPreviews.first!.article
         XCTAssertEqual(articleProtocol.image.uploaded.otrKey, otrKey)
         XCTAssertEqual(articleProtocol.image.uploaded.sha256, sha256)

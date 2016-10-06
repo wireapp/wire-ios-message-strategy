@@ -909,11 +909,11 @@ extension FileUploadRequestStrategyTests {
     func decryptedMessage(fromRequestData data: Data, forClient client: UserClient) -> ZMGenericMessage? {
         let otrMessage = ZMNewOtrMessage.builder().merge(from: data).build() as? ZMNewOtrMessage
         XCTAssertNotNil(otrMessage, "Unable to generate OTR message")
-        let clientEntries = otrMessage?.recipients.flatMap { $0 as? ZMUserEntry }.flatMap { $0.clients }.joined()
+        let clientEntries = otrMessage?.recipients.flatMap { $0.clients }.joined()
         XCTAssertEqual(clientEntries?.count, 1)
         
         let encryptionContext = syncMOC.zm_cryptKeyStore.encryptionContext
-        guard let entry = clientEntries?.first as? ZMClientEntry else { XCTFail("Unable to get client entry"); return nil }
+        guard let entry = clientEntries?.first else { XCTFail("Unable to get client entry"); return nil }
         
         var message : ZMGenericMessage?
         encryptionContext.perform { sessionsDirectory in
