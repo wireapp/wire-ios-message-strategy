@@ -208,7 +208,7 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
     }
     
     func scheduleImageProcessing(forMessage message: ZMAssetClientMessage, format : ZMImageFormat) {
-        let genericMessage = ZMGenericMessage.genericMessage(mediumImageProperties: nil, processedImageProperties: nil, encryptionKeys: nil, nonce: message.nonce.transportString(), format: format)
+        let genericMessage = ZMGenericMessage.genericMessage(mediumImageProperties: nil, processedImageProperties: nil, encryptionKeys: nil, nonce: message.nonce.transportString(), format: format, expiresAfter: NSNumber(value: message.deletionTimeout))
         message.add(genericMessage)
         RequestAvailableNotification.notifyNewRequestsAvailable(self)
     }
