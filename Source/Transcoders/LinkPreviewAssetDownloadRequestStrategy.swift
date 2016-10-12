@@ -32,7 +32,7 @@ import WireRequestStrategy
         super.init(managedObjectContext: managedObjectContext)
         
         let downloadFilter = NSPredicate { object, _ in
-            guard let message = object as? ZMClientMessage, let genericMessage = message.genericMessage , genericMessage.hasText() else { return false }
+            guard let message = object as? ZMClientMessage, let genericMessage = message.genericMessage, genericMessage.textData != nil else { return false }
             guard let preview = genericMessage.linkPreviews.first, let remote: ZMAssetRemoteData = preview.remote  else { return false }
             guard nil == managedObjectContext.zm_imageAssetCache.assetData(message.nonce, format: .medium, encrypted: false) else { return false }
             return remote.hasAssetId()
