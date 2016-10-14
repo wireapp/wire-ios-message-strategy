@@ -1044,16 +1044,6 @@
     XCTAssertEqualObjects(confirmationMessage.genericMessage.confirmation.messageId, updateEvent.messageNonce.transportString);
 }
 
-- (ZMConversation *)setupOneOnOneConversation
-{
-    ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-    conversation.conversationType = ZMTConversationTypeOneOnOne;
-    conversation.remoteIdentifier = [NSUUID createUUID];
-    conversation.connection = [ZMConnection insertNewObjectInManagedObjectContext:self.syncMOC];
-    conversation.connection.to = [ZMUser insertNewObjectInManagedObjectContext:self.syncMOC];
-    conversation.connection.to.remoteIdentifier = [NSUUID createUUID];
-    return conversation;
-}
 
 - (void)checkThatItCallsConfirmationStatus:(BOOL)shouldCallConfirmationStatus whenReceivingAnEventThroughSource:(ZMUpdateEventSource)source
 {
@@ -1147,9 +1137,9 @@
 - (void)testThatItDoesSyncAConfirmationMessageIfSenderUserIsNotSpecifiedButIsInferedWithConntection;
 {
     [self createSelfClient];
-    ZMConversation *conversation = [self setupConversation];
+    ZMConversation *conversation = [self setupOneOnOneConversation];
     
-    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString];
+    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString expiresAfter:nil];
     ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.syncMOC];
     [message addData:genericMessage.data];    
     [conversation sortedAppendMessage:message];
@@ -1163,7 +1153,7 @@
 - (void)testThatItDoesSyncAConfirmationMessageIfSenderUserIsSpecified;
 {
     [self createSelfClient];
-    ZMConversation *conversation = [self setupConversation];
+    ZMConversation *conversation = [self setupOneOnOneConversation];
     
     ZMMessage *message = (id)[conversation appendMessageWithText:@"text"];
     ZMClientMessage *confirmationMessage = [(id)message confirmReception];
@@ -1180,7 +1170,7 @@
     conversation.remoteIdentifier = [NSUUID createUUID];
     [conversation.mutableOtherActiveParticipants addObject:[ZMUser insertNewObjectInManagedObjectContext:self.syncMOC]];
     
-    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString];
+    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString expiresAfter:nil];
     ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.syncMOC];
     [message addData:genericMessage.data];
     [conversation sortedAppendMessage:message];
@@ -1199,7 +1189,7 @@
     conversation.conversationType = ZMTConversationTypeOneOnOne;
     conversation.remoteIdentifier = [NSUUID createUUID];
     
-    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString];
+    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString expiresAfter:nil];
     ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.syncMOC];
     [message addData:genericMessage.data];
     [conversation sortedAppendMessage:message];
@@ -1255,8 +1245,9 @@
 - (void)testThatItDeletesEphemeralMessagesOnStart_SenderOtherUser
 {
     // given
+    self.uiMOC.zm_messageDeletionTimer.isTesting = YES;
     ZMConversation *conversation = [self setupOneOnOneConversationInContext:self.uiMOC];
-    conversation.messageDestructionTimeout = 10;
+    conversation.messageDestructionTimeout = 1.0;
     ZMMessage *message = (id)[conversation appendMessageWithText:@"foo"];
     message.sender = conversation.connectedUser;
     [message startSelfDestructionIfNeeded];
@@ -1273,6 +1264,8 @@
     
     [self setupSUT];
     XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
+    
+    [self spinMainQueueWithTimeout:1.0];
     
     // then
     [self.uiMOC refreshAllObjects];

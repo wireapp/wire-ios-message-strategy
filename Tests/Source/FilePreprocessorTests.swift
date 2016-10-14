@@ -257,3 +257,80 @@ extension FilePreprocessorTests {
         XCTAssertEqual(objects, [msg])
     }
 }
+
+
+// MARK: - Ephemeral
+extension FilePreprocessorTests {
+
+    func testThatItEncryptsAnEphemeralFileMessageSentByMe() {
+        
+        // given
+        let name = "report.txt"
+        let sut = FilePreprocessor(managedObjectContext: self.syncMOC)
+        let metadata = ZMFileMetadata(fileURL: testDataURL)
+        let msg = ZMAssetClientMessage(fileMetadata: metadata, nonce: UUID.create(), managedObjectContext: self.syncMOC, expiresAfter:10.0)
+        msg.transferState = .uploading
+        msg.delivered = false
+        self.syncMOC.zm_fileAssetCache.storeAssetData(msg.nonce, fileName: name, encrypted: false, data: testData)
+        self.syncMOC.zm_fileAssetCache.deleteAssetData(msg.nonce, fileName: name, encrypted: true)
+        XCTAssertTrue(msg.isEphemeral)
+        
+        // when
+        sut.objectsDidChange(Set(arrayLiteral: msg))
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5), "Timeout")
+        
+        // then
+        XCTAssertNotNil(self.syncMOC.zm_fileAssetCache.assetData(msg.nonce, fileName: name, encrypted: true), "No file")
+        XCTAssertTrue(msg.isEphemeral)
+    }
+    
+    func testThatItSetsTheEncryptionKeysOnTheEphemeralFileMessage() {
+        
+        // given
+        let name = "report.txt"
+        let sut = FilePreprocessor(managedObjectContext: self.syncMOC)
+        let metadata = ZMFileMetadata(fileURL: testDataURL)
+        let msg = ZMAssetClientMessage(fileMetadata: metadata, nonce: UUID.create(), managedObjectContext: self.syncMOC, expiresAfter:10.0)
+        msg.transferState = .uploading
+        msg.delivered = false
+        self.uiMOC.zm_fileAssetCache.storeAssetData(msg.nonce, fileName: name, encrypted: false, data: testData)
+        
+        // when
+        sut.objectsDidChange(Set(arrayLiteral: msg))
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5), "Timeout")
+        
+        // then
+        let encryptedData = self.uiMOC.zm_fileAssetCache.assetData(msg.nonce, fileName: name, encrypted: true)
+        
+        XCTAssertEqual(msg.genericAssetMessage.ephemeral.asset.uploaded.sha256, encryptedData?.zmSHA256Digest())
+        if let key = msg.genericAssetMessage.ephemeral.asset.uploaded.otrKey , key.count > 0 {
+            XCTAssertEqual(encryptedData?.zmDecryptPrefixedPlainTextIV(key: key), testData)
+        }
+        else {
+            XCTFail("No key")
+        }
+    }
+    
+    func testThatItSetsReadyToUploadOnTheEphemeralFileMessage() {
+        
+        // given
+        let name = "report.txt"
+        let sut = FilePreprocessor(managedObjectContext: self.syncMOC)
+        let metadata = ZMFileMetadata(fileURL: testDataURL)
+        let msg = ZMAssetClientMessage(fileMetadata: metadata, nonce: UUID.create(), managedObjectContext: self.syncMOC, expiresAfter:10.0)
+        XCTAssertTrue(msg.isEphemeral)
+        self.uiMOC.zm_fileAssetCache.storeAssetData(msg.nonce, fileName: name, encrypted: false, data: testData)
+        XCTAssertFalse(msg.isReadyToUploadFile)
+        
+        // when
+        sut.objectsDidChange(Set(arrayLiteral: msg))
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5), "Timeout")
+        
+        // then
+        XCTAssertTrue(msg.isReadyToUploadFile)
+        XCTAssertEqual(msg.uploadState, ZMAssetUploadState.uploadingPlaceholder)
+        XCTAssertTrue(msg.isEphemeral)
+    }
+
+}
+

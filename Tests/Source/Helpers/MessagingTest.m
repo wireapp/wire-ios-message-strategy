@@ -125,11 +125,13 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
 - (void)resetState
 {
     [self.uiMOC.globalManagedObjectContextObserver tearDown];
+    [self.uiMOC zm_teardownMessageDeletionTimer];
     
     [self.syncMOC performGroupedBlock:^{
         [self.syncMOC.globalManagedObjectContextObserver tearDown];
         [self.syncMOC zm_tearDownCryptKeyStore];
         [self.syncMOC.userInfo removeAllObjects];
+        [self.syncMOC zm_teardownMessageObfuscationTimer];
     }];
 
     WaitForAllGroupsToBeEmpty(0.5);

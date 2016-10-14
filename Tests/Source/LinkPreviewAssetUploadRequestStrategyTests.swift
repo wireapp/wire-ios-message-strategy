@@ -34,13 +34,20 @@ class LinkPreviewAssetUploadRequestStrategyTests: MessagingTest {
     }
     
     /// Creates a message that should generate request
-    func createMessage(_ text: String, linkPreviewState: ZMLinkPreviewState = .waitingToBeProcessed, linkPreview: LinkPreview) -> ZMClientMessage {
+    func createMessage(_ text: String, linkPreviewState: ZMLinkPreviewState = .waitingToBeProcessed, linkPreview: LinkPreview, isEphemeral: Bool = false) -> ZMClientMessage {
         let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
         conversation.remoteIdentifier = UUID.create()
-        
+        if isEphemeral {
+            conversation.messageDestructionTimeout = 10
+        }
         let message = conversation.appendMessage(withText: text) as! ZMClientMessage
         message.linkPreviewState = linkPreviewState
-        message.add(ZMGenericMessage.message(text: text, linkPreview: linkPreview.protocolBuffer, nonce: message.nonce.transportString()).data())
+        if isEphemeral {
+            XCTAssertTrue(message.isEphemeral)
+            message.add(ZMGenericMessage.message(text: text, linkPreview: linkPreview.protocolBuffer, nonce: message.nonce.transportString(), expiresAfter: NSNumber(value:10)).data())
+        } else {
+            message.add(ZMGenericMessage.message(text: text, linkPreview: linkPreview.protocolBuffer, nonce: message.nonce.transportString()).data())
+        }
         self.syncMOC.saveOrRollback()
         
         return message
@@ -78,7 +85,7 @@ class LinkPreviewAssetUploadRequestStrategyTests: MessagingTest {
         var linkPreview = message.genericMessage!.linkPreviews.first!
         linkPreview = linkPreview.update(withOtrKey: otrKey, sha256: sha256)
         
-        message.add(ZMGenericMessage.message(text: (message.textMessageData?.messageText)!, linkPreview: linkPreview, nonce: message.nonce.transportString()).data())
+        message.add(ZMGenericMessage.message(text: (message.textMessageData?.messageText)!, linkPreview: linkPreview, nonce: message.nonce.transportString(), expiresAfter: NSNumber(value:message.deletionTimeout)).data())
         
         return (otrKey, sha256)
     }
@@ -215,4 +222,46 @@ extension LinkPreviewAssetUploadRequestStrategyTests {
         XCTAssertEqual(message.linkPreviewState, ZMLinkPreviewState.uploaded)
     }
     
+}
+
+
+
+extension LinkPreviewAssetUploadRequestStrategyTests {
+    
+    func testThatItUpdatesEphemeralMessageWithAssetKeyAndToken() {
+        // given
+        let article = createArticle()
+        let message = createMessage(article.permanentURL!.absoluteString, linkPreviewState: .processed, linkPreview: article, isEphemeral : true)
+        let (otrKey, sha256) = encryptLinkPreview(inMessage: message);
+        
+        syncMOC.zm_imageAssetCache.storeAssetData(message.nonce, format: .medium, encrypted: true, data: article.imageData.first!)
+        _ = encryptLinkPreview(inMessage: message)
+        message.linkPreviewState = .waitingToBeProcessed
+        syncMOC.saveOrRollback()
+        
+        process(sut, message: message)
+        let request = sut.nextRequest()
+        
+        let assetKey = "key123"
+        let token = "qJ8JPFLsiYGx7fnrlL+7Yk9="
+        
+        XCTAssertTrue(message.isEphemeral)
+
+        // when
+        completeRequest(message, request: request, assetKey: assetKey, token: token)
+        
+        // then
+        XCTAssertTrue(message.isEphemeral)
+        XCTAssertTrue(message.genericMessage!.hasEphemeral())
+        XCTAssertFalse(message.genericMessage!.hasText())
+
+        let linkPreviews = message.genericMessage!.linkPreviews
+        let articleProtocol: ZMArticle = linkPreviews.first!.article
+        XCTAssertEqual(articleProtocol.image.uploaded.otrKey, otrKey)
+        XCTAssertEqual(articleProtocol.image.uploaded.sha256, sha256)
+        XCTAssertEqual(articleProtocol.image.uploaded.assetId, assetKey)
+        XCTAssertEqual(articleProtocol.image.uploaded.assetToken, token)
+    }
+
+
 }

@@ -38,6 +38,36 @@ class LinkPreviewAssetDownloadRequestStrategyTests: MessagingTest {
         uiMOC.zm_imageAssetCache.wipeCache()
     }
     
+    // MARK: - Helper
+    
+    fileprivate func createLinkPreviewAndKeys(_ assetID: String, article: Bool = true, otrKey: Data? = nil, sha256: Data? = nil) -> (preview: ZMLinkPreview, otrKey: Data?, sha256: Data?) {
+        let URL = "http://www.example.com"
+        
+        if article {
+            let assetBuilder = ZMAsset.builder()!
+            let remoteBuilder = ZMAssetRemoteData.builder()!
+            let (otr, sha) = (otrKey ?? Data.randomEncryptionKey(), sha256 ?? Data.zmRandomSHA256Key())
+            remoteBuilder.setAssetId(assetID)
+            remoteBuilder.setOtrKey(otr)
+            remoteBuilder.setSha256(sha)
+            assetBuilder.setUploaded(remoteBuilder)
+            let preview = ZMLinkPreview.linkPreview(withOriginalURL: URL, permanentURL: URL, offset: 42, title: "Title", summary: "Summary", imageAsset: assetBuilder.build(), tweet: nil)
+            return (preview, otr, sha)
+        } else {
+            let tweet = ZMTweet.tweet(withAuthor: "Author", username: "UserName")
+            let preview = ZMLinkPreview.linkPreview(withOriginalURL: URL, permanentURL: URL, offset: 42, title: "Title", summary: "Summary", imageAsset: nil, tweet: tweet)
+            return (preview, nil, nil)
+        }
+    }
+    
+    fileprivate func fireSyncCompletedNotification() {
+        // ManagedObjectContextObserver does not process all changes until the sync is done
+        NotificationCenter.default.post(name: Notification.Name(rawValue: "ZMApplicationDidEnterEventProcessingStateNotification"), object: nil, userInfo: nil)
+    }
+}
+
+extension LinkPreviewAssetDownloadRequestStrategyTests {
+    
     // MARK: - Request Generation
 
     func testThatItGeneratesARequestForAWhitelistedMessageWithNoImageInCache() {
@@ -47,6 +77,27 @@ class LinkPreviewAssetDownloadRequestStrategyTests: MessagingTest {
         let linkPreview = createLinkPreviewAndKeys(assetID).preview
         let nonce = UUID.create()
         let genericMessage = ZMGenericMessage.message(text: name!, linkPreview: linkPreview, nonce: nonce.transportString())
+        message.add(genericMessage.data())
+        _ = try? syncMOC.obtainPermanentIDs(for: [message])
+        
+        // when
+        message.requestImageDownload()
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        // then
+        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
+        XCTAssertEqual(request.path, "/assets/v3/\(assetID)")
+        XCTAssertEqual(request.method, ZMTransportRequestMethod.methodGET)
+        XCTAssertNil(sut.nextRequest())
+    }
+    
+    func testThatItGeneratesARequestForAWhitelistedEphemeralMessageWithNoImageInCache() {
+        // given
+        let message = ZMClientMessage.insertNewObject(in: syncMOC)
+        let assetID = UUID.create().transportString()
+        let linkPreview = createLinkPreviewAndKeys(assetID).preview
+        let nonce = UUID.create()
+        let genericMessage = ZMGenericMessage.message(text: name!, linkPreview: linkPreview, nonce: nonce.transportString(), expiresAfter: NSNumber(value: 20))
         message.add(genericMessage.data())
         _ = try? syncMOC.obtainPermanentIDs(for: [message])
         
@@ -207,32 +258,6 @@ class LinkPreviewAssetDownloadRequestStrategyTests: MessagingTest {
         XCTAssertTrue(changeInfo.imageChanged)
     }*/
     
-    // MARK: - Helper
-    
-    fileprivate func createLinkPreviewAndKeys(_ assetID: String, article: Bool = true, otrKey: Data? = nil, sha256: Data? = nil) -> (preview: ZMLinkPreview, otrKey: Data?, sha256: Data?) {
-        let URL = "http://www.example.com"
-        
-        if article {
-            let assetBuilder = ZMAsset.builder()!
-            let remoteBuilder = ZMAssetRemoteData.builder()!
-            let (otr, sha) = (otrKey ?? Data.randomEncryptionKey(), sha256 ?? Data.zmRandomSHA256Key())
-            remoteBuilder.setAssetId(assetID)
-            remoteBuilder.setOtrKey(otr)
-            remoteBuilder.setSha256(sha)
-            assetBuilder.setUploaded(remoteBuilder)
-            let preview = ZMLinkPreview.linkPreview(withOriginalURL: URL, permanentURL: URL, offset: 42, title: "Title", summary: "Summary", imageAsset: assetBuilder.build(), tweet: nil)
-            return (preview, otr, sha)
-        } else {
-            let tweet = ZMTweet.tweet(withAuthor: "Author", username: "UserName")
-            let preview = ZMLinkPreview.linkPreview(withOriginalURL: URL, permanentURL: URL, offset: 42, title: "Title", summary: "Summary", imageAsset: nil, tweet: tweet)
-            return (preview, nil, nil)
-        }
-    }
-    
-    fileprivate func fireSyncCompletedNotification() {
-        // ManagedObjectContextObserver does not process all changes until the sync is done
-        NotificationCenter.default.post(name: Notification.Name(rawValue: "ZMApplicationDidEnterEventProcessingStateNotification"), object: nil, userInfo: nil)
-    }
 
 }
 
