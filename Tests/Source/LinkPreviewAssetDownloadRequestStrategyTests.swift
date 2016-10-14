@@ -223,41 +223,5 @@ extension LinkPreviewAssetDownloadRequestStrategyTests {
         XCTAssertNil(syncMOC.zm_imageAssetCache.assetData(nonce, format: .medium, encrypted: false))
         XCTAssertNil(syncMOC.zm_imageAssetCache.assetData(nonce, format: .medium, encrypted: true))
     }
-    
-    /* TODO Sabine
-    func testThatItNotifiesTheObserversWhenTheImageHasBeenDownloaded() {
-        // given
-        fireSyncCompletedNotification()
-        let conversation = ZMConversation.insertNewObject(in: uiMOC)
-        let message = conversation.appendMessage(withText: "Foo") as! ZMClientMessage
-        let observer = MessageChangeObserver(message: message)
-        defer { observer?.tearDown() }
-        let assetID = UUID.create().transportString()
-        let data = Data.secureRandomData(length: 256)
-        let otrKey = Data.randomEncryptionKey()
-        let encrypted = data.zmEncryptPrefixingPlainTextIV(key: otrKey)
-        let (linkPreview, _, _) = createLinkPreviewAndKeys(assetID, otrKey: otrKey, sha256: encrypted.zmSHA256Digest())
-        let nonce = UUID.create()
-        let genericMessage = ZMGenericMessage.message(text: "Link preview", linkPreview: linkPreview, nonce: nonce.transportString())
-        message.add(genericMessage.data())
-        uiMOC.saveOrRollback()
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-        
-        // when
-        message.requestImageDownload()
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-        let response = ZMTransportResponse(imageData: encrypted, httpStatus: 200, transportSessionError: nil, headers: nil)
-        request.complete(with: response)
-        uiMOC.saveOrRollback()
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-        
-        // then
-        XCTAssertEqual(observer?.notifications.count, 1)
-        guard let changeInfo = observer?.notifications.firstObject as? MessageChangeInfo else { return XCTFail("No change info") }
-        XCTAssertTrue(changeInfo.imageChanged)
-    }*/
-    
-
 }
 
