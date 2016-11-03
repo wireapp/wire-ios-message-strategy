@@ -921,7 +921,7 @@ extension FileUploadRequestStrategyTests {
         var message : ZMGenericMessage?
         encryptionContext.perform { sessionsDirectory in
             do {
-                let decryptedData = try sessionsDirectory.decrypt(entry.text, senderClientId: client.remoteIdentifier!)
+                let decryptedData = try sessionsDirectory.decrypt(entry.text, senderIdentifier: client.sessionIdentifier!)
                 message = ZMGenericMessage.builder().merge(from: decryptedData).build() as? ZMGenericMessage
             } catch {
                 XCTFail("Failed to decrypt generic message: \(error)")

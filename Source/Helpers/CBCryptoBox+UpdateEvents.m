@@ -148,6 +148,7 @@ NSString * CBErrorCodeToString(CryptoboxError cryptoBoxError);
 {
     NSDictionary *eventData = [event.payload.asDictionary optionalDictionaryForKey:@"data"];
     NSString *senderClientId = [eventData optionalStringForKey:@"sender"];
+    NSUUID *userId = [event.payload.asDictionary optionalUuidForKey:@"from"];
     NSString *dataString = [eventData optionalStringForKey:dataKey];
     VerifyReturnNil(dataString != nil);
 
@@ -157,19 +158,21 @@ NSString * CBErrorCodeToString(CryptoboxError cryptoBoxError);
     }
     NSData *data = [[NSData alloc] initWithBase64EncodedString:dataString options:0];
     
-    
+    VerifyReturnNil(userId != nil);
     VerifyReturnNil(senderClientId != nil);
     VerifyReturnNil(data != nil);
     
+    NSString *sessionIdentifier = [UserClient sessionIdentifierWithUserId:userId clientId:senderClientId];
+    
     NSData *decryptedData;
-    if (![self hasSessionForID:senderClientId]) {
-        decryptedData = [self createClientSessionAndReturnPlaintext:senderClientId prekeyMessage:data error:error];
-        *newSessionId = senderClientId;
+    if (![self hasSessionForID:sessionIdentifier]) {
+        decryptedData = [self createClientSessionAndReturnPlaintext:sessionIdentifier prekeyMessage:data error:error];
+        *newSessionId = sessionIdentifier;
         if (nil == decryptedData) {
             ZMLogError(@"Failed to decrypt message with session info <%@>: %@, update Event: %@", CBErrorCodeToString((CryptoboxError)(*error).code), *error, event.debugInformation);
         }
     } else {
-        decryptedData = [self decrypt:data senderClientId:senderClientId error:error];
+        decryptedData = [self decrypt:data senderIdentifier:sessionIdentifier error:error];
         if (nil == decryptedData) {
             ZMLogError(@"Failed to decrypt message <%@>: %@, update Event: %@", CBErrorCodeToString((CryptoboxError)(*error).code), *error, event.debugInformation);
         }

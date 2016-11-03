@@ -24,6 +24,7 @@
 #import "MessagingTest.h"
 #import <libkern/OSAtomic.h>
 #import <CommonCrypto/CommonCrypto.h>
+#import "WireMessageStrategyTests-Swift.h"
 
 NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
 
@@ -109,7 +110,8 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
     
     [ZMPersistentCookieStorage deleteAllKeychainItems];
     self.mockTransportSession = [[MockTransportSession alloc] initWithDispatchGroup:self.dispatchGroup];
-    self.mockTransportSession.cryptoboxLocation = [UserClientKeysStore otrDirectory];
+    // TODO MARCO
+    // self.mockTransportSession.cryptoboxLocation = [UserClientKeysStore otrDirectory];
     Require([self waitForAllGroupsToBeEmptyWithTimeout:5]);
 }
 
@@ -330,45 +332,6 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
 
 @implementation MessagingTest (OTR)
 
-- (NSData *)encryptedMessage:(ZMGenericMessage *)message recipient:(UserClient *)recipient
-{
-    [self establishSessionWithClient:recipient];
-    
-    __block NSData *messageData;
-    __block NSError *error;
-    
-    [self.syncMOC.zm_cryptKeyStore.encryptionContext perform:^(EncryptionSessionsDirectory * _Nonnull sessionsDirectory) {
-        messageData = [sessionsDirectory encrypt:message.data recipientClientId:recipient.remoteIdentifier error:&error];
-    }];
-
-    XCTAssertNil(error, @"Error encrypting message: %@", error);
-    return messageData;
-}
-
-- (void)establishSessionWithClient:(UserClient *)userClient
-{
-    ZMUser *selfUser = [ZMUser selfUserInContext:self.syncMOC];
-    
-    __block NSError *error;
-    __block NSString *lastPrekey;
-    __block BOOL hasSession = NO;
-    
-    [selfUser.selfClient.keysStore.encryptionContext perform:^(EncryptionSessionsDirectory * _Nonnull sessionsDirectory) {
-        if (![sessionsDirectory hasSessionForID:userClient.remoteIdentifier]) {
-            lastPrekey = [sessionsDirectory generateLastPrekeyAndReturnError:&error];
-        } else {
-            hasSession = YES;
-        }
-    }];
-    
-    if (hasSession) {
-        return;
-    }
-    
-    XCTAssertTrue([selfUser.selfClient establishSessionWithClient:userClient usingPreKey:lastPrekey], @"Unable to establish session");
-    XCTAssertNil(error, @"Error establishing session: %@", error);
-}
-
 - (UserClient *)createSelfClient
 {
     ZMUser *selfUser = [ZMUser selfUserInContext:self.syncMOC];
@@ -396,7 +359,7 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
     userClient.user = user;
     
     if (createSessionWithSeflUser) {
-        [self establishSessionWithClient:userClient];
+        [self establishSessionWith:userClient];
     }
 
     return userClient;

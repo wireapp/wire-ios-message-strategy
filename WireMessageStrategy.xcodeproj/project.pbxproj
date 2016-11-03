@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		54C8639E1DCA4563008D05BD /* MessagingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C8639B1DCA42FB008D05BD /* MessagingTest.swift */; };
+		54C863A11DCA465B008D05BD /* CryptoboxUpdateEventsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C8639F1DCA45A7008D05BD /* CryptoboxUpdateEventsTests.swift */; };
 		F963E90B1D956FC100098AD3 /* ZMMessageExpirationTimerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = F963E9091D956EE700098AD3 /* ZMMessageExpirationTimerTests.m */; };
 		F963E9221D95885700098AD3 /* AssetDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */; };
 		F963E9231D95885700098AD3 /* ImageDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */; };
@@ -63,7 +65,6 @@
 		F9F057CA1D94292500FA1AAD /* not_animated.gif in Resources */ = {isa = PBXBuildFile; fileRef = F9F057C41D94292500FA1AAD /* not_animated.gif */; };
 		F9F057CB1D94292500FA1AAD /* tiny.jpg in Resources */ = {isa = PBXBuildFile; fileRef = F9F057C51D94292500FA1AAD /* tiny.jpg */; };
 		F9F057CC1D94292500FA1AAD /* video.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F9F057C61D94292500FA1AAD /* video.mp4 */; };
-		F9F057CE1D943BCA00FA1AAD /* ZMCryptoBoxUpdateEventsTests.m in Sources */ = {isa = PBXBuildFile; fileRef = F9F057CD1D943BCA00FA1AAD /* ZMCryptoBoxUpdateEventsTests.m */; };
 		F9F057D61D943DA200FA1AAD /* FileUploadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F057D01D943D8000FA1AAD /* FileUploadRequestStrategy.swift */; };
 		F9F057D71D943DA200FA1AAD /* ImageUploadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F057D11D943D8000FA1AAD /* ImageUploadRequestStrategy.swift */; };
 		F9F057D81D943DA200FA1AAD /* LinkPreviewAssetUploadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F057D21D943D8000FA1AAD /* LinkPreviewAssetUploadRequestStrategy.swift */; };
@@ -113,6 +114,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		54C8639B1DCA42FB008D05BD /* MessagingTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MessagingTest.swift; sourceTree = "<group>"; };
+		54C8639F1DCA45A7008D05BD /* CryptoboxUpdateEventsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CryptoboxUpdateEventsTests.swift; sourceTree = "<group>"; };
 		F963E9091D956EE700098AD3 /* ZMMessageExpirationTimerTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZMMessageExpirationTimerTests.m; sourceTree = "<group>"; };
 		F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetDownloadRequestStrategy.swift; sourceTree = "<group>"; };
 		F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDownloadRequestStrategy.swift; sourceTree = "<group>"; };
@@ -204,7 +207,6 @@
 		F9F057C41D94292500FA1AAD /* not_animated.gif */ = {isa = PBXFileReference; lastKnownFileType = image.gif; path = not_animated.gif; sourceTree = "<group>"; };
 		F9F057C51D94292500FA1AAD /* tiny.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = tiny.jpg; sourceTree = "<group>"; };
 		F9F057C61D94292500FA1AAD /* video.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = video.mp4; sourceTree = "<group>"; };
-		F9F057CD1D943BCA00FA1AAD /* ZMCryptoBoxUpdateEventsTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZMCryptoBoxUpdateEventsTests.m; sourceTree = "<group>"; };
 		F9F057D01D943D8000FA1AAD /* FileUploadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FileUploadRequestStrategy.swift; sourceTree = "<group>"; };
 		F9F057D11D943D8000FA1AAD /* ImageUploadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageUploadRequestStrategy.swift; sourceTree = "<group>"; };
 		F9F057D21D943D8000FA1AAD /* LinkPreviewAssetUploadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinkPreviewAssetUploadRequestStrategy.swift; sourceTree = "<group>"; };
@@ -426,7 +428,7 @@
 				F9F057571D94129600FA1AAD /* ZMMessageTranscoderTests.m */,
 				F9F057581D94129600FA1AAD /* ZMSystemMessageTranscoderTests.m */,
 				F9F057E61D954C1400FA1AAD /* ClientMessageRequestFactoryTests.swift */,
-				F9F057CD1D943BCA00FA1AAD /* ZMCryptoBoxUpdateEventsTests.m */,
+				54C8639F1DCA45A7008D05BD /* CryptoboxUpdateEventsTests.swift */,
 				F9F057E81D954CD700FA1AAD /* FilePreprocessorTests.swift */,
 				F963E9301D958A5200098AD3 /* LinkPreviewAssetDownloadRequestStrategyTests.swift */,
 				F9F057E91D954CD700FA1AAD /* FileUploadRequestStrategyTests.swift */,
@@ -474,6 +476,7 @@
 				F9F057AE1D941B7E00FA1AAD /* NSManagedObjectContext+TestHelpers.m */,
 				F9F057AA1D941B4B00FA1AAD /* MessagingTest.h */,
 				F9F057AB1D941B4B00FA1AAD /* MessagingTest.m */,
+				54C8639B1DCA42FB008D05BD /* MessagingTest.swift */,
 				F9F057F51D95511500FA1AAD /* MockObjects.swift */,
 			);
 			path = Helpers;
@@ -582,6 +585,7 @@
 					F9F057641D94141C00FA1AAD = {
 						CreatedOnToolsVersion = 8.0;
 						DevelopmentTeam = W5KEQBF9B5;
+						LastSwiftMigration = 0800;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -703,6 +707,7 @@
 			files = (
 				F9F057EE1D954CD700FA1AAD /* FilePreprocessorTests.swift in Sources */,
 				F9F057E71D954C1400FA1AAD /* ClientMessageRequestFactoryTests.swift in Sources */,
+				54C863A11DCA465B008D05BD /* CryptoboxUpdateEventsTests.swift in Sources */,
 				F9F057F11D954CD700FA1AAD /* LinkPreviewAssetUploadRequestStrategyTests.swift in Sources */,
 				F9F057AC1D941B4B00FA1AAD /* MessagingTest.m in Sources */,
 				F963E92E1D9589C100098AD3 /* ImageDownloadRequestStrategyTests.swift in Sources */,
@@ -714,7 +719,7 @@
 				F963E9321D958A6500098AD3 /* LinkPreviewAssetDownloadRequestStrategyTests.swift in Sources */,
 				F9F057F01D954CD700FA1AAD /* ImageUploadRequestStrategyTests.swift in Sources */,
 				F963E92F1D9589D000098AD3 /* AssetDownloadRequestStrategyTests.swift in Sources */,
-				F9F057CE1D943BCA00FA1AAD /* ZMCryptoBoxUpdateEventsTests.m in Sources */,
+				54C8639E1DCA4563008D05BD /* MessagingTest.swift in Sources */,
 				F9F057EF1D954CD700FA1AAD /* FileUploadRequestStrategyTests.swift in Sources */,
 				F9F057F61D95511500FA1AAD /* MockObjects.swift in Sources */,
 				F963E9451D95954900098AD3 /* MissingClientsRequestStrategyTests.swift in Sources */,
@@ -926,7 +931,6 @@
 		F9F056CB1D93D22000FA1AAD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ENABLE_MODULES = YES;
 				DEVELOPMENT_TEAM = W5KEQBF9B5;
@@ -954,7 +958,6 @@
 		F9F056CC1D93D22000FA1AAD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = NO;
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
 				CLANG_ENABLE_MODULES = YES;
 				DEVELOPMENT_TEAM = W5KEQBF9B5;
@@ -984,6 +987,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
+				CLANG_ENABLE_MODULES = YES;
 				DEVELOPMENT_TEAM = W5KEQBF9B5;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -997,6 +1001,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.wire.WireMessageStrategy-Test-Host";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1007,6 +1013,7 @@
 				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
+				CLANG_ENABLE_MODULES = YES;
 				DEVELOPMENT_TEAM = W5KEQBF9B5;
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1020,6 +1027,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.wire.WireMessageStrategy-Test-Host";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 3.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

@@ -354,7 +354,7 @@
         
         //create encrypted message
         ZMGenericMessage *message = [ZMGenericMessage messageWithText:text nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-        NSData *encryptedData = [self encryptedMessage:message recipient:client];
+        NSData *encryptedData = [self encryptedWithMessage:message recipient:client];
         
         NSDictionary *payload = @{@"recipient": client.remoteIdentifier, @"sender": client.remoteIdentifier, @"text": [encryptedData base64String]};
         ZMUpdateEvent *updateEvent = [ZMUpdateEvent eventFromEventStreamPayload:
@@ -369,10 +369,7 @@
         conversation.remoteIdentifier = conversationID;
         [self.syncMOC saveOrRollback];
         
-        __block ZMUpdateEvent *decryptedEvent;
-        [self.syncMOC.zm_cryptKeyStore.encryptionContext perform:^(EncryptionSessionsDirectory * _Nonnull sessionsDirectory) {
-            decryptedEvent = [sessionsDirectory decryptUpdateEventAndAddClient:updateEvent managedObjectContext:self.syncMOC];
-        }];
+        ZMUpdateEvent *decryptedEvent = [self decryptWithUpdateEvent:updateEvent];
         
         // when
         [self.sut processEvents:@[decryptedEvent] liveEvents:NO prefetchResult:nil];
@@ -448,17 +445,11 @@
         selfClient = self.createSelfClient;
         
         //other user client
-        EncryptionContext *otherClientsBox = [[EncryptionContext alloc] initWithPath:[UserClientKeysStore otrDirectory]];
         [conversation.otherActiveParticipants enumerateObjectsUsingBlock:^(ZMUser *user, NSUInteger __unused idx, BOOL *__unused stop) {
             UserClient *userClient = [UserClient insertNewObjectInManagedObjectContext:self.syncMOC];
             userClient.remoteIdentifier = [NSString createAlphanumericalString];
             userClient.user = user;
-            
-            __block NSError *keyError;
-            [otherClientsBox perform:^(EncryptionSessionsDirectory * _Nonnull sessionsDirectory) {
-                NSString *key = [sessionsDirectory generatePrekey:1 error:&keyError];
-                [sessionsDirectory createClientSession:userClient.remoteIdentifier base64PreKeyString:key error:&keyError];
-            }];
+            [self establishSessionWith:userClient];
         }];
     }];
     
