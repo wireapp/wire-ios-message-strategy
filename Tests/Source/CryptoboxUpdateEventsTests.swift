@@ -36,7 +36,7 @@ class CryptoboxUpdateEventsTests : MessagingTest {
         let payload : NSDictionary = [
             "recipient" : selfClient.remoteIdentifier!,
             "sender" : selfClient.remoteIdentifier!,
-            "text" : encryptedData.base64String
+            "text" : encryptedData.base64String()
         ]
         
         let streamPayload = self.eventStreamPayload(sender: selfUser, internalPayload: payload as! [String:Any], type: "conversation.otr-message-add")
@@ -63,42 +63,34 @@ class CryptoboxUpdateEventsTests : MessagingTest {
         XCTAssertEqual(decryptedMessage?.textMessageData?.messageText, message.text.content)
         XCTAssertEqual(decryptedEvent.uuid, notificationID)
     }
+    
+    func testThatItCanDecryptOTRAssetAddEvent() {
+        
+        // GIVEN
+        let notificationID = UUID.create()
+        let selfUser = ZMUser.selfUser(in: self.syncMOC)
+        let selfClient = self.createSelfClient()
+        
+        let imageData = self.verySmallJPEGData()
+        let imageSize = ZMImagePreprocessor.sizeOfPrerotatedImage(with: imageData)
+        let properties = ZMIImageProperties(size: imageSize, length: UInt(imageData.count), mimeType: "image/jpeg")
+        let keys = ZMImageAssetEncryptionKeys(otrKey: Data.randomEncryptionKey(), sha256: imageData.zmSHA256Digest())
+        
+        let messageNonce = UUID.create()
+        
+        let message = ZMGenericMessage.genericMessage(mediumImageProperties: properties,
+                                                      processedImageProperties: properties,
+                                                      encryptionKeys: keys,
+                                                      nonce: message.transportString,
+                                                      format: .medium)
+        
+        // WHEN
+        
+        // THEN
+        
+    }
+    
     /*
-     
-     - (void)testThatItCanDecryptOTRMessageAddEvent
-     {
-     // given
-     NSUUID *notificationID = [NSUUID createUUID];
-     ZMUser *selfUser = [ZMUser selfUserInContext:self.syncMOC];
-     UserClient *selfClient = [self createSelfClient];
-     
-     // create encrypted message
-     ZMGenericMessage *message = [ZMGenericMessage messageWithText:self.name nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-     NSData *encryptedData = [self encryptedMessage:message recipient:selfClient];
-     
-     NSDictionary *payload = @{
-     @"recipient": selfClient.remoteIdentifier,
-     @"sender": selfClient.remoteIdentifier,
-     @"text": [encryptedData base64String]
-     };
-     NSDictionary *streamPayload = [self eventStreamPayloadWithSender:selfUser internalPayload:payload type:@"conversation.otr-message-add"];
-     ZMUpdateEvent *event = [ZMUpdateEvent eventFromEventStreamPayload:streamPayload uuid:notificationID];
-     
-     // when
-     __block ZMUpdateEvent *decryptedEvent;
-     [self.syncMOC.zm_cryptKeyStore.encryptionContext perform:^(EncryptionSessionsDirectory * _Nonnull sessionsDirectory) {
-     decryptedEvent = [sessionsDirectory decryptUpdateEventAndAddClient:event managedObjectContext:self.syncMOC];
-     }];
-     
-     // then
-     XCTAssertNotNil(decryptedEvent.payload.asDictionary[@"data"]);
-     XCTAssertEqualObjects(decryptedEvent.payload.asDictionary[@"data"][@"sender"], selfClient.remoteIdentifier);
-     XCTAssertEqualObjects(decryptedEvent.payload.asDictionary[@"data"][@"recipient"], selfClient.remoteIdentifier);
-     ZMClientMessage *decryptedMessage = (id)[ZMClientMessage messageUpdateResultFromUpdateEvent:decryptedEvent inManagedObjectContext:self.syncMOC prefetchResult:nil].message;
-     XCTAssertEqualObjects(decryptedMessage.nonce.transportString, message.messageId);
-     XCTAssertEqualObjects(decryptedMessage.textMessageData.messageText, message.text.content);
-     XCTAssertEqualObjects(decryptedEvent.uuid, notificationID);
-     }
      
      - (void)testThatItCanDecryptOTRAssetAddEvent
      {
