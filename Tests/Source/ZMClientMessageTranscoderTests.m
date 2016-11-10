@@ -359,6 +359,7 @@
         NSDictionary *payload = @{@"recipient": client.remoteIdentifier, @"sender": client.remoteIdentifier, @"text": [encryptedData base64String]};
         ZMUpdateEvent *updateEvent = [ZMUpdateEvent eventFromEventStreamPayload:
                                       @{
+                                        @"from":client.user.remoteIdentifier.transportString,
                                         @"type":@"conversation.otr-message-add",
                                         @"data":payload,
                                         @"conversation":conversationID.transportString,

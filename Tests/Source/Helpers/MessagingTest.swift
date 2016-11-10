@@ -18,6 +18,7 @@
 
 import Foundation
 @testable import WireMessageStrategy
+import ZMCDataModel
 
 extension MessagingTest {
     
@@ -58,5 +59,9 @@ extension MessagingTest {
             decryptedEvent = directory.decryptUpdateEventAndAddClient(updateEvent, managedObjectContext: self.syncMOC)
         }
         return decryptedEvent
+    }
+    
+    @objc static func OTRFolderForMockTransport() -> URL {
+        return EncryptionKeysStore.otrDirectoryURL
     }
 }

@@ -110,8 +110,7 @@ NSString *const ZMPersistedClientIdKey = @"PersistedClientId";
     
     [ZMPersistentCookieStorage deleteAllKeychainItems];
     self.mockTransportSession = [[MockTransportSession alloc] initWithDispatchGroup:self.dispatchGroup];
-    // TODO MARCO
-    // self.mockTransportSession.cryptoboxLocation = [UserClientKeysStore otrDirectory];
+    self.mockTransportSession.cryptoboxLocation = [MessagingTest OTRFolderForMockTransport];
     Require([self waitForAllGroupsToBeEmptyWithTimeout:5]);
 }
 
