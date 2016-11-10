@@ -38,8 +38,7 @@ WireMessageStrategy.framework.zip
 
 
 *.swp
-build/include
-build/lib
+build
 
 ## Test Output
 xcode-analyze.log
