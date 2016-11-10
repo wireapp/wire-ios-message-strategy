@@ -192,7 +192,7 @@ class AssetV3PreviewDownloadRequestStrategyTests: MessagingTest {
         XCTAssertNil(sut.nextRequest())
     }
 
-    func testThatItDoesNotGenerateAReuqestForAV3FileMessageWithPreviewThatAlreadyHasBeenDownloaded() {
+    func testThatItDoesNotGenerateARequestForAV3FileMessageWithPreviewThatAlreadyHasBeenDownloaded() {
         // given
         let (message, _, _) = createMessage(in: conversation)!
         let (previewGenericMessage, _) = createPreview(with: message.nonce.transportString())
