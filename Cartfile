@@ -1,2 +1,2 @@
-github "wireapp/wire-ios-request-strategy" "7.2.0-migrate-sessions-336f1f7"
+github "wireapp/wire-ios-request-strategy" ~> 9.0
 

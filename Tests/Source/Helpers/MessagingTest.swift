@@ -60,8 +60,4 @@ extension MessagingTest {
         }
         return decryptedEvent
     }
-    
-    @objc static func OTRFolderForMockTransport() -> URL {
-        return EncryptionKeysStore.otrDirectoryURL
-    }
 }
