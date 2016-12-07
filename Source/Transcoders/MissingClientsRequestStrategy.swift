@@ -305,14 +305,6 @@ public final class MissingClientsRequestStrategy: ZMObjectSyncStrategy, ZMObject
         return nil
     }
     
-    public var isSlowSyncDone: Bool {
-        return true
-    }
-    
-    public func setNeedsSlowSync() {
-        //no op
-    }
-    
     public func processEvents(_ events: [ZMUpdateEvent], liveEvents: Bool, prefetchResult: ZMFetchRequestBatchResult?) {
         //no op
     }

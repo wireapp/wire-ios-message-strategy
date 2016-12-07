@@ -102,21 +102,6 @@ static NSString const *GetConversationURL = @"/conversations/%@/events?start=%@&
 }
 
 
-- (void)testThatItIsCreatedWithSlowSyncComplete
-{
-    XCTAssertTrue(self.sut.isSlowSyncDone);
-}
-
-- (void)testThatItDoesNotNeedsSlowSyncEvenAfterSetNeedsSlowSync
-{
-    // when
-    [self.sut setNeedsSlowSync];
-    
-    // then
-    XCTAssertTrue(self.sut.isSlowSyncDone);
-}
-
-
 
 @end
 

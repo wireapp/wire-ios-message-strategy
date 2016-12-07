@@ -96,16 +96,6 @@ typedef NS_ENUM(int8_t, ZMAssetTag) {
     [self.messageExpirationTimer tearDown];
 }
 
-- (BOOL)isSlowSyncDone
-{
-    return YES;
-}
-
-- (void)setNeedsSlowSync
-{
-    // nop
-}
-
 - (NSArray *)contextChangeTrackers
 {
     return @[self.upstreamObjectSync, self.messageExpirationTimer];
