@@ -27,13 +27,18 @@ public final class ImageUploadRequestStrategy: ZMObjectSyncStrategy, RequestStra
     fileprivate var upstreamSync : ZMUpstreamModifiedObjectSync!
     
     public init(clientRegistrationStatus: ClientRegistrationDelegate,
-                managedObjectContext: NSManagedObjectContext)
+                managedObjectContext: NSManagedObjectContext,
+                maxConcurrentImageOperation: Int? = nil)
     {
         self.clientRegistrationStatus = clientRegistrationStatus
         let fetchPredicate = NSPredicate(format: "delivered == NO && version < 3")
         let needsProcessingPredicate = NSPredicate(format: "(mediumGenericMessage.imageAssetData.width == 0 || previewGenericMessage.imageAssetData.width == 0) && delivered == NO")
+        let imageOperationQueue = OperationQueue()
+        if let maxConcurrentImageOperation = maxConcurrentImageOperation {
+            imageOperationQueue.maxConcurrentOperationCount = maxConcurrentImageOperation
+        }
         self.imagePreprocessor = ZMImagePreprocessingTracker(managedObjectContext: managedObjectContext,
-                                                             imageProcessingQueue: OperationQueue(),
+                                                             imageProcessingQueue: imageOperationQueue,
                                                              fetch: fetchPredicate,
                                                              needsProcessingPredicate: needsProcessingPredicate,
                                                              entityClass: ZMAssetClientMessage.self)
