@@ -25,10 +25,16 @@ public final class ImageUploadRequestStrategy: ZMObjectSyncStrategy, RequestStra
     fileprivate let requestFactory : ClientMessageRequestFactory = ClientMessageRequestFactory()
     fileprivate weak var clientRegistrationStatus : ClientRegistrationDelegate?
     fileprivate var upstreamSync : ZMUpstreamModifiedObjectSync!
+
+    public convenience init(clientRegistrationStatus: ClientRegistrationDelegate,
+                managedObjectContext: NSManagedObjectContext)
+    {
+        self.init(clientRegistrationStatus: clientRegistrationStatus, managedObjectContext: managedObjectContext, maxConcurrentImageOperation: nil)
+    }
     
     public init(clientRegistrationStatus: ClientRegistrationDelegate,
                 managedObjectContext: NSManagedObjectContext,
-                maxConcurrentImageOperation: Int? = nil)
+                maxConcurrentImageOperation: Int?)
     {
         self.clientRegistrationStatus = clientRegistrationStatus
         let fetchPredicate = NSPredicate(format: "delivered == NO && version < 3")
