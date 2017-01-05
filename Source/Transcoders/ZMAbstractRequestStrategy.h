@@ -54,7 +54,7 @@ typedef NS_OPTIONS(NSInteger, ZMStrategyConfigurationOption) {
 - (void)tearDown;
 
 @property (nonatomic, readonly) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic, readonly) id<ZMAppStateDelegate> appStateDelegate;
+@property (nonatomic, weak, readonly) id<ZMAppStateDelegate> appStateDelegate;
 @property (nonatomic, readonly) ZMStrategyConfigurationOption configuration;
 
 @end

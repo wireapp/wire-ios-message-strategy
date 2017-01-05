@@ -76,8 +76,9 @@
 
 - (void)updateInsertedObject:(ZMMessage *)message request:(ZMUpstreamRequest *)upstreamRequest response:(ZMTransportResponse *)response;
 {
+    id<ZMAppStateDelegate> strongDelegate = self.appStateDelegate;
     [super updateInsertedObject:message request:upstreamRequest response:response];
-    [(id)message parseUploadResponse:response clientDeletionDelegate:self.appStateDelegate];
+    [(id)message parseUploadResponse:response clientDeletionDelegate:strongDelegate];
     
     // if it's reaction
     if ([message isKindOfClass:[ZMClientMessage class]] && !message.isZombieObject) {
@@ -87,7 +88,7 @@
             [message.managedObjectContext deleteObject:clientMessage];
         }
         if (clientMessage.genericMessage.hasConfirmation) {
-            [self.appStateDelegate didConfirmMessage:clientMessage.nonce];
+            [strongDelegate didConfirmMessage:clientMessage.nonce];
             [message.managedObjectContext deleteObject:clientMessage]; // we don't need the message anymore
         }
     }

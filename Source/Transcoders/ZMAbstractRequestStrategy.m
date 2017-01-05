@@ -20,7 +20,7 @@
 
 @interface ZMAbstractRequestStrategy()
 @property (nonatomic) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic) id<ZMAppStateDelegate> appStateDelegate;
+@property (nonatomic, weak) id<ZMAppStateDelegate> appStateDelegate;
 @end
 
 @implementation ZMAbstractRequestStrategy
@@ -42,17 +42,18 @@
 
 - (ZMTransportRequest *)nextRequest
 {
-    if (self.appStateDelegate.appState == ZMAppStateUnauthenticated &&
+    ZMAppState currentState = self.appStateDelegate.appState;
+    if (currentState == ZMAppStateUnauthenticated &&
         (self.configuration & ZMStrategyConfigurationOptionAllowsRequestsWhileUnauthenticated) ==ZMStrategyConfigurationOptionAllowsRequestsWhileUnauthenticated)
     {
         return [self nextRequestIfAllowed];
     }
-    if (self.appStateDelegate.appState == ZMAppStateSyncing &&
+    if (currentState == ZMAppStateSyncing &&
         (self.configuration & ZMStrategyConfigurationOptionAllowsRequestsDuringSync) ==ZMStrategyConfigurationOptionAllowsRequestsDuringSync)
     {
         return [self nextRequestIfAllowed];
     }
-    if (self.appStateDelegate.appState == ZMAppStateEventProcessing &&
+    if (currentState == ZMAppStateEventProcessing &&
         (self.configuration & ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing) ==ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing)
     {
         return [self nextRequestIfAllowed];
