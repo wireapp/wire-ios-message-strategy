@@ -19,6 +19,25 @@
 import Foundation
 import WireRequestStrategy
 
+fileprivate extension ZMImagePreprocessingTracker {
+    
+    static func createImagePreprocessor(managedObjectContext: NSManagedObjectContext, maxConcurrentImageOperation: Int?) -> ZMImagePreprocessingTracker! {
+        let fetchPredicate = NSPredicate(format: "delivered == NO && version < 3")
+        let needsProcessingPredicate = NSPredicate(format: "(mediumGenericMessage.imageAssetData.width == 0 || previewGenericMessage.imageAssetData.width == 0) && delivered == NO")
+        let imageOperationQueue = OperationQueue()
+        if let maxConcurrentImageOperation = maxConcurrentImageOperation {
+            imageOperationQueue.maxConcurrentOperationCount = maxConcurrentImageOperation
+        }
+        let imagePreprocessor = ZMImagePreprocessingTracker(managedObjectContext: managedObjectContext,
+                                                             imageProcessingQueue: imageOperationQueue,
+                                                             fetch: fetchPredicate,
+                                                             needsProcessingPredicate: needsProcessingPredicate,
+                                                             entityClass: ZMAssetClientMessage.self)
+        return imagePreprocessor
+    }
+}
+
+
 public final class ImageUploadRequestStrategy: ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
     
     fileprivate let imagePreprocessor : ZMImagePreprocessingTracker
@@ -26,15 +45,15 @@ public final class ImageUploadRequestStrategy: ZMAbstractRequestStrategy, ZMCont
     fileprivate var upstreamSync : ZMUpstreamModifiedObjectSync!
     override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
 
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
-
-        let fetchPredicate = NSPredicate(format: "delivered == NO && version < 3")
-        let needsProcessingPredicate = NSPredicate(format: "(mediumGenericMessage.imageAssetData.width == 0 || previewGenericMessage.imageAssetData.width == 0) && delivered == NO")
-        self.imagePreprocessor = ZMImagePreprocessingTracker(managedObjectContext: managedObjectContext,
-                                                             imageProcessingQueue: OperationQueue(),
-                                                             fetch: fetchPredicate,
-                                                             needsProcessingPredicate: needsProcessingPredicate,
-                                                             entityClass: ZMAssetClientMessage.self)
+    @available (*, unavailable)
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate){
+        fatalError();
+    }
+    
+    public init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate,
+                maxConcurrentImageOperation: Int?)
+    {
+        self.imagePreprocessor = ZMImagePreprocessingTracker.createImagePreprocessor(managedObjectContext: managedObjectContext, maxConcurrentImageOperation: maxConcurrentImageOperation)
         
         super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
         

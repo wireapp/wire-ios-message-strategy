@@ -32,7 +32,7 @@ class ImageUploadRequestStrategyTests: MessagingTest {
         self.mockAppStateDelegate = MockAppStateDelegate()
         mockAppStateDelegate.mockAppState = .eventProcessing
 
-        self.sut = ImageUploadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate:mockAppStateDelegate)
+        self.sut = ImageUploadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate:mockAppStateDelegate, maxConcurrentImageOperation: nil)
         
         createSelfClient()
     }

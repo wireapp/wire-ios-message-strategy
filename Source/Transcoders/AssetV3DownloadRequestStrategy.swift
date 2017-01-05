@@ -99,12 +99,16 @@ fileprivate let zmLog = ZMSLog(tag: "Asset V3")
             }
         }
 
+        //we've just downloaded some data, we need to refresh the category of the message.
+        assetClientMessage.updateCategoryCache()
         let messageObjectId = assetClientMessage.objectID
-        self.managedObjectContext.zm_userInterface.performGroupedBlock({ () -> Void in
-            let uiMessage = try? self.managedObjectContext.zm_userInterface.existingObject(with: messageObjectId)
+        let downloadSuccess = assetClientMessage.transferState == .downloaded
+        let uiMOC = self.managedObjectContext.zm_userInterface!
+        uiMOC.performGroupedBlock({ () -> Void in
+            let uiMessage = (try? uiMOC.existingObject(with: messageObjectId)) as? ZMAssetClientMessage
 
             let userInfo = [AssetDownloadRequestStrategyNotification.downloadStartTimestampKey: response.startOfUploadTimestamp]
-            if assetClientMessage.transferState == .downloaded {
+            if downloadSuccess {
                 NotificationCenter.default.post(name: NSNotification.Name(rawValue: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName), object: uiMessage, userInfo: userInfo)
             }
             else {
