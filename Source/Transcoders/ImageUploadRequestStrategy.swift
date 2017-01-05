@@ -19,17 +19,15 @@
 import Foundation
 import WireRequestStrategy
 
-public final class ImageUploadRequestStrategy: ZMObjectSyncStrategy, RequestStrategy, ZMContextChangeTrackerSource {
+public final class ImageUploadRequestStrategy: ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
     
     fileprivate let imagePreprocessor : ZMImagePreprocessingTracker
     fileprivate let requestFactory : ClientMessageRequestFactory = ClientMessageRequestFactory()
-    fileprivate weak var clientRegistrationStatus : ClientRegistrationDelegate?
     fileprivate var upstreamSync : ZMUpstreamModifiedObjectSync!
-    
-    public init(clientRegistrationStatus: ClientRegistrationDelegate,
-                managedObjectContext: NSManagedObjectContext)
-    {
-        self.clientRegistrationStatus = clientRegistrationStatus
+    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
+
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+
         let fetchPredicate = NSPredicate(format: "delivered == NO && version < 3")
         let needsProcessingPredicate = NSPredicate(format: "(mediumGenericMessage.imageAssetData.width == 0 || previewGenericMessage.imageAssetData.width == 0) && delivered == NO")
         self.imagePreprocessor = ZMImagePreprocessingTracker(managedObjectContext: managedObjectContext,
@@ -38,7 +36,7 @@ public final class ImageUploadRequestStrategy: ZMObjectSyncStrategy, RequestStra
                                                              needsProcessingPredicate: needsProcessingPredicate,
                                                              entityClass: ZMAssetClientMessage.self)
         
-        super.init(managedObjectContext: managedObjectContext)
+        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
         
         let insertPredicate = NSPredicate(format: "\(ZMAssetClientMessageUploadedStateKey) != \(ZMAssetUploadState.done.rawValue) && version < 3")
         let uploadFilter = NSPredicate { (object : Any, _) -> Bool in
@@ -61,8 +59,7 @@ public final class ImageUploadRequestStrategy: ZMObjectSyncStrategy, RequestStra
         return [imagePreprocessor, upstreamSync]
     }
     
-    public func nextRequest() -> ZMTransportRequest? {
-        guard let registration = self.clientRegistrationStatus, registration.clientIsReadyForRequests else { return nil }
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
         return self.upstreamSync.nextRequest()
     }
 }
@@ -83,10 +80,7 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
         
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-        
-        if let clientRegistrationStatus = self.clientRegistrationStatus {
-            let _ = message.parseUploadResponse(response, clientDeletionDelegate: clientRegistrationStatus)
-        }
+        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
     }
     
     public func updateInsertedObject(_ managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse) {
@@ -174,9 +168,9 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
     }
     
     public func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
-        guard let message = managedObject as? ZMAssetClientMessage, let clientRegistrationStatus = self.clientRegistrationStatus else { return false }
+        guard let message = managedObject as? ZMAssetClientMessage else { return false }
      
-        let shouldRetry = message.parseUploadResponse(response, clientDeletionDelegate: clientRegistrationStatus)
+        let shouldRetry = message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
         if !shouldRetry {
             message.uploadState = .uploadingFailed
         }

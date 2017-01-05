@@ -23,17 +23,17 @@ import Foundation
 
 class AssetV3ImageUploadRequestStrategyTests: MessagingTest {
 
-    fileprivate var registrationStatus: MockClientRegistrationStatus!
-    fileprivate var mockCancellationProvider: MockTaskCancellationProvider!
+    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
     fileprivate var sut : AssetV3ImageUploadRequestStrategy!
     fileprivate var conversation: ZMConversation!
     fileprivate var imageData = mediumJPEGData()
 
     override func setUp() {
         super.setUp()
-        registrationStatus = MockClientRegistrationStatus()
-        mockCancellationProvider = MockTaskCancellationProvider()
-        sut = AssetV3ImageUploadRequestStrategy(clientRegistrationStatus: registrationStatus, taskCancellationProvider: mockCancellationProvider, managedObjectContext: syncMOC)
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+
+        sut = AssetV3ImageUploadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate:mockAppStateDelegate)
         conversation = ZMConversation.insertNewObject(in: syncMOC)
         conversation.remoteIdentifier = UUID.create()
         createSelfClient()

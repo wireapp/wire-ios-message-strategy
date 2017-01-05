@@ -21,15 +21,14 @@ import Foundation
 import WireRequestStrategy
 
 
-@objc public final class LinkPreviewAssetDownloadRequestStrategy: ZMObjectSyncStrategy, RequestStrategy {
+@objc public final class LinkPreviewAssetDownloadRequestStrategy: ZMAbstractRequestStrategy {
     
     fileprivate var assetDownstreamObjectSync: ZMDownstreamObjectSyncWithWhitelist!
-    fileprivate weak var authStatus: ClientRegistrationDelegate?
     fileprivate let assetRequestFactory = AssetDownloadRequestFactory()
-    
-    public init(authStatus: ClientRegistrationDelegate, managedObjectContext: NSManagedObjectContext) {
-        self.authStatus = authStatus
-        super.init(managedObjectContext: managedObjectContext)
+    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
+
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
         
         let downloadFilter = NSPredicate { object, _ in
             guard let message = object as? ZMClientMessage, let genericMessage = message.genericMessage, genericMessage.textData != nil else { return false }
@@ -71,8 +70,7 @@ import WireRequestStrategy
         }
     }
     
-    public func nextRequest() -> ZMTransportRequest? {
-        guard let registration = authStatus, registration.clientIsReadyForRequests else { return nil }
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
         return assetDownstreamObjectSync.nextRequest()
     }
     

@@ -48,8 +48,6 @@
 
 @interface ZMClientMessageTranscoderTests : ZMMessageTranscoderTests
 
-@property (nonatomic) id<ClientRegistrationDelegate> mockClientRegistrationStatus;
-@property (nonatomic) MockConfirmationStatus *mockAPNSConfirmationStatus;
 @property (nonatomic) id<ZMPushMessageHandler> mockNotificationDispatcher;
 
 - (ZMConversation *)setupOneOnOneConversation;
@@ -62,21 +60,17 @@
 - (void)setUp
 {
     [super setUp];
-    self.mockAPNSConfirmationStatus = [[MockConfirmationStatus alloc] init];
-    self.mockClientRegistrationStatus = [OCMockObject mockForProtocol:@protocol(ClientRegistrationDelegate)];
     self.mockNotificationDispatcher = [OCMockObject niceMockForProtocol:@protocol(ZMPushMessageHandler)];
     [self setupSUT];
     
     [[self.mockExpirationTimer stub] tearDown];
-    [self verifyMockLater:self.mockClientRegistrationStatus];
 }
 
 - (void)setupSUT
 {
     self.sut = [[ZMClientMessageTranscoder alloc] initWithManagedObjectContext:self.syncMOC
-                                                   localNotificationDispatcher:self.notificationDispatcher
-                                                      clientRegistrationStatus:self.mockClientRegistrationStatus
-                                                        apnsConfirmationStatus:self.mockAPNSConfirmationStatus];
+                                                              appStateDelegate:self.mockAppStateDelegate
+                                                   localNotificationDispatcher:self.notificationDispatcher];
 }
 
 - (void)tearDown
@@ -407,7 +401,7 @@
         
         // when
         block(message);
-        ZMTransportRequest *request = [self.sut.requestGenerators nextRequest];
+        ZMTransportRequest *request = [self.sut nextRequest];
         
         // then
         //POST /conversations/{cnv}/messages
@@ -470,7 +464,7 @@
     
     __block ZMTransportRequest *request;
     [self.syncMOC performGroupedBlock:^{
-        request = [self.sut.requestGenerators nextRequest];
+        request = [self.sut nextRequest];
     }];
     WaitForAllGroupsToBeEmpty(0.5);
     
@@ -634,14 +628,11 @@
         ZMTransportResponse *response = [ZMTransportResponse responseWithPayload:payload HTTPStatus:403 transportSessionError:nil];
         ZMUpstreamRequest *request = [[ZMUpstreamRequest alloc] initWithTransportRequest:[ZMTransportRequest requestGetFromPath:@"foo"]];
         
-        // expect
-        [[(id)self.mockClientRegistrationStatus expect] didDetectCurrentClientDeletion];
-        
         // when
         [self.sut shouldRetryToSyncAfterFailedToUpdateObject:message request:request response:response keysToParse:[NSSet set]];
         
         // then
-        [(id)self.mockClientRegistrationStatus verify];
+        XCTAssertEqual([(MockAppStateDelegate *)self.mockAppStateDelegate deletionCalls], 1u);
     }];
     
     WaitForAllGroupsToBeEmpty(0.5);
@@ -656,14 +647,11 @@
             ZMTransportResponse *response = [ZMTransportResponse responseWithPayload:@[] HTTPStatus:403 transportSessionError:nil];
             ZMUpstreamRequest *request = [[ZMUpstreamRequest alloc] initWithTransportRequest:[ZMTransportRequest requestGetFromPath:@"foo"]];
             
-            // reject
-            [[(id)self.mockClientRegistrationStatus reject] didDetectCurrentClientDeletion];
-            
             // when
             [self.sut shouldRetryToSyncAfterFailedToUpdateObject:message request:request response:response keysToParse:[NSSet set]];
             
             // then
-            [(id)self.mockClientRegistrationStatus verify];
+            XCTAssertEqual([(MockAppStateDelegate *)self.mockAppStateDelegate deletionCalls], 0u);
         }];
         
         WaitForAllGroupsToBeEmpty(0.5);
@@ -920,7 +908,7 @@
     WaitForAllGroupsToBeEmpty(0.5);
     
     [self.syncMOC performGroupedBlockAndWait:^{
-        ZMTransportRequest *request = [self.sut.requestGenerators.firstObject nextRequest];
+        ZMTransportRequest *request = [self.sut nextRequest];
         
         // then
         XCTAssertNotNil(request);
@@ -1072,9 +1060,9 @@
     // then
     NSUUID *lastMessageNonce = [conversation.hiddenMessages.lastObject nonce];
     if (shouldCallConfirmationStatus) {
-        XCTAssertTrue([self.mockAPNSConfirmationStatus.messagesToConfirm containsObject:lastMessageNonce]);
+        XCTAssertTrue([[(MockAppStateDelegate *)self.mockAppStateDelegate messagesToConfirm] containsObject:lastMessageNonce]);
     } else {
-        XCTAssertFalse([self.mockAPNSConfirmationStatus.messagesToConfirm containsObject:lastMessageNonce]);
+        XCTAssertFalse([[(MockAppStateDelegate *)self.mockAppStateDelegate messagesToConfirm] containsObject:lastMessageNonce]);
     }
 }
 
@@ -1113,7 +1101,7 @@
     WaitForAllGroupsToBeEmpty(0.5);
     
     // then
-    XCTAssertTrue([self.mockAPNSConfirmationStatus.messagesConfirmed containsObject:confirmationUUID]);
+    XCTAssertTrue([[(MockAppStateDelegate *)self.mockAppStateDelegate messagesConfirmed] containsObject:confirmationUUID]);
 }
 
 - (void)testThatItDeletesTheConfirmationMessageWhenSentSuccessfully

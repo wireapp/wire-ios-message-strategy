@@ -50,7 +50,7 @@ fileprivate extension ZMTransportRequest {
 
 class AssetClientMessageRequestStrategyTests: MessagingTest {
 
-    fileprivate var clientRegistrationStatus: MockClientRegistrationStatus!
+    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
     fileprivate var sut: AssetClientMessageRequestStrategy!
     fileprivate var conversation: ZMConversation!
     fileprivate var otherUser: ZMUser!
@@ -58,8 +58,9 @@ class AssetClientMessageRequestStrategyTests: MessagingTest {
 
     override func setUp() {
         super.setUp()
-        clientRegistrationStatus = MockClientRegistrationStatus()
-        sut = AssetClientMessageRequestStrategy(clientRegistrationStatus: clientRegistrationStatus, managedObjectContext: syncMOC)
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+        sut = AssetClientMessageRequestStrategy(managedObjectContext: syncMOC, appStateDelegate:mockAppStateDelegate)
         createConversation()
         createSelfClient()
     }

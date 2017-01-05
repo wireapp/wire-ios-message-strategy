@@ -1,4 +1,4 @@
-// 
+//
 // Wire
 // Copyright (C) 2016 Wire Swiss GmbH
 // 
@@ -24,13 +24,15 @@ import ZMCLinkPreview
 class LinkPreviewAssetUploadRequestStrategyTests: MessagingTest {
     
     fileprivate var sut: LinkPreviewAssetUploadRequestStrategy!
-    fileprivate var authStatus: MockClientRegistrationStatus!
+    fileprivate var mockAppStateDelegate: MockAppStateDelegate!
     
     override func setUp() {
         super.setUp()
         
-        self.authStatus = MockClientRegistrationStatus()
-        self.sut = LinkPreviewAssetUploadRequestStrategy(clientRegistrationDelegate: authStatus, managedObjectContext: self.syncMOC)
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+
+        self.sut = LinkPreviewAssetUploadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: mockAppStateDelegate, linkPreviewPreprocessor: nil, previewImagePreprocessor: nil)
     }
     
     /// Creates a message that should generate request
@@ -124,7 +126,7 @@ extension LinkPreviewAssetUploadRequestStrategyTests {
         let message = createMessage(article.permanentURL!.absoluteString, linkPreviewState: .processed, linkPreview: article)
         self.syncMOC.zm_imageAssetCache.storeAssetData(message.nonce, format: .medium, encrypted: true, data: article.imageData.first!)
         process(sut, message: message)
-        authStatus.mockClientIsReadyForRequests = false
+        mockAppStateDelegate.mockAppState = .unauthenticated
         
         // when
         let request = sut.nextRequest()

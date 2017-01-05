@@ -25,20 +25,15 @@ private let testDataURL = Bundle(for: AssetV3DownloadRequestStrategyTests.self).
 
 class AssetV3DownloadRequestStrategyTests: MessagingTest {
 
-    var authStatus: MockClientRegistrationStatus!
-    var cancellationProvider: MockTaskCancellationProvider!
+    var mockAppStateDelegate: MockAppStateDelegate!
     var sut: AssetV3DownloadRequestStrategy!
     var conversation: ZMConversation!
 
     override func setUp() {
         super.setUp()
-        authStatus = MockClientRegistrationStatus()
-        cancellationProvider = MockTaskCancellationProvider()
-        sut = AssetV3DownloadRequestStrategy(
-            authStatus: authStatus,
-            taskCancellationProvider: cancellationProvider,
-            managedObjectContext: syncMOC
-        )
+        mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+        sut = AssetV3DownloadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
         conversation = createConversation()
     }
 
@@ -140,7 +135,7 @@ class AssetV3DownloadRequestStrategyTests: MessagingTest {
 
     func testThatItGeneratesNoRequestsIfNotAuthenticated_V3() {
         // given
-        authStatus.mockClientIsReadyForRequests = false
+        mockAppStateDelegate.mockAppState = .unauthenticated
         _ = createFileMessageWithAssetId(in: conversation)! // V3
 
         // then
@@ -341,8 +336,8 @@ extension AssetV3DownloadRequestStrategyTests {
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
         // then the cancellation provider should be informed to cancel the request
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 1)
-        let cancelledIdentifier = cancellationProvider.cancelledIdentifiers.first
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 1)
+        let cancelledIdentifier = mockAppStateDelegate.cancelledIdentifiers.first
         XCTAssertEqual(cancelledIdentifier, identifier)
 
         // It should nil-out the identifier as it has been cancelled

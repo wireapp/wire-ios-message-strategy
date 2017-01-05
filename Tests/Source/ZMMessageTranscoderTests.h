@@ -35,6 +35,7 @@
 
 @property (nonatomic) id notificationDispatcher;
 @property (nonatomic) id mockExpirationTimer;
+@property (nonatomic) id mockAppStateDelegate;
 
 - (ZMConversation *)insertGroupConversation;
 - (ZMConversation *)insertGroupConversationInMoc:(NSManagedObjectContext *)moc;

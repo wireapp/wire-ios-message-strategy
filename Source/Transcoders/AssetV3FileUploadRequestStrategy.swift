@@ -53,25 +53,22 @@ extension ZMAssetClientMessage {
 }
 
 
-public final class AssetV3FileUploadRequestStrategy: ZMObjectSyncStrategy, RequestStrategy, ZMContextChangeTrackerSource {
+public final class AssetV3FileUploadRequestStrategy: ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
 
     fileprivate let requestFactory = AssetRequestFactory()
     fileprivate var upstreamSync: ZMUpstreamModifiedObjectSync!
     fileprivate var filePreprocessor : FilePreprocessor
 
     fileprivate var assetAnalytics: AssetAnalytics
+    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
 
-    fileprivate weak var clientRegistrationStatus: ClientRegistrationDelegate?
-    fileprivate weak var taskCancellationProvider: ZMRequestCancellation?
 
-    public init(clientRegistrationStatus: ClientRegistrationDelegate, taskCancellationProvider: ZMRequestCancellation, managedObjectContext: NSManagedObjectContext) {
-        self.clientRegistrationStatus = clientRegistrationStatus
-        self.taskCancellationProvider = taskCancellationProvider
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
         let filter = NSPredicate(format: "version == 3 && uploadState == %d", ZMAssetUploadState.uploadingFullAsset.rawValue)
         filePreprocessor = FilePreprocessor(managedObjectContext: managedObjectContext, filter: filter)
         assetAnalytics = AssetAnalytics(managedObjectContext: managedObjectContext)
 
-        super.init(managedObjectContext: managedObjectContext)
+        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
 
         upstreamSync = ZMUpstreamModifiedObjectSync(
             transcoder: self,
@@ -87,8 +84,7 @@ public final class AssetV3FileUploadRequestStrategy: ZMObjectSyncStrategy, Reque
         return [filePreprocessor, upstreamSync, self]
     }
 
-    public func nextRequest() -> ZMTransportRequest? {
-        guard let status = clientRegistrationStatus, status.clientIsReadyForRequests else { return nil }
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
         return upstreamSync.nextRequest()
     }
 }
@@ -121,7 +117,7 @@ extension AssetV3FileUploadRequestStrategy: ZMContextChangeTracker {
 
     fileprivate func cancelOutstandingUploadRequests(forMessage message: ZMAssetClientMessage) {
         guard let identifier = message.associatedTaskIdentifier else { return }
-        taskCancellationProvider?.cancelTask(with: identifier)
+        appStateDelegate.cancelTask(with: identifier)
     }
 
 }
@@ -140,10 +136,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
     fileprivate func update(_ message: ZMAssetClientMessage, withResponse response: ZMTransportResponse, updatedKeys keys: Set<String>) {
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-
-        if let status = clientRegistrationStatus {
-            _ = message.parseUploadResponse(response, clientDeletionDelegate: status)
-        }
+        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
     }
 
     public func updateInsertedObject(_ managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse) {
@@ -231,10 +224,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
                                              response: ZMTransportResponse,
                                              keysToParse keys: Set<String>)-> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
-        var failedBecauseOfMissingClients = false
-        if let delegate = self.clientRegistrationStatus {
-            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
-        }
+        let failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)
             failMessageUpload(message, keys: keys, request: upstreamRequest.transportRequest)

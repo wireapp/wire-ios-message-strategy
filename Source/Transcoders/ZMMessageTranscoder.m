@@ -55,16 +55,21 @@ typedef NS_ENUM(int8_t, ZMAssetTag) {
 
 
 
-+ (instancetype)systemMessageTranscoderWithManagedObjectContext:(NSManagedObjectContext *)moc localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
++ (instancetype)systemMessageTranscoderWithManagedObjectContext:(NSManagedObjectContext *)moc
+                                               appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
+                                    localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
 {
-    return [[ZMSystemMessageTranscoder alloc] initWithManagedObjectContext:moc upstreamInsertedObjectSync:nil localNotificationDispatcher:dispatcher messageExpirationTimer:nil];
+    return [[ZMSystemMessageTranscoder alloc] initWithManagedObjectContext:moc appStateDelegate: appStateDelegate upstreamInsertedObjectSync:nil localNotificationDispatcher:dispatcher messageExpirationTimer:nil];
 }
 
-- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc entityName:(NSString *)entityName localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
+- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc
+                            appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
+                                  entityName:(NSString *)entityName
+                 localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
 {
     ZMUpstreamInsertedObjectSync *upstreamObjectSync = [[ZMUpstreamInsertedObjectSync alloc] initWithTranscoder:self entityName:entityName managedObjectContext:moc];
     ZMMessageExpirationTimer *messageTimer = [[ZMMessageExpirationTimer alloc] initWithManagedObjectContext:moc entityName:entityName localNotificationDispatcher:dispatcher];
-    return [self initWithManagedObjectContext:moc upstreamInsertedObjectSync:upstreamObjectSync localNotificationDispatcher:dispatcher messageExpirationTimer:messageTimer];
+    return [self initWithManagedObjectContext:moc appStateDelegate: appStateDelegate upstreamInsertedObjectSync:upstreamObjectSync localNotificationDispatcher:dispatcher messageExpirationTimer:messageTimer];
 }
 
 - (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc;
@@ -74,9 +79,13 @@ typedef NS_ENUM(int8_t, ZMAssetTag) {
     return nil;
 }
 
-- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc upstreamInsertedObjectSync:(ZMUpstreamInsertedObjectSync *)upstreamObjectSync localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher messageExpirationTimer:(ZMMessageExpirationTimer *)expirationTimer;
+- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc
+                            appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
+                  upstreamInsertedObjectSync:(ZMUpstreamInsertedObjectSync *)upstreamObjectSync
+                 localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher
+                      messageExpirationTimer:(ZMMessageExpirationTimer *)expirationTimer;
 {
-    self = [super initWithManagedObjectContext:moc];
+    self = [super initWithManagedObjectContext:moc appStateDelegate: appStateDelegate];
     if (self) {
         self.localNotificationDispatcher = dispatcher;
         self.upstreamObjectSync = upstreamObjectSync;
@@ -101,9 +110,9 @@ typedef NS_ENUM(int8_t, ZMAssetTag) {
     return @[self.upstreamObjectSync, self.messageExpirationTimer];
 }
 
-- (NSArray *)requestGenerators;
+- (ZMTransportRequest *)nextRequestIfAllowed
 {
-    return @[self.upstreamObjectSync];
+    return self.upstreamObjectSync.nextRequest;
 }
 
 - (void)processEvents:(NSArray<ZMUpdateEvent *> *)events
@@ -249,11 +258,6 @@ typedef NS_ENUM(int8_t, ZMAssetTag) {
     return @[];
 }
             
-- (NSArray<id<ZMRequestGenerator>> *)requestGenerators
-{
-    return @[];
-}
-
 @end
 
 

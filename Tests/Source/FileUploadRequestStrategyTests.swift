@@ -21,16 +21,6 @@ import Foundation
 import WireRequestStrategy
 @testable import WireMessageStrategy
 
-
-private class FakeCancelationProvider : NSObject, ZMRequestCancellation {
-    
-    var cancelledIdentifiers = [ZMTaskIdentifier]()
-    
-    @objc func cancelTask(with identifier: ZMTaskIdentifier) {
-        cancelledIdentifiers.append(identifier)
-    }
-}
-
 @objc class FakeZMURLSessionDelegate: NSObject, ZMURLSessionDelegate {
     @objc func urlSessionDidReceiveData(_ URLSession: ZMURLSession) {}
     @objc func urlSession(_ URLSession: ZMURLSession, dataTask: URLSessionDataTask, didReceive didReceiveResponse: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {}
@@ -45,19 +35,15 @@ private let testData = try! Data(contentsOf: testDataURL)
 class FileUploadRequestStrategyTests: MessagingTest {
 
     fileprivate var sut: FileUploadRequestStrategy!
-    fileprivate var cancellationProvider: FakeCancelationProvider!
-	fileprivate var clientRegistrationStatus : MockClientRegistrationStatus!
+    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
     
     override func setUp() {
         super.setUp()
         createSelfClient()
-        self.cancellationProvider = FakeCancelationProvider()
-		self.clientRegistrationStatus = MockClientRegistrationStatus()
-        self.sut = FileUploadRequestStrategy(
-			clientRegistrationStatus: self.clientRegistrationStatus,
-            managedObjectContext: self.syncMOC,
-            taskCancellationProvider: self.cancellationProvider
-        )
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+        
+        self.sut = FileUploadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate:mockAppStateDelegate)
     }
     
     /// Creates a message that should generate request
@@ -252,7 +238,7 @@ extension FileUploadRequestStrategyTests {
     func testThatItDoesNotGeneratesARequestWhenNotAuthenticated() {
         
         // given
-		self.clientRegistrationStatus.mockClientIsReadyForRequests = false
+        mockAppStateDelegate.mockAppState = .unauthenticated
         let msg = createMessage("foo")
         self.process(sut, message: msg)
         
@@ -539,7 +525,7 @@ extension FileUploadRequestStrategyTests {
         msg.associatedTaskIdentifier = identifier
         process(sut, message: msg)
         guard let request = sut.nextRequest() else { return XCTFail() }
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
         
         // when
         request.complete(with: ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 400, transportSessionError: nil))
@@ -547,7 +533,7 @@ extension FileUploadRequestStrategyTests {
         
         // then there should not be a running upload request as the upload failed by itself,
         // next request would be the Asset.NotUploaded request
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
     }
     
     func testThatItDoesNotCancelCurrentlyRunningRequestWhenTheUploadFails_Thumbnail() {
@@ -562,7 +548,7 @@ extension FileUploadRequestStrategyTests {
         
         XCTAssertEqual(msg.genericAssetMessage?.asset.preview.hasImage(), true)
         guard let request = sut.nextRequest() else { return XCTFail() }
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
         
         // when
         request.complete(with: ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 400, transportSessionError: nil))
@@ -571,7 +557,7 @@ extension FileUploadRequestStrategyTests {
         
         // then there should not be a running upload request as the upload failed by itself,
         // next request would be the Asset.NotUploaded request
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
     }
     
     func testThatItCancelsCurrentlyRunningRequestWhenTheUploadIsCancelledAndItCreatesThe_NotUploaded_Request() {
@@ -582,7 +568,7 @@ extension FileUploadRequestStrategyTests {
         msg.associatedTaskIdentifier = identifier
         process(sut, message: msg)
         guard let request = sut.nextRequest() else { return XCTFail() }
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
         
         // when
         msg.fileMessageData?.cancelTransfer()
@@ -596,8 +582,8 @@ extension FileUploadRequestStrategyTests {
         guard let _ = sut.nextRequest() else { return XCTFail("Request was nil") } // Asset.NotUploaded
         
         // then
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 1)
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.first, identifier)
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 1)
+        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.first, identifier)
     }
     
     func testThatItUpdatesTheAssociatedTaskIdentifierWhenTheTaskHasBeenCreated_PlaceholderUpload() {

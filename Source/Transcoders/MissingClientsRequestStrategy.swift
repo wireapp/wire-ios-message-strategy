@@ -48,21 +48,14 @@ public extension UserClient {
 
 // Register new client, update it with new keys, deletes clients.
 @objc
-public final class MissingClientsRequestStrategy: ZMObjectSyncStrategy, ZMObjectStrategy, ZMUpstreamTranscoder {
+public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMUpstreamTranscoder, ZMContextChangeTrackerSource {
     
-    weak var clientRegistrationStatus: ClientRegistrationDelegate?
-    weak var apnsConfirmationStatus: DeliveryConfirmationDelegate?
-
+    override public var configuration : ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
     fileprivate(set) var modifiedSync: ZMUpstreamModifiedObjectSync! = nil
     public var requestsFactory = MissingClientsRequestFactory()
     
-    public init(clientRegistrationStatus:ClientRegistrationDelegate,
-                apnsConfirmationStatus: DeliveryConfirmationDelegate,
-                managedObjectContext: NSManagedObjectContext)
-    {
-        self.apnsConfirmationStatus = apnsConfirmationStatus
-        self.clientRegistrationStatus = clientRegistrationStatus
-        super.init(managedObjectContext: managedObjectContext)
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
         
         self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: UserClient.entityName(), update: modifiedPredicate(), filter: nil, keysToSync: [ZMUserClientMissingKey], managedObjectContext: managedObjectContext)
     }
@@ -78,10 +71,7 @@ public final class MissingClientsRequestStrategy: ZMObjectSyncStrategy, ZMObject
         return modifiedPredicate
     }
     
-    public func nextRequest() -> ZMTransportRequest? {
-        guard let clientStatus = clientRegistrationStatus , clientStatus.clientIsReadyForRequests
-        else { return nil }
-        
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
         return modifiedSync.nextRequest()
     }
     
@@ -120,7 +110,7 @@ public final class MissingClientsRequestStrategy: ZMObjectSyncStrategy, ZMObject
         else { fatal("no missing clients found") }
         
         let request = requestsFactory.fetchMissingClientKeysRequest(missing)
-        if let confStatus = apnsConfirmationStatus , confStatus.needsToSyncMessages {
+        if appStateDelegate.needsToSyncMessages {
             request?.transportRequest.forceToVoipSession()
         }
         return request

@@ -23,8 +23,7 @@ import Foundation
 
 class AssetV3FileUploadRequestStrategyTests: MessagingTest {
 
-    fileprivate var registrationStatus: MockClientRegistrationStatus!
-    fileprivate var cancellationProvider: MockTaskCancellationProvider!
+    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
     fileprivate var sut : AssetV3FileUploadRequestStrategy!
     fileprivate var conversation: ZMConversation!
     fileprivate var data: Data!
@@ -32,9 +31,10 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
 
     override func setUp() {
         super.setUp()
-        registrationStatus = MockClientRegistrationStatus()
-        cancellationProvider = MockTaskCancellationProvider()
-        sut = AssetV3FileUploadRequestStrategy(clientRegistrationStatus: registrationStatus, taskCancellationProvider: cancellationProvider, managedObjectContext: syncMOC)
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+
+        sut = AssetV3FileUploadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
         conversation = ZMConversation.insertNewObject(in: syncMOC)
         conversation.remoteIdentifier = UUID.create()
         testFileURL = testURLWithFilename("file.dat")

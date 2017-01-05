@@ -21,6 +21,7 @@
 @import CoreData;
 @import WireRequestStrategy;
 #import "ZMPushMessageHandler.h"
+#import "ZMAbstractRequestStrategy.h"
 
 @class ZMLocalNotificationDispatcher;
 @class ZMConversation;
@@ -28,12 +29,13 @@
 @class ZMUpstreamInsertedObjectSync;
 
 /// Handles sending pending messages to the backend
-@interface ZMMessageTranscoder : ZMObjectSyncStrategy <ZMObjectStrategy>
+@interface ZMMessageTranscoder : ZMAbstractRequestStrategy <ZMEventConsumer, ZMContextChangeTrackerSource>
 
 @property (nonatomic, readonly) BOOL hasPendingMessages;
 @property (nonatomic, readonly) ZMUpstreamInsertedObjectSync *upstreamObjectSync;
 
 + (instancetype)systemMessageTranscoderWithManagedObjectContext:(NSManagedObjectContext *)moc
+                                               appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
                                     localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
 
 @end

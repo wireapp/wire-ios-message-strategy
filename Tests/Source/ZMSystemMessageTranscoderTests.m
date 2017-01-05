@@ -32,7 +32,9 @@
 - (ZMMessageTranscoder *)sut
 {
     if (!_sut) {
+        
         _sut = [ZMMessageTranscoder systemMessageTranscoderWithManagedObjectContext:self.syncMOC
+                                                                   appStateDelegate:self.mockAppStateDelegate
                                                         localNotificationDispatcher:self.notificationDispatcher];
     }
     return _sut;

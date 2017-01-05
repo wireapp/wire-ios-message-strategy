@@ -48,7 +48,7 @@ public extension ZMOTRMessage {
     /// Checks if the response for uploading this message contains a list of missing, deleted and reduntant clients
     /// If it does, updated the corresponding clients as needed (add/remove clients)
     /// - returns: whether the request needs to be retried (after missing messages are fetched)
-    public func parseUploadResponse(_ response: ZMTransportResponse, clientDeletionDelegate: ClientRegistrationDelegate) -> Bool {
+    @discardableResult public func parseUploadResponse(_ response: ZMTransportResponse, clientDeletionDelegate: ClientDeletionDelegate) -> Bool {
         
         // In case the self client got deleted remotely we will receive an event through the push channel and log out.
         // If we for some reason miss the push the BE will repond with a 403 and 'unknown-client' label to our

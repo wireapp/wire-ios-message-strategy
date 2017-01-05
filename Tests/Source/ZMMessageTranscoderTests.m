@@ -26,7 +26,7 @@
 #import "ZMMessageTranscoderTests.h"
 #import "ZMMessageTranscoder+Internal.h"
 #import "ZMMessageExpirationTimer.h"
-
+#import "WireMessageStrategyTests-Swift.h"
 
 static NSString const *EventTypeMessageAdd = @"conversation.message-add";
 
@@ -38,7 +38,8 @@ static NSString const *GetConversationURL = @"/conversations/%@/events?start=%@&
 - (void)setUp
 {
     [super setUp];
-    
+    self.mockAppStateDelegate = [[MockAppStateDelegate alloc] init];
+    [(MockAppStateDelegate *)self.mockAppStateDelegate setMockAppState:ZMAppStateEventProcessing];
     self.mockExpirationTimer = [OCMockObject mockForClass:ZMMessageExpirationTimer.class];
     self.upstreamObjectSync = [OCMockObject mockForClass:ZMUpstreamInsertedObjectSync.class];
     self.notificationDispatcher =
@@ -52,6 +53,7 @@ static NSString const *GetConversationURL = @"/conversations/%@/events?start=%@&
 {
     if (!_sut) {
         _sut = [ZMMessageTranscoder systemMessageTranscoderWithManagedObjectContext:self.syncMOC
+                                                                   appStateDelegate:self.mockAppStateDelegate
                                                         localNotificationDispatcher:self.notificationDispatcher];
     }
     return _sut;

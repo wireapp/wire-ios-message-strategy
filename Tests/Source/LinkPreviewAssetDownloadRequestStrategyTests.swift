@@ -25,15 +25,14 @@ import ZMCDataModel
 class LinkPreviewAssetDownloadRequestStrategyTests: MessagingTest {
 
     var sut: LinkPreviewAssetDownloadRequestStrategy!
-    var authStatus: MockClientRegistrationStatus!
+    var mockAppStateDelegate : MockAppStateDelegate!
     
     override func setUp() {
         super.setUp()
-        authStatus = MockClientRegistrationStatus()
-        sut = LinkPreviewAssetDownloadRequestStrategy(
-            authStatus: authStatus,
-            managedObjectContext: syncMOC
-        )
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+
+        sut = LinkPreviewAssetDownloadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
         syncMOC.zm_imageAssetCache.wipeCache()
         uiMOC.zm_imageAssetCache.wipeCache()
     }

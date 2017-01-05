@@ -14,4 +14,4 @@
 
 #import <WireMessageStrategy/ZMPushMessageHandler.h>
 #import <WireMessageStrategy/CBCryptoBox+UpdateEvents.h>
-
+#import <WireMessageStrategy/ZMAbstractRequestStrategy.h>

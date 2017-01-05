@@ -26,14 +26,17 @@
 @interface ZMMessageTranscoder (Internal) <ZMUpstreamTranscoder>
 
 + (instancetype)systemMessageTranscoderWithManagedObjectContext:(NSManagedObjectContext *)moc
+                                               appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
                                     localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher
                                          messageExpirationTimer:(ZMMessageExpirationTimer *)expirationTimer;
 
 - (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc
+                            appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
                                   entityName:(NSString *)entityName
                  localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
 
 - (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc
+                            appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
                   upstreamInsertedObjectSync:(ZMUpstreamInsertedObjectSync *)upstreamObjectSync
                  localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher
                       messageExpirationTimer:(ZMMessageExpirationTimer *)expirationTimer;
@@ -48,7 +51,7 @@
 
 
 
-@interface ZMSystemMessageTranscoder : ZMMessageTranscoder <ZMObjectStrategy>
+@interface ZMSystemMessageTranscoder : ZMMessageTranscoder
 
 @end
 

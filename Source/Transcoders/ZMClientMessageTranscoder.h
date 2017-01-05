@@ -22,13 +22,11 @@
 #import "ZMPushMessageHandler.h"
 #import "ZMMessageTranscoder.h"
 
-@protocol ClientRegistrationDelegate;
-@protocol DeliveryConfirmationDelegate;
+@protocol ZMAppStateDelegate;
 
 @interface ZMClientMessageTranscoder : ZMMessageTranscoder
 
 - (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc
-                 localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher
-                    clientRegistrationStatus:(id<ClientRegistrationDelegate>)clientDeletionDelegate
-                      apnsConfirmationStatus:(id<DeliveryConfirmationDelegate>)apnsConfirmationStatus;
+                            appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
+                 localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
 @end

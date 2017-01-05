@@ -27,21 +27,17 @@ import ZMCDataModel
 class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
 
     var sut: MissingClientsRequestStrategy!
-    var clientRegistrationStatus: MockClientRegistrationStatus!
-    var confirmationStatus : MockConfirmationStatus!
+    var mockAppStateDelegate: MockAppStateDelegate!
     
     override func setUp() {
         super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-        clientRegistrationStatus = MockClientRegistrationStatus()
-        confirmationStatus = MockConfirmationStatus()
-        sut = MissingClientsRequestStrategy(clientRegistrationStatus: clientRegistrationStatus, apnsConfirmationStatus: confirmationStatus, managedObjectContext: self.syncMOC)
+        mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+        sut = MissingClientsRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: mockAppStateDelegate)
     }
     
     override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        clientRegistrationStatus = nil
-        confirmationStatus = nil
+        mockAppStateDelegate = nil
         sut.tearDown()
         sut = nil
         super.tearDown()

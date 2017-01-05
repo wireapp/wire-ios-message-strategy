@@ -26,18 +26,15 @@ import ZMTransport
     public static let downloadFailedNotificationName = "AssetDownloadRequestStrategyDownloadFailedNotificationName"
 }
 
-@objc public final class AssetDownloadRequestStrategy: NSObject, RequestStrategy, ZMDownstreamTranscoder, ZMContextChangeTrackerSource {
+@objc public final class AssetDownloadRequestStrategy: ZMAbstractRequestStrategy, ZMDownstreamTranscoder, ZMContextChangeTrackerSource {
     
     fileprivate var assetDownstreamObjectSync: ZMDownstreamObjectSync!
-    fileprivate let managedObjectContext: NSManagedObjectContext
-    fileprivate weak var authStatus: ClientRegistrationDelegate?
-    fileprivate weak var taskCancellationProvider: ZMRequestCancellation?
+    override public var configuration: ZMStrategyConfigurationOption {
+        return [.allowsRequestsDuringEventProcessing]
+    }
     
-    public init(authStatus: ClientRegistrationDelegate, taskCancellationProvider: ZMRequestCancellation, managedObjectContext: NSManagedObjectContext) {
-        self.managedObjectContext = managedObjectContext
-        self.authStatus = authStatus
-        self.taskCancellationProvider = taskCancellationProvider
-        super.init()
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
         registerForCancellationNotification()
         
         let downstreamPredicate = NSPredicate(format: "transferState == %d AND visibleInConversation != nil AND version < 3", ZMFileTransferState.downloading.rawValue)
@@ -68,19 +65,17 @@ import ZMTransport
     func cancelOngoingRequestForAssetClientMessage(_ note: Notification) {
         guard let objectID = note.object as? NSManagedObjectID else { return }
         managedObjectContext.performGroupedBlock { [weak self] in
-            guard let message = self?.managedObjectContext.registeredObject(for: objectID) as? ZMAssetClientMessage else { return }
+            guard let `self` = self else { return }
+            
+            guard let message = self.managedObjectContext.registeredObject(for: objectID) as? ZMAssetClientMessage else { return }
             guard message.version < 3 else { return }
             guard let identifier = message.associatedTaskIdentifier else { return }
-            self?.taskCancellationProvider?.cancelTask(with: identifier)
+            self.appStateDelegate.cancelTask(with: identifier)
             message.associatedTaskIdentifier = nil
         }
     }
 
-    public func nextRequest() -> ZMTransportRequest? {
-        guard let registration = self.authStatus, registration.clientIsReadyForRequests else {
-            return .none
-        }
-        
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
         return self.assetDownstreamObjectSync.nextRequest()
     }
     

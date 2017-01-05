@@ -23,10 +23,7 @@ import WireRequestStrategy
 private let reponseHeaderAssetIdKey = "Location"
 
 
-@objc public final class FileUploadRequestStrategy : ZMObjectSyncStrategy, RequestStrategy, ZMUpstreamTranscoder, ZMContextChangeTrackerSource {
-    
-    /// Client status to know whether we can make requests and to delete client
-    fileprivate weak var clientRegistrationStatus : ClientRegistrationDelegate?
+@objc public final class FileUploadRequestStrategy : ZMAbstractRequestStrategy, ZMUpstreamTranscoder, ZMContextChangeTrackerSource {
     
     /// Upstream sync
     fileprivate var fullFileUpstreamSync : ZMUpstreamModifiedObjectSync!
@@ -36,18 +33,12 @@ private let reponseHeaderAssetIdKey = "Location"
     fileprivate var filePreprocessor : FilePreprocessor
     
     fileprivate var requestFactory : ClientMessageRequestFactory
-    
-    // task cancellation provider
-    fileprivate weak var taskCancellationProvider: ZMRequestCancellation?
-
 
     fileprivate var assetAnalytics: AssetAnalytics
     
-    
-    public init(clientRegistrationStatus : ClientRegistrationDelegate,
-        managedObjectContext: NSManagedObjectContext,
-        taskCancellationProvider: ZMRequestCancellation)
-    {
+    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
+
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
         
         let thumbnailProcessingPredicate = NSPredicate { (obj, _) -> Bool in
             guard let message = obj as? ZMAssetClientMessage,
@@ -68,11 +59,9 @@ private let reponseHeaderAssetIdKey = "Location"
 
         let filter = NSPredicate(format: "version < 3")
         self.filePreprocessor = FilePreprocessor(managedObjectContext: managedObjectContext, filter: filter)
-        self.clientRegistrationStatus = clientRegistrationStatus
         self.requestFactory = ClientMessageRequestFactory()
-        self.taskCancellationProvider = taskCancellationProvider
         self.assetAnalytics = AssetAnalytics(managedObjectContext: managedObjectContext)
-        super.init(managedObjectContext: managedObjectContext)
+        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
 
         
         self.fullFileUpstreamSync = ZMUpstreamModifiedObjectSync(
@@ -136,13 +125,10 @@ private let reponseHeaderAssetIdKey = "Location"
         return nil
     }
     
-    public func updateInsertedObject(_ managedObject: ZMManagedObject,request upstreamRequest: ZMUpstreamRequest,response: ZMTransportResponse)
-    {
+    public func updateInsertedObject(_ managedObject: ZMManagedObject,request upstreamRequest: ZMUpstreamRequest,response: ZMTransportResponse) {
         guard let message = managedObject as? ZMAssetClientMessage, let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: Set())
-        if let delegate = self.clientRegistrationStatus {
-            _ = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
-        }
+        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
     }
     
     public func updateUpdatedObject(_ managedObject: ZMManagedObject, requestUserInfo: [AnyHashable : Any]? = nil, response: ZMTransportResponse, keysToParse: Set<String>) -> Bool {
@@ -150,9 +136,7 @@ private let reponseHeaderAssetIdKey = "Location"
         if let payload = response.payload?.asDictionary() {
             message.update(withPostPayload: payload, updatedKeys: keysToParse)
         }
-        if let delegate = self.clientRegistrationStatus {
-            _ = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
-        }
+        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
         guard keysToParse.contains(ZMAssetClientMessageUploadedStateKey) else { return false }
         
         switch message.uploadState {
@@ -192,10 +176,7 @@ private let reponseHeaderAssetIdKey = "Location"
         response: ZMTransportResponse,
         keysToParse keys: Set<String>)-> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
-        var failedBecauseOfMissingClients = false
-        if let delegate = self.clientRegistrationStatus {
-            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
-        }
+        let failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)
             failMessageUpload(message, keys: keys, request: upstreamRequest.transportRequest)
@@ -236,8 +217,7 @@ private let reponseHeaderAssetIdKey = "Location"
         assetAnalytics.trackUploadFailed(for: message, with: request)
     }
     
-    public func nextRequest() -> ZMTransportRequest? {
-        guard let status = self.clientRegistrationStatus, status.clientIsReadyForRequests else { return nil }
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
         return self.fullFileUpstreamSync.nextRequest()
     }
     
@@ -325,7 +305,7 @@ private let reponseHeaderAssetIdKey = "Location"
     
     fileprivate func cancelOutstandingUploadRequests(forMessage message: ZMAssetClientMessage) {
         guard let identifier = message.associatedTaskIdentifier else { return }
-        self.taskCancellationProvider?.cancelTask(with: identifier)
+        appStateDelegate.cancelTask(with: identifier)
     }
 }
 

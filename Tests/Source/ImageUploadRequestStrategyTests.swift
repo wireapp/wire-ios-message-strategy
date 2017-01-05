@@ -23,15 +23,16 @@ import WireRequestStrategy
 
 class ImageUploadRequestStrategyTests: MessagingTest {
     
-    fileprivate var clientRegistrationStatus : MockClientRegistrationStatus!
+    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
     fileprivate var sut : ImageUploadRequestStrategy!
     
     override func setUp() {
         super.setUp()
         
-        self.clientRegistrationStatus = MockClientRegistrationStatus()
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
 
-        self.sut = ImageUploadRequestStrategy(clientRegistrationStatus: clientRegistrationStatus, managedObjectContext: self.syncMOC)
+        self.sut = ImageUploadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate:mockAppStateDelegate)
         
         createSelfClient()
     }

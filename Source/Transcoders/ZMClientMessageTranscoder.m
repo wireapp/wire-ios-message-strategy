@@ -29,8 +29,6 @@
 @interface ZMClientMessageTranscoder()
 
 @property (nonatomic) ClientMessageRequestFactory *requestsFactory;
-@property (nonatomic, weak) id <ClientRegistrationDelegate> clientRegistrationStatus;
-@property (nonatomic, weak) id<DeliveryConfirmationDelegate> apnsConfirmationStatus;
 
 @end
 
@@ -38,24 +36,27 @@
 @implementation ZMClientMessageTranscoder
 
 - (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc
-                 localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher
-                    clientRegistrationStatus:(id<ClientRegistrationDelegate>)clientRegistrationStatus
-                      apnsConfirmationStatus:(id<DeliveryConfirmationDelegate>)apnsConfirmationStatus;
+                            appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
+                 localNotificationDispatcher:(id<ZMPushMessageHandler>)dispatcher;
 {
     ZMUpstreamInsertedObjectSync *clientTextMessageUpstreamSync = [[ZMUpstreamInsertedObjectSync alloc] initWithTranscoder:self entityName:[ZMClientMessage entityName] filter:nil managedObjectContext:moc];
     ZMMessageExpirationTimer *messageTimer = [[ZMMessageExpirationTimer alloc] initWithManagedObjectContext:moc entityName:[ZMClientMessage entityName] localNotificationDispatcher:dispatcher filter:nil];
     
     self = [super initWithManagedObjectContext:moc
+                              appStateDelegate:appStateDelegate
                     upstreamInsertedObjectSync:clientTextMessageUpstreamSync
                    localNotificationDispatcher:dispatcher
                         messageExpirationTimer:messageTimer];
     if (self) {
         self.requestsFactory = [ClientMessageRequestFactory new];
-        self.clientRegistrationStatus = clientRegistrationStatus;
-        self.apnsConfirmationStatus = apnsConfirmationStatus;
         [self deleteEphemeralMessagesIfNeeded];
     }
     return self;
+}
+
+- (ZMStrategyConfigurationOption)configuration
+{
+    return ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing;
 }
 
 - (void)deleteEphemeralMessagesIfNeeded
@@ -67,7 +68,7 @@
 - (ZMTransportRequest *)requestForInsertingObject:(ZMClientMessage *)message
 {
     ZMTransportRequest *request = [self.requestsFactory upstreamRequestForMessage:message forConversationWithId:message.conversation.remoteIdentifier];
-    if ([message isKindOfClass:ZMClientMessage.class] && message.genericMessage.hasConfirmation && self.apnsConfirmationStatus.needsToSyncMessages) {
+    if ([message isKindOfClass:ZMClientMessage.class] && message.genericMessage.hasConfirmation && self.appStateDelegate.needsToSyncMessages) {
         [request forceToVoipSession]; // we might receive a message while in the background
     }
     return request;
@@ -76,7 +77,7 @@
 - (void)updateInsertedObject:(ZMMessage *)message request:(ZMUpstreamRequest *)upstreamRequest response:(ZMTransportResponse *)response;
 {
     [super updateInsertedObject:message request:upstreamRequest response:response];
-    [(id)message parseUploadResponse:response clientDeletionDelegate:self.clientRegistrationStatus];
+    [(id)message parseUploadResponse:response clientDeletionDelegate:self.appStateDelegate];
     
     // if it's reaction
     if ([message isKindOfClass:[ZMClientMessage class]] && !message.isZombieObject) {
@@ -86,7 +87,7 @@
             [message.managedObjectContext deleteObject:clientMessage];
         }
         if (clientMessage.genericMessage.hasConfirmation) {
-            [self.apnsConfirmationStatus didConfirmMessage:clientMessage.nonce];
+            [self.appStateDelegate didConfirmMessage:clientMessage.nonce];
             [message.managedObjectContext deleteObject:clientMessage]; // we don't need the message anymore
         }
     }
@@ -96,14 +97,14 @@
 {
     BOOL result = [super updateUpdatedObject:message requestUserInfo:requestUserInfo response:response keysToParse:keysToParse];
     
-    [message parseUploadResponse:response clientDeletionDelegate:self.clientRegistrationStatus];
+    [message parseUploadResponse:response clientDeletionDelegate:self.appStateDelegate];
     
     return result;
 }
 
 - (BOOL)shouldRetryToSyncAfterFailedToUpdateObject:(ZMClientMessage *)message request:(ZMUpstreamRequest *__unused)upstreamRequest response:(ZMTransportResponse *)response keysToParse:(NSSet * __unused)keys
 {
-    return [message parseUploadResponse:response clientDeletionDelegate:self.clientRegistrationStatus];
+    return [message parseUploadResponse:response clientDeletionDelegate:self.appStateDelegate];
 }
 
 - (BOOL)shouldCreateRequestToSyncObject:(ZMManagedObject *)managedObject forKeys:(NSSet<NSString *> *)keys withSync:(id)sync;
@@ -137,7 +138,7 @@
                                                      inManagedObjectContext:self.managedObjectContext
                                                              prefetchResult:prefetchResult];
             
-            id<DeliveryConfirmationDelegate> strongStatus = self.apnsConfirmationStatus;
+            id<DeliveryConfirmationDelegate> strongStatus = self.appStateDelegate;
             if ([strongStatus.class sendDeliveryReceipts]) {
                 if (updateResult.needsConfirmation) {
                     ZMClientMessage *confirmation = [updateResult.message confirmReception];

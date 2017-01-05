@@ -21,14 +21,15 @@ import Foundation
 
 class ImageDownloadRequestStrategyTests: MessagingTest {
     
-    fileprivate var clientRegistrationStatus : MockClientRegistrationStatus!
+    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
     fileprivate var sut : ImageDownloadRequestStrategy!
     
     override func setUp() {
         super.setUp()
         
-        self.clientRegistrationStatus = MockClientRegistrationStatus()
-        self.sut = ImageDownloadRequestStrategy(clientRegistrationStatus: clientRegistrationStatus , managedObjectContext: self.syncMOC)
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+        self.sut = ImageDownloadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: self.mockAppStateDelegate)
         
         createSelfClient()
     }
