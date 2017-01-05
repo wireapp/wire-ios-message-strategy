@@ -40,11 +40,9 @@ public extension ZMUser {
 }
 
 @objc
-public final class FetchingClientRequestStrategy : ZMObjectSyncStrategy, ZMEventConsumer {
+public final class FetchingClientRequestStrategy : ZMAbstractRequestStrategy, ZMEventConsumer {
 
     fileprivate(set) var fetchAllClientsSync: ZMSingleRequestSync! = nil
-
-    weak var clientRegistrationStatus: ClientRegistrationDelegate?
     
     fileprivate(set) var userClientsObserverToken: NSObjectProtocol!
     fileprivate(set) var userClientsSync: ZMRemoteIdentifierObjectSync!
@@ -56,12 +54,12 @@ public final class FetchingClientRequestStrategy : ZMObjectSyncStrategy, ZMEvent
         }
     }
     
-    public init(clientRegistrationStatus:ClientRegistrationDelegate,
-        managedObjectContext: NSManagedObjectContext)
-    {
-        self.clientRegistrationStatus = clientRegistrationStatus
-        
-        super.init(managedObjectContext: managedObjectContext)
+    public override var configuration: ZMStrategyConfigurationOption {
+        return [.allowsRequestsDuringEventProcessing]
+    }
+    
+    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
         
         self.userClientsSync = ZMRemoteIdentifierObjectSync(transcoder: self, managedObjectContext: self.managedObjectContext)
         
@@ -80,12 +78,7 @@ public final class FetchingClientRequestStrategy : ZMObjectSyncStrategy, ZMEvent
         NotificationCenter.default.removeObserver(self.userClientsObserverToken)
     }
     
-    public func nextRequest() -> ZMTransportRequest? {
-        guard let clientRegistrationStatus = self.clientRegistrationStatus,
-              clientRegistrationStatus.clientIsReadyForRequests else {
-                return nil
-        }
-        
+    public override func nextRequestIfAllowed() -> ZMTransportRequest! {
         return userClientsSync.nextRequest()
     }
     

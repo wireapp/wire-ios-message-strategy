@@ -22,20 +22,20 @@ import ZMTesting
 class FetchClientRequestStrategyTests : RequestStrategyTestBase {
     
     var sut: FetchingClientRequestStrategy!
-    var clientRegistrationStatus: MockClientRegistrationStatus!
+    var mockAppStateDelegate : MockAppStateDelegate!
     
     override func setUp() {
         super.setUp()
-        clientRegistrationStatus = MockClientRegistrationStatus()
-        clientRegistrationStatus.mockClientIsReadyForRequests = true
-        sut = FetchingClientRequestStrategy(clientRegistrationStatus: clientRegistrationStatus, managedObjectContext: self.syncMOC)
+        self.mockAppStateDelegate = MockAppStateDelegate()
+        mockAppStateDelegate.mockAppState = .eventProcessing
+        sut = FetchingClientRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: mockAppStateDelegate)
         NotificationCenter.default.addObserver(self, selector: #selector(FetchClientRequestStrategyTests.didReceiveAuthenticationNotification(_:)), name: NSNotification.Name(rawValue: "ZMUserSessionAuthenticationNotificationName"), object: nil)
         
     }
     
     override func tearDown() {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
-        clientRegistrationStatus = nil
+        mockAppStateDelegate = nil
         sut.tearDown()
         sut = nil
         NotificationCenter.default.removeObserver(self)
