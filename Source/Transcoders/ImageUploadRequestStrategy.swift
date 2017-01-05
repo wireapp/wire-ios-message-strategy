@@ -51,9 +51,9 @@ public final class ImageUploadRequestStrategy: ZMAbstractRequestStrategy, ZMCont
     }
     
     public init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate,
-                maxConcurrentImageOperation: Int?)
+                maxConcurrentImageOperation: NSNumber?)
     {
-        self.imagePreprocessor = ZMImagePreprocessingTracker.createImagePreprocessor(managedObjectContext: managedObjectContext, maxConcurrentImageOperation: maxConcurrentImageOperation)
+        self.imagePreprocessor = ZMImagePreprocessingTracker.createImagePreprocessor(managedObjectContext: managedObjectContext, maxConcurrentImageOperation: maxConcurrentImageOperation?.intValue)
         
         super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
         
