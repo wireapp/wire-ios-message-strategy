@@ -162,7 +162,7 @@ extension AssetV3ImageUploadRequestStrategy: ZMContextChangeTracker {
 
     fileprivate func cancelOutstandingUploadRequests(forMessage message: ZMAssetClientMessage) {
         guard let identifier = message.associatedTaskIdentifier else { return }
-        appStateDelegate.cancelTask(with: identifier)
+        appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
     }
     
 }

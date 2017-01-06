@@ -37,24 +37,27 @@ typedef NS_OPTIONS(NSInteger, ZMStrategyConfigurationOption) {
 @end
 
 
-@protocol ZMAppStateDelegate <DeliveryConfirmationDelegate, ClientDeletionDelegate, ZMRequestCancellation>
+@protocol ZMAppStateDelegate
 @property (nonatomic, readonly) ZMAppState appState;
+@property (nonatomic, readonly, nonnull) id<DeliveryConfirmationDelegate> confirmationDelegate;
+@property (nonatomic, readonly, nonnull) id<ClientDeletionDelegate> clientDeletionDelegate;
+@property (nonatomic, readonly, nonnull) id<ZMRequestCancellation> taskCancellationDelegate;
 @end
 
 
 
 @interface ZMAbstractRequestStrategy : NSObject <ZMRequestGenerator>
 
-- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext*)moc
-                            appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate;
+- (nonnull instancetype)initWithManagedObjectContext:(NSManagedObjectContext* _Nonnull)moc
+                            appStateDelegate:(id<ZMAppStateDelegate> _Nonnull)appStateDelegate;
 
 /// Subclasses must override this method;
-- (ZMTransportRequest *)nextRequestIfAllowed;
+- (nullable ZMTransportRequest *)nextRequestIfAllowed;
 
 - (void)tearDown;
 
-@property (nonatomic, readonly) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic, weak, readonly) id<ZMAppStateDelegate> appStateDelegate;
+@property (nonatomic, readonly, nonnull) NSManagedObjectContext *managedObjectContext;
+@property (nonatomic, weak, readonly, nullable) id<ZMAppStateDelegate> appStateDelegate;
 @property (nonatomic, readonly) ZMStrategyConfigurationOption configuration;
 
 @end

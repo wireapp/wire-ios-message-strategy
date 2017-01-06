@@ -71,7 +71,7 @@ fileprivate let zmLog = ZMSLog(tag: "Asset V3")
             guard let message = self.managedObjectContext.registeredObject(for: objectID) as? ZMAssetClientMessage else { return }
             guard message.version == 3 else { return }
             guard let identifier = message.associatedTaskIdentifier else { return }
-            self.appStateDelegate.cancelTask(with: identifier)
+            self.appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
             message.associatedTaskIdentifier = nil
         }
     }

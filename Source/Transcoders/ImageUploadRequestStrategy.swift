@@ -99,7 +99,9 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
         
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        if let delegate = appStateDelegate?.clientDeletionDelegate {
+             message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
     }
     
     public func updateInsertedObject(_ managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse) {
@@ -187,9 +189,10 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
     }
     
     public func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
-        guard let message = managedObject as? ZMAssetClientMessage else { return false }
+        guard let message = managedObject as? ZMAssetClientMessage,
+             let delegate = appStateDelegate?.clientDeletionDelegate else { return false }
      
-        let shouldRetry = message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        let shouldRetry = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
         if !shouldRetry {
             message.uploadState = .uploadingFailed
         }

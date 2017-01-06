@@ -1,15 +1,42 @@
 //
-//  MockStatus.swift
-//  WireMessageStrategy
+// Wire
+// Copyright (C) 2016 Wire Swiss GmbH
 //
-//  Created by Sabine Geithner on 23/09/16.
-//  Copyright © 2016 Wire Swiss GmbH. All rights reserved.
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
 //
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see http://www.gnu.org/licenses/.
+//
+
 
 import Foundation
 import WireRequestStrategy
 
 public class MockAppStateDelegate : NSObject, ZMAppStateDelegate {
+    
+    public var confirmationDelegate : DeliveryConfirmationDelegate {
+        return self.mockConfirmationStatus
+    }
+    
+    public var taskCancellationDelegate : ZMRequestCancellation {
+        return self.mockTaskCancellationDelegate
+    }
+    
+    public var clientDeletionDelegate : ClientDeletionDelegate {
+        return self.mockClientRegistrationStatus
+    }
+    
+    public let mockConfirmationStatus = MockConfirmationStatus()
+    public let mockTaskCancellationDelegate = MockTaskCancellationDelegate()
+    public var mockClientRegistrationStatus = MockClientRegistrationStatus()
     
     public var mockAppState = ZMAppState.unauthenticated
     
@@ -17,43 +44,27 @@ public class MockAppStateDelegate : NSObject, ZMAppStateDelegate {
         return mockAppState
     }
     
+    public var cancelledIdentifiers : [ZMTaskIdentifier] {
+        return mockTaskCancellationDelegate.cancelledIdentifiers
+    }
     
-    
-    // MARK : ClientRegistrationDelegate
-    public var deletionCalls : Int = 0
+    public var deletionCalls : Int {
+        return mockClientRegistrationStatus.deletionCalls
+    }
 
-    
-    /// Notify that the current client was deleted remotely
-    public func didDetectCurrentClientDeletion() {
-        deletionCalls = deletionCalls+1
+    public var messagesToConfirm : Set<UUID> {
+        return mockConfirmationStatus.messagesToConfirm
     }
     
-    
-    
-    // MARK: DeliveryConfirmationDelegate
-    public private (set) var messagesToConfirm = Set<UUID>()
-    public private (set) var messagesConfirmed = Set<UUID>()
-    
-    public static var sendDeliveryReceipts: Bool {
-        return true
+    public var messagesConfirmed : Set<UUID> {
+        return mockConfirmationStatus.messagesConfirmed
     }
     
-    public var needsToSyncMessages: Bool {
-        return true
-    }
-    
-    public func needsToConfirmMessage(_ messageNonce: UUID) {
-        messagesToConfirm.insert(messageNonce)
-    }
-    
-    public func didConfirmMessage(_ messageNonce: UUID) {
-        messagesConfirmed.insert(messageNonce)
-    }
-    
-    
-    
-    // MARK:  ZMRequestCancellation
-    var cancelledIdentifiers = [ZMTaskIdentifier]()
+}
+
+
+public class MockTaskCancellationDelegate: NSObject, ZMRequestCancellation {
+    public var cancelledIdentifiers = [ZMTaskIdentifier]()
     
     public func cancelTask(with identifier: ZMTaskIdentifier) {
         cancelledIdentifiers.append(identifier)
@@ -61,16 +72,9 @@ public class MockAppStateDelegate : NSObject, ZMAppStateDelegate {
 }
 
 
-class MockClientRegistrationStatus: NSObject, ClientRegistrationDelegate {
+public class MockClientRegistrationStatus: NSObject, ClientDeletionDelegate {
     
-    var mockClientIsReadyForRequests : Bool = true
-    var deletionCalls : Int = 0
-
-    
-    /// Whether the current client is ready to use
-    public var clientIsReadyForRequests : Bool {
-        return mockClientIsReadyForRequests
-    }
+    public var deletionCalls : Int = 0
     
     /// Notify that the current client was deleted remotely
     public func didDetectCurrentClientDeletion() {

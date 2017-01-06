@@ -110,7 +110,7 @@ public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMU
         else { fatal("no missing clients found") }
         
         let request = requestsFactory.fetchMissingClientKeysRequest(missing)
-        if appStateDelegate.needsToSyncMessages {
+        if let delegate = appStateDelegate?.confirmationDelegate, delegate.needsToSyncMessages {
             request?.transportRequest.forceToVoipSession()
         }
         return request

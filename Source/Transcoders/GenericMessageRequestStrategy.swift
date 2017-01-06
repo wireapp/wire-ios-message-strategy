@@ -54,7 +54,7 @@ public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageE
     private var sync : DependencyEntitySync<GenericMessageRequestStrategy>?
     private var requestFactory = ClientMessageRequestFactory()
     
-    public override init(context: NSManagedObjectContext, clientRegistrationDelegate: ClientRegistrationDelegate) {
+    public override init(context: NSManagedObjectContext, clientRegistrationDelegate: ClientDeletionDelegate) {
         super.init(context: context, clientRegistrationDelegate: clientRegistrationDelegate)
         
         sync = DependencyEntitySync(transcoder: self, context: context)

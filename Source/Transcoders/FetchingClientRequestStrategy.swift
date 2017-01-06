@@ -78,7 +78,7 @@ public final class FetchingClientRequestStrategy : ZMAbstractRequestStrategy, ZM
         NotificationCenter.default.removeObserver(self.userClientsObserverToken)
     }
     
-    public override func nextRequestIfAllowed() -> ZMTransportRequest! {
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
         return userClientsSync.nextRequest()
     }
     

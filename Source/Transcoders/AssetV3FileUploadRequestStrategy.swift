@@ -117,7 +117,7 @@ extension AssetV3FileUploadRequestStrategy: ZMContextChangeTracker {
 
     fileprivate func cancelOutstandingUploadRequests(forMessage message: ZMAssetClientMessage) {
         guard let identifier = message.associatedTaskIdentifier else { return }
-        appStateDelegate.cancelTask(with: identifier)
+        appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
     }
 
 }
@@ -136,7 +136,9 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
     fileprivate func update(_ message: ZMAssetClientMessage, withResponse response: ZMTransportResponse, updatedKeys keys: Set<String>) {
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        if let delegate = appStateDelegate?.clientDeletionDelegate {
+            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
     }
 
     public func updateInsertedObject(_ managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse) {
@@ -224,7 +226,10 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
                                              response: ZMTransportResponse,
                                              keysToParse keys: Set<String>)-> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
-        let failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        var failedBecauseOfMissingClients = false
+        if let delegate = appStateDelegate?.clientDeletionDelegate {
+            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)
             failMessageUpload(message, keys: keys, request: upstreamRequest.transportRequest)

@@ -94,7 +94,9 @@ extension AssetClientMessageRequestStrategy: ZMUpstreamTranscoder {
     public func updateUpdatedObject(_ managedObject: ZMManagedObject, requestUserInfo: [AnyHashable : Any]? = nil, response: ZMTransportResponse, keysToParse: Set<String>) -> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         message.update(withPostPayload: response.payload?.asDictionary() ?? [:], updatedKeys: keysToParse)
-        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        if let delegate = appStateDelegate?.clientDeletionDelegate{
+            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
 
         if response.result == .success {
             if message.fileMessageData?.v3_isImage() == true {
@@ -148,7 +150,10 @@ extension AssetClientMessageRequestStrategy: ZMUpstreamTranscoder {
 
     public func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
-        let failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        var failedBecauseOfMissingClients = false
+        if let delegate = appStateDelegate?.clientDeletionDelegate {
+            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)
             failMessageUpload(message, keys: keys, request: upstreamRequest.transportRequest)

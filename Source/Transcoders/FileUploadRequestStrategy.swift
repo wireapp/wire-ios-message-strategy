@@ -128,7 +128,9 @@ private let reponseHeaderAssetIdKey = "Location"
     public func updateInsertedObject(_ managedObject: ZMManagedObject,request upstreamRequest: ZMUpstreamRequest,response: ZMTransportResponse) {
         guard let message = managedObject as? ZMAssetClientMessage, let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: Set())
-        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        if let delegate = appStateDelegate?.clientDeletionDelegate {
+            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
     }
     
     public func updateUpdatedObject(_ managedObject: ZMManagedObject, requestUserInfo: [AnyHashable : Any]? = nil, response: ZMTransportResponse, keysToParse: Set<String>) -> Bool {
@@ -136,7 +138,9 @@ private let reponseHeaderAssetIdKey = "Location"
         if let payload = response.payload?.asDictionary() {
             message.update(withPostPayload: payload, updatedKeys: keysToParse)
         }
-        message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        if let delegate = appStateDelegate?.clientDeletionDelegate {
+            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
         guard keysToParse.contains(ZMAssetClientMessageUploadedStateKey) else { return false }
         
         switch message.uploadState {
@@ -176,7 +180,10 @@ private let reponseHeaderAssetIdKey = "Location"
         response: ZMTransportResponse,
         keysToParse keys: Set<String>)-> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
-        let failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: appStateDelegate)
+        var failedBecauseOfMissingClients = false
+        if let delegate = appStateDelegate?.clientDeletionDelegate {
+            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)
             failMessageUpload(message, keys: keys, request: upstreamRequest.transportRequest)
@@ -305,7 +312,7 @@ private let reponseHeaderAssetIdKey = "Location"
     
     fileprivate func cancelOutstandingUploadRequests(forMessage message: ZMAssetClientMessage) {
         guard let identifier = message.associatedTaskIdentifier else { return }
-        appStateDelegate.cancelTask(with: identifier)
+        appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
     }
 }
 

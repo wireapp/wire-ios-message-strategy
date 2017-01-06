@@ -36,9 +36,9 @@ private let ErrorLabel = "label"
 open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder {
     
     let context : NSManagedObjectContext
-    let clientRegistrationDelegate : ClientRegistrationDelegate
+    let clientRegistrationDelegate : ClientDeletionDelegate
     
-    public init(context: NSManagedObjectContext, clientRegistrationDelegate : ClientRegistrationDelegate) {
+    public init(context: NSManagedObjectContext, clientRegistrationDelegate : ClientDeletionDelegate) {
         self.context = context
         self.clientRegistrationDelegate = clientRegistrationDelegate
     }
@@ -66,7 +66,7 @@ open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder 
         return false
     }
     
-    private func handleDeletedSelfClient(fromResponse response: ZMTransportResponse, clientDeletionDelegate: ClientRegistrationDelegate) -> Bool {
+    private func handleDeletedSelfClient(fromResponse response: ZMTransportResponse, clientDeletionDelegate: ClientDeletionDelegate) -> Bool {
         // In case the self client got deleted remotely we will receive an event through the push channel and log out.
         // If we for some reason miss the push the BE will repond with a 403 and 'unknown-client' label to our
         // next sending attempt and we will logout and delete the current selfClient then
