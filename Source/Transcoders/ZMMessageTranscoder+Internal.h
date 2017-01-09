@@ -51,7 +51,7 @@
 
 
 
-@interface ZMSystemMessageTranscoder : ZMMessageTranscoder
+@interface ZMSystemMessageTranscoder : ZMMessageTranscoder <ZMEventConsumer, ZMContextChangeTrackerSource>
 
 @end
 

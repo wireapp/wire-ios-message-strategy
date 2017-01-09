@@ -24,7 +24,7 @@
 
 @protocol ZMAppStateDelegate;
 
-@interface ZMClientMessageTranscoder : ZMMessageTranscoder
+@interface ZMClientMessageTranscoder : ZMMessageTranscoder <ZMEventConsumer, ZMContextChangeTrackerSource>
 
 - (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)moc
                             appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
