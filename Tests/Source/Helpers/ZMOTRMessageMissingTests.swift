@@ -107,34 +107,6 @@ class ZMOTRMessageMissingTests: MessagingTest {
         }
     }
     
-    func testThatItDoesNotDeleteSelfClientFromUploadResponse() {
-        self.syncMOC.performGroupedBlockAndWait {
-            
-            // GIVEN
-            let selfUser = ZMUser.selfUser(in: self.syncMOC)
-            let selfClient = selfUser.selfClient()!
-            XCTAssertNotNil(selfClient.remoteIdentifier)
-            self.syncMOC.saveOrRollback()
-            
-            let deletedClientsIdentifier = [selfClient.remoteIdentifier!]
-            let payload = [
-                "missing" : [:],
-                "deleted" : [
-                    selfUser.remoteIdentifier!.transportString() : deletedClientsIdentifier
-                ],
-                "redundant" : [:]
-            ]
-            
-            // WHEN
-            _ = self.message.parseUploadResponse(ZMTransportResponse(payload: payload as NSDictionary, httpStatus: 200, transportSessionError: nil), clientDeletionDelegate: MockClientRegistrationStatus())
-            self.syncMOC.saveOrRollback()
-            
-            // THEN
-            XCTAssertEqual(selfUser.clients, Set([selfClient]))
-            XCTAssertFalse(selfClient.isZombieObject)
-        }
-    }
-    
     func testThatItMarksConversationToDownloadFromRedundantUploadResponse() {
         // GIVEN
         XCTAssertFalse(self.conversation.needsToBeUpdatedFromBackend)

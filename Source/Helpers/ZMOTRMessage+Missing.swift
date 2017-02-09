@@ -141,11 +141,7 @@ public extension ZMOTRMessage {
             }
         })
         
-        let selfClient = ZMUser.selfUser(in: self.managedObjectContext!).selfClient()
         allDeletedClients.forEach {
-            guard $0 != selfClient else {
-                return
-            }
             $0.deleteClientAndEndSession()
         }
     }
