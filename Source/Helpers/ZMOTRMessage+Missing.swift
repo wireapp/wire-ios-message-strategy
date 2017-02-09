@@ -36,6 +36,9 @@ private let MissingLabel = "missing"
 /// Label for clients that were deleted and are still present in the uploaded payload
 private let DeletedLabel = "deleted"
 
+/// Label for clients whose user was removed from the conversation but we still think it is in the conversation
+private let RedundantLabel = "redundant"
+
 /// Label error for uploading a message with a client that does not exist
 private let UnknownClientLabel = "unknown-client"
 
@@ -66,6 +69,15 @@ public extension ZMOTRMessage {
         
         if let deletedMap = payload[DeletedLabel] as? [String:AnyObject] {
             self.processDeletedClients(deletedMap)
+        }
+        
+        if let redundantMap = payload[RedundantLabel] as? [String:AnyObject],
+            !redundantMap.isEmpty
+        {
+            // if the BE tells us that these users are not in the
+            // conversation anymore, it means that we are out of sync
+            // with the list of participants
+            self.conversation?.needsToBeUpdatedFromBackend = true
         }
         
         if let missingMap = payload[MissingLabel] as? [String:AnyObject] {
@@ -129,7 +141,11 @@ public extension ZMOTRMessage {
             }
         })
         
+        let selfClient = ZMUser.selfUser(in: self.managedObjectContext!).selfClient()
         allDeletedClients.forEach {
+            guard $0 != selfClient else {
+                return
+            }
             $0.deleteClientAndEndSession()
         }
     }

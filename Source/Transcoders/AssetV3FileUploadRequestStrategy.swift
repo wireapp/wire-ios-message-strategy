@@ -189,6 +189,11 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
             fatal("No asset ID present in payload: \(response.payload)")
         }
 
+        if let delegate = self.clientRegistrationStatus {
+            // this will remove deleted clients that are returned in the payload
+            _ = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        }
+        
         if let updated = message.genericAssetMessage?.updatedUploaded(withAssetId: assetId, token: payload["token"] as? String) {
             message.add(updated)
         }
