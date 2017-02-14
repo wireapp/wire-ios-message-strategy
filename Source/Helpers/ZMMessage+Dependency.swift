@@ -21,41 +21,13 @@ import Foundation
 import ZMCDataModel
 
 // MARK: - Dependent objects
-extension ZMOTRMessage {
-    
+extension ZMOTRMessage: OTREntity {
+
     /// Which object this message depends on when sending
-    public override func dependendObjectNeedingUpdateBeforeProcessing() -> ZMManagedObject? {
+    public var dependentObjectNeedingUpdateBeforeProcessing: AnyObject? {
         
-        guard let conversation = self.conversation else { return nil }
-        
-        // If we receive a missing payload that includes users that are not part of the conversation,
-        // we need to refetch the conversation before recreating the message payload.
-        // Otherwise we end up in an endless loop receiving missing clients error
-        if conversation.needsToBeUpdatedFromBackend {
-            return conversation
-        }
-        
-        if (conversation.conversationType == .oneOnOne || conversation.conversationType == .connection)
-            && conversation.connection?.needsToBeUpdatedFromBackend == true {
-                return conversation.connection
-        }
-        
-        // If we are missing clients, we need to refetch the clients before retrying
-        if let selfClient = ZMUser.selfUser(in: self.managedObjectContext!).selfClient(),
-            let missingClients = selfClient.missingClients , missingClients.count > 0
-        {
-            let activeParticipants = conversation.activeParticipants.array as! [ZMUser]
-            let activeClients = activeParticipants.flatMap {
-                return Array($0.clients)
-            }
-            // Don't block sending of messages in conversations that are not affected by missing clients
-            if !missingClients.intersection(Set(activeClients)).isEmpty {
-                // make sure that we fetch those clients, even if we somehow gave up on fetching them
-                selfClient.setLocallyModifiedKeys(Set(arrayLiteral: ZMUserClientMissingKey))
-                return selfClient
-            }
-        }
-        return super.dependendObjectNeedingUpdateBeforeProcessing()
+        return self.dependendObjectNeedingUpdateBeforeProcessingOTREntity()
+            ?? super.dependendObjectNeedingUpdateBeforeProcessing()
     }
 }
 
@@ -65,8 +37,6 @@ private protocol BlockingMessage {
     /// If true, no other messages should be sent until this message is sent
     var shouldBlockFurtherMessages : Bool { get }
 }
-
-
 
 extension ZMMessage {
     
