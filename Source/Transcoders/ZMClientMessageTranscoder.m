@@ -119,7 +119,7 @@
 
 - (ZMManagedObject *)dependentObjectNeedingUpdateBeforeProcessingObject:(ZMClientMessage *)message;
 {
-    return message.dependendObjectNeedingUpdateBeforeProcessing;
+    return message.dependentObjectNeedingUpdateBeforeProcessing;
 }
 
 - (ZMMessage *)messageFromUpdateEvent:(ZMUpdateEvent *)event

@@ -32,7 +32,7 @@ public class GenericMessageEntity : OTREntity {
     }
     
     public var dependentObjectNeedingUpdateBeforeProcessing: AnyObject? {
-        return self.dependendObjectNeedingUpdateBeforeProcessingOTREntity()
+        return self.dependentObjectNeedingUpdateBeforeProcessingOTREntity()
     }
     
     public func missesRecipients(_ recipients: Set<UserClient>!) {

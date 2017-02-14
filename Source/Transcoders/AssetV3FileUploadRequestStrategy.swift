@@ -133,8 +133,8 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
         return nil // no-op
     }
 
-    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> ZMManagedObject? {
-        return (dependant as? ZMMessage)?.dependendObjectNeedingUpdateBeforeProcessing()
+    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> Any? {
+        return (dependant as? ZMMessage)?.dependentObjectNeedingUpdateBeforeProcessing
     }
 
     fileprivate func update(_ message: ZMAssetClientMessage, withResponse response: ZMTransportResponse, updatedKeys keys: Set<String>) {

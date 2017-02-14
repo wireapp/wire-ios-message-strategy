@@ -51,7 +51,7 @@ private let ErrorLabel = "label"
 extension OTREntity {
     
     /// Which object this message depends on when sending
-    public func dependendObjectNeedingUpdateBeforeProcessingOTREntity() -> ZMManagedObject? {
+    public func dependentObjectNeedingUpdateBeforeProcessingOTREntity() -> ZMManagedObject? {
         
         guard let conversation = self.conversation else { return nil }
         
