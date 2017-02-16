@@ -18,6 +18,7 @@
 
 import Foundation
 import ZMCMockTransport
+import WireRequestStrategy
 
 extension ZMContextChangeTrackerSource {
     func notifyChangeTrackers(_ client : UserClient) {

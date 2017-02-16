@@ -19,7 +19,7 @@
 
 import Foundation
 @testable import WireMessageStrategy
-
+import WireRequestStrategy
 
 class AssetV3ImageUploadRequestStrategyTests: MessagingTest {
 

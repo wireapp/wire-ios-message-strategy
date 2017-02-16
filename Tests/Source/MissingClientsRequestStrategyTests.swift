@@ -22,7 +22,7 @@ import ZMUtilities
 import ZMTesting
 import ZMCMockTransport
 import ZMCDataModel
-
+import WireRequestStrategy
 
 class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
 

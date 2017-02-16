@@ -17,6 +17,9 @@
 //
 
 import Foundation
+import WireRequestStrategy
+
+
 
 /// HTTP status of a request that's not authorized (client could have been deleted)
 private let ClientNotAuthorizedResponseStatus = 403

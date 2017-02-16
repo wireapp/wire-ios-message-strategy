@@ -23,8 +23,6 @@
 @import Cryptobox;
 @import zimages;
 
-#import "NSManagedObjectContext+TestHelpers.h"
-
 
 @class NSManagedObjectContext;
 @class ZMUser;
