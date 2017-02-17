@@ -17,19 +17,54 @@
 //
 
 import Foundation
+import WireRequestStrategy
 
-//
-//
-//@import ZMTransport;
-//@import ZMCMockTransport;
-//@import Cryptobox;
-//@import ZMProtos;
-//@import ZMCDataModel;
-//@import WireRequestStrategy;
-//
-//#import "ZMMessageTranscoderTests.h"
-//#import "ZMMessageExpirationTimer.h"
-//#import "WireMessageStrategyTests-Swift.h"
+class ClientMessageTranscoderTests: MessagingTest {
+
+    var clientRegistrationStatus: ClientRegistrationDelegate!
+    var localNotificationDispatcher: MockPushMessageHandler!
+    var confirmationStatus: MockConfirmationStatus!
+    var sut: ClientMessageTranscoder!
+    var groupConversation: ZMConversation!
+    var oneToOneConversation: ZMConversation!
+    var user: ZMUser!
+    
+    override func setUp() {
+        super.setUp()
+        self.localNotificationDispatcher = MockPushMessageHandler()
+        self.clientRegistrationStatus = MockClientRegistrationStatus()
+        self.confirmationStatus = MockConfirmationStatus()
+        
+        self.user = self.createUser()
+        self.groupConversation = self.createGroupConversation(with: self.user)
+        self.oneToOneConversation = self.setupOneToOneConversation(with: self.user)
+        
+        self.sut = ClientMessageTranscoder(in: self.syncMOC, localNotificationDispatcher: self.localNotificationDispatcher, clientRegistrationStatus: self.clientRegistrationStatus, apnsConfirmationStatus: self.confirmationStatus)
+        
+        self.syncMOC.saveOrRollback()
+    }
+    
+    override func tearDown() {
+        self.localNotificationDispatcher = nil
+        self.clientRegistrationStatus = nil
+        self.confirmationStatus = nil
+        self.user = nil
+        self.groupConversation = nil
+        self.sut.tearDown()
+        self.sut = nil
+        super.tearDown()
+    }
+    
+    private func setupOneToOneConversation(with user: ZMUser) -> ZMConversation {
+        let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+        conversation.conversationType = .oneOnOne
+        conversation.remoteIdentifier = UUID.create()
+        conversation.connection = ZMConnection.insertNewObject(in: self.syncMOC)
+        conversation.connection!.to = user
+        return conversation
+    }
+}
+
 //
 //@interface FakeClientMessageRequestFactory : NSObject
 //
@@ -87,16 +122,7 @@ import Foundation
 //    [super tearDown];
 //}
 //
-//- (ZMConversation *)setupOneOnOneConversationInContext:(NSManagedObjectContext *)context
-//{
-//    ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:context];
-//    conversation.conversationType = ZMTConversationTypeOneOnOne;
-//    conversation.remoteIdentifier = [NSUUID createUUID];
-//    conversation.connection = [ZMConnection insertNewObjectInManagedObjectContext:context];
-//    conversation.connection.to = [ZMUser insertNewObjectInManagedObjectContext:context];
-//    conversation.connection.to.remoteIdentifier = [NSUUID createUUID];
-//    return conversation;
-//}
+
 //
 //
 //- (ZMConversation *)setupOneOnOneConversation
@@ -104,216 +130,197 @@ import Foundation
 //    return [self setupOneOnOneConversationInContext:self.syncMOC];
 //}
 //
-//- (UserClient *)insertMissingClientWithSelfClient:(UserClient *)selfClient;
-//{
-//    UserClient *missingClient = [UserClient insertNewObjectInManagedObjectContext:self.syncMOC];
-//    missingClient.remoteIdentifier = [NSString createAlphanumericalString];
-//    missingClient.user = [ZMUser insertNewObjectInManagedObjectContext:self.syncMOC];
-//    [selfClient missesClient:missingClient];
-//
-//    return missingClient;
-//}
-//
-//- (ZMClientMessage *)insertMessageInConversation:(ZMConversation *)conversation
-//{
-//    NSString *messageText = @"foo";
-//    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:messageText nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-//    ZMClientMessage *message = [conversation appendClientMessageWithData:genericMessage.data];
-//    return message;
-//}
-//
-//
-//- (void)testThatItReturnsSelfClientAsDependentObjectForMessageIfItHasMissingClients
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        //given
-//        UserClient *client = [self createSelfClient];
-//        UserClient *missingClient = [self insertMissingClientWithSelfClient:client];
-//
-//        ZMConversation *conversation = [self insertGroupConversation];
-//        [conversation.mutableOtherActiveParticipants addObject:missingClient.user];
-//        [self.syncMOC saveOrRollback];
-//
-//        ZMClientMessage *message = [self insertMessageInConversation:conversation];
-//
-//        //when
-//        ZMManagedObject *dependentObject = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
-//
-//        // then
-//        XCTAssertNotNil(dependentObject);
-//        XCTAssertEqual(dependentObject, client);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//
-//- (void)testThatItReturnsConversationIfNeedsToBeUpdatedFromBackendBeforeMissingClients
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        //given
-//        UserClient *client = [self createSelfClient];
-//        UserClient *missingClient = [self insertMissingClientWithSelfClient:client];
-//
-//        ZMConversation *conversation = [self insertGroupConversation];
-//        [conversation.mutableOtherActiveParticipants addObject:missingClient.user];
-//
-//        ZMClientMessage *message = [self insertMessageInConversation:conversation];
-//
-//        // when
-//        conversation.needsToBeUpdatedFromBackend = YES;
-//        ZMManagedObject *dependentObject1 = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
-//
-//        // then
-//        XCTAssertNotNil(dependentObject1);
-//        XCTAssertEqual(dependentObject1, conversation);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//- (void)testThatItReturnsConnectionIfNeedsToBeUpdatedFromBackendBeforeMissingClients
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        //given
-//        UserClient *client = [self createSelfClient];
-//        UserClient *missingClient = [self insertMissingClientWithSelfClient:client];
-//
-//        ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//        conversation.conversationType = ZMConversationTypeOneOnOne;
-//        conversation.connection = [ZMConnection insertNewObjectInManagedObjectContext:self.syncMOC];
-//        conversation.connection.to = missingClient.user;
-//        [conversation.mutableOtherActiveParticipants addObject:missingClient.user];
-//
-//        ZMClientMessage *message = [self insertMessageInConversation:conversation];
-//
-//        // when
-//        conversation.connection.needsToBeUpdatedFromBackend = YES;
-//        ZMManagedObject *dependentObject1 = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
-//
-//        // then
-//        XCTAssertNotNil(dependentObject1);
-//        XCTAssertEqual(dependentObject1, conversation.connection);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//- (void)testThatItDoesNotReturnSelfClientAsDependentObjectForMessageIfConversationIsNotAffectedByMissingClients
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        //given
-//        UserClient *client = [self createSelfClient];
-//        UserClient *missingClient = [self insertMissingClientWithSelfClient:client];
-//
-//
-//        ZMConversation *conversation1 = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//        [conversation1.mutableOtherActiveParticipants addObject:missingClient.user];
-//
-//        ZMConversation *conversation2 = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//        conversation2.conversationType = ZMConversationTypeGroup;
-//        conversation2.remoteIdentifier = [NSUUID createUUID];
-//
-//        ZMClientMessage *message = [self insertMessageInConversation:conversation2];
-//
-//        // when
-//        ZMManagedObject *dependentObject = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
-//
-//        // then
-//        XCTAssertNil(dependentObject);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//- (void)testThatItReturnsNilAsDependentObjectForMessageIfItHasNoMissingClients
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        //given
-//        [self createSelfClient];
-//
-//        ZMConversation *conversation = [self insertGroupConversation];
-//        ZMClientMessage *message = [self insertMessageInConversation:conversation];
-//
-//        // when
-//        ZMManagedObject *dependentObject = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
-//
-//        // then
-//        XCTAssertNil(dependentObject);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//- (void)testThatItReturnsAPreviousPendingTextMessageAsDependency
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        //given
-//        [self createSelfClient];
-//        NSDate *zeroTime = [NSDate dateWithTimeIntervalSince1970:1000];
-//        ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//        conversation.remoteIdentifier = [NSUUID createUUID];
-//
-//        ZMMessage *message = (id)[conversation appendMessageWithText:@"message a1"];
-//        message.nonce = [NSUUID createUUID];
-//        message.serverTimestamp = zeroTime;
-//        [message markAsSent];
-//
-//        ZMMessage *nextMessage = (id)[conversation appendMessageWithText:@"message a2"];
-//        nextMessage.serverTimestamp = [NSDate dateWithTimeInterval:100 sinceDate:zeroTime];
-//        nextMessage.nonce = [NSUUID createUUID]; // undelivered
-//
-//        ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"message a3" nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-//        ZMClientMessage *lastMessage = [conversation appendClientMessageWithData:genericMessage.data];
-//        lastMessage.serverTimestamp = [NSDate dateWithTimeInterval:10 sinceDate:nextMessage.serverTimestamp];
-//
-//        // when
-//        XCTAssertTrue([self.syncMOC saveOrRollback]);
-//
-//        // then
-//        ZMManagedObject *dependency = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:lastMessage];
-//        XCTAssertEqual(dependency, nextMessage);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//- (void)testThatItGeneratesARequestToSendAClientMessage
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        // given
-//        [self createSelfClient];
-//        ZMConversation *conversation = [self insertGroupConversation];
-//        NSString *messageText = @"foo";
-//        ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:messageText nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-//
-//        ZMClientMessage *message = [conversation appendClientMessageWithData:genericMessage.data];
-//        XCTAssertTrue([self.syncMOC saveOrRollback]);
-//
-//        // when
-//        ZMUpstreamRequest *request = [(id<ZMUpstreamTranscoder>) self.sut requestForInsertingObject:message forKeys:nil];
-//
-//        // then
-//        // POST /conversations/{cnv}/otr/messages
-//        NSString *expectedPath = [NSString pathWithComponents:@[@"/", @"conversations", conversation.remoteIdentifier.transportString, @"otr", @"messages"]];
-//
-//        XCTAssertNotNil(request);
-//        XCTAssertNotNil(request.transportRequest);
-//        XCTAssertEqualObjects(expectedPath, request.transportRequest.path);
-//        XCTAssertEqual(ZMMethodPOST, request.transportRequest.method);
-//        XCTAssertEqualObjects(request.transportRequest.binaryDataType, @"application/x-protobuf");
-//        XCTAssertNotNil(request.transportRequest.binaryData);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
+
+// MARK: - Dependency
+extension ClientMessageTranscoderTests {
+ 
+    func testThatItReturnsSelfClientAsDependentObjectForMessageIfItHasMissingClients() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let selfClient = self.createSelfClient()
+            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
+            let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
+            
+            // WHEN
+            selfClient.missesClient(missingClient)
+            
+            // THEN
+            let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: message)
+            XCTAssertEqual(dependency as? UserClient, selfClient)
+        }
+    }
+    
+    func testThatItReturnsConversationIfNeedsToBeUpdatedFromBackendBeforeMissingClients() {
+        self.syncMOC.performGroupedBlockAndWait {
+
+            // GIVEN
+            let selfClient = self.createSelfClient()
+            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
+            let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
+
+            // WHEN
+            selfClient.missesClient(missingClient)
+            self.groupConversation.needsToBeUpdatedFromBackend = true
+            
+            // THEN
+            let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: message)
+            XCTAssertEqual(dependency as? ZMConversation, self.groupConversation)
+        }
+    }
+    
+    func testThatItReturnsConnectionIfNeedsToBeUpdatedFromBackendBeforeMissingClients() {
+        self.syncMOC.performGroupedBlockAndWait {
+
+            // GIVEN
+            let selfClient = self.createSelfClient()
+            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
+            let message = self.oneToOneConversation.appendMessage(withText: "foo") as! ZMClientMessage
+            
+            // WHEN
+            selfClient.missesClient(missingClient)
+            self.oneToOneConversation.connection?.needsToBeUpdatedFromBackend = true
+            
+            // THEN
+            let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: message)
+            XCTAssertEqual(dependency as? ZMConnection, self.oneToOneConversation.connection)
+        }
+    }
+    
+    func testThatItDoesNotReturnSelfClientAsDependentObjectForMessageIfConversationIsNotAffectedByMissingClients() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let selfClient = self.createSelfClient()
+            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
+            let user2 = self.createUser()
+            let conversation2 = self.createGroupConversation(with: user2)
+            let message = conversation2.appendMessage(withText: "foo") as! ZMClientMessage
+            
+            // WHEN
+            selfClient.missesClient(missingClient)
+            
+            // THEN
+            let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: message)
+            XCTAssertNil(dependency)
+        }
+    }
+    
+    func testThatItReturnsNilAsDependentObjectForMessageIfItHasNoMissingClients() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
+            
+            // THEN
+            let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: message)
+            XCTAssertNil(dependency)
+        }
+    }
+    
+    func testThatItReturnsAPreviousPendingMessageAsDependency() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let timeZero = Date(timeIntervalSince1970: 10000)
+            let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
+            message.serverTimestamp = timeZero
+            message.markAsSent()
+            
+            let nextMessage = self.groupConversation.appendMessage(withText: "bar") as! ZMClientMessage
+            // nextMessage.serverTimestamp = timeZero.addingTimeInterval(100) // this ensures the sorting
+            
+            // WHEN
+            let lastMessage = self.groupConversation.appendMessage(withText: "zoo") as! ZMClientMessage
+            
+            // THEN
+            let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: lastMessage)
+            XCTAssertEqual(dependency as? ZMClientMessage, nextMessage)
+        }
+    }
+    
+    func testThatItDoesNotReturnAPreviousSentMessageAsDependency() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let timeZero = Date(timeIntervalSince1970: 10000)
+            let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
+            message.serverTimestamp = timeZero
+            message.markAsSent()
+            
+            // WHEN
+            let lastMessage = self.groupConversation.appendMessage(withText: "zoo") as! ZMClientMessage
+            
+            // THEN
+            let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: lastMessage)
+            XCTAssertNil(dependency)
+        }
+    }
+}
+
+// MARK: - Request generation
+
+extension ClientMessageTranscoderTests {
+    
+    func testThatItGeneratesARequestToSendAClientMessage() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            self.createSelfClient()
+            self.createClient(for: self.user, createSessionWithSelfUser: true)
+            let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
+            self.syncMOC.saveOrRollback()
+            
+            // WHEN
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([message])) }
+            guard let request = self.sut.nextRequest() else {
+                XCTFail()
+                return
+            }
+            
+            // THEN
+            XCTAssertEqual(request.path, "/conversations/\(self.groupConversation.remoteIdentifier!.transportString())/otr/messages")
+            XCTAssertEqual(request.method, .methodPOST)
+            XCTAssertNotNil(request.binaryData)
+            XCTAssertEqual(request.binaryDataType, "application/x-protobuf")
+        }
+    }
+    
+    
+    func testThatANewOtrMessageIsCreatedFromAnEvent() {
+        self.syncMOC.performGroupedBlockAndWait {
+         
+            // GIVEN
+            let client = self.createSelfClient()
+            let text = "Everything"
+            let base64Text = "CiQ5ZTU2NTQwOS0xODZiLTRlN2YtYTE4NC05NzE4MGE0MDAwMDQSDAoKRXZlcnl0aGluZw=="
+            let payload = [
+                "recipient": client.remoteIdentifier,
+                "sender": client.remoteIdentifier,
+                "text": base64Text
+            ]
+            let eventPayload = [
+                "type": "conversation.otr-message-add",
+                "payload": payload,
+                "conversation": self.groupConversation.remoteIdentifier!.transportString(),
+                "time": Date().transportString()
+            ] as NSDictionary
+            guard let event = ZMUpdateEvent.decryptedUpdateEvent(fromEventStreamPayload: eventPayload, uuid: nil, transient: false, source: .webSocket) else {
+                XCTFail()
+                return
+            }
+            
+            // WHEN
+            self.sut.processEvents([event], liveEvents: false, prefetchResult: nil)
+            
+            // THEN
+            XCTAssertEqual((self.groupConversation.messages.lastObject as? ZMConversationMessage)?.textMessageData?.messageText, text)
+        }
+    }
+}
+
+// TODO MARCO
+
 //
 //- (void)testThatANewOtrMessageIsCreatedFromAnEvent
 //{
@@ -1457,6 +1464,22 @@ import Foundation
 //@end
 //
 
-
+// MARK: - Helpers
+extension ClientMessageTranscoderTests {
+    
+    func createUser() -> ZMUser {
+        let user = ZMUser.insertNewObject(in: self.syncMOC)
+        user.remoteIdentifier = UUID.create()
+        return user
+    }
+    
+    func createGroupConversation(with user: ZMUser) -> ZMConversation {
+        let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+        conversation.conversationType = .group
+        conversation.remoteIdentifier = UUID.create()
+        conversation.mutableOtherActiveParticipants.add(user)
+        return conversation
+    }
+}
 
 

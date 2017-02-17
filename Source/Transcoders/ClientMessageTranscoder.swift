@@ -119,7 +119,7 @@ extension ClientMessageTranscoder {
         return self.messageExpirationTimer.hasMessageTimersRunning || self.upstreamObjectSync.hasCurrentlyRunningRequests;
     }
     
-    func message(from event: ZMUpdateEvent, prefetchResult: ZMFetchRequestBatchResult) -> ZMMessage? {
+    func message(from event: ZMUpdateEvent, prefetchResult: ZMFetchRequestBatchResult?) -> ZMMessage? {
         switch event.type {
         case .conversationClientMessageAdd:
             fallthrough
@@ -237,7 +237,7 @@ extension ClientMessageTranscoder {
 extension ClientMessageTranscoder {
     
     public func processEvents(_ events: [ZMUpdateEvent], liveEvents: Bool, prefetchResult: ZMFetchRequestBatchResult?) {
-        let messages = events.flatMap { self.message(from: $0, prefetchResult: prefetchResult!) }
+        let messages = events.flatMap { self.message(from: $0, prefetchResult: prefetchResult) }
         if (liveEvents) {
             messages.forEach { $0.conversation?.resortMessages(withUpdatedMessage: $0) }
         }

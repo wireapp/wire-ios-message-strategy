@@ -24,11 +24,11 @@ import WireRequestStrategy
 class MessageExpirationTimerTests: MessagingTest {
 
     var sut: MessageExpirationTimer!
-    var localNotificationDispatcher: FakePushMessageHandler!
+    var localNotificationDispatcher: MockPushMessageHandler!
     
     override func setUp() {
         super.setUp()
-        self.localNotificationDispatcher = FakePushMessageHandler()
+        self.localNotificationDispatcher = MockPushMessageHandler()
         self.sut = MessageExpirationTimer(moc: self.uiMOC, entityName: ZMClientMessage.entityName(), localNotificationDispatcher: self.localNotificationDispatcher)
     }
     

@@ -21,7 +21,7 @@ import Foundation
 class SystemMessageEventsConsumerTests: RequestStrategyTestBase {
     
     var sut: SystemMessageEventsConsumer!
-    var localNotificationDispatcher: FakePushMessageHandler!
+    var localNotificationDispatcher: MockPushMessageHandler!
     var conversation: ZMConversation!
     var user: ZMUser!
     
@@ -29,7 +29,7 @@ class SystemMessageEventsConsumerTests: RequestStrategyTestBase {
         super.setUp()
         
         self.syncMOC.performGroupedBlockAndWait {
-            self.localNotificationDispatcher = FakePushMessageHandler()
+            self.localNotificationDispatcher = MockPushMessageHandler()
             self.sut = SystemMessageEventsConsumer(moc: self.syncMOC, localNotificationDispatcher: self.localNotificationDispatcher)
             self.conversation = ZMConversation.insertNewObject(in: self.syncMOC)
             self.conversation.remoteIdentifier = UUID.create()
