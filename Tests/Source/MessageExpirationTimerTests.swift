@@ -18,282 +18,218 @@
 
 
 import Foundation
+import WireRequestStrategy
 
-//
-//
-//@import ZMCDataModel;
-//@import WireMessageStrategy;
-//
-//#import "MessagingTest.h"
-//
-//@interface ZMMessageExpirationTimerTests : MessagingTest
-//
-//@property (nonatomic) ZMMessageExpirationTimer *sut;
-//@property (nonatomic) FakeLocalNotificationDispatcher *mockLocalNotificationDispatcher;
-//@end
-//
-//
-//
-//@implementation ZMMessageExpirationTimerTests
-//
-//- (void)setUp
-//{
-//    [super setUp];
-//    self.mockLocalNotificationDispatcher = [[FakeLocalNotificationDispatcher alloc] init];
-//
-//    self.sut = [[ZMMessageExpirationTimer alloc] initWithManagedObjectContext:self.uiMOC entityName:[ZMClientMessage entityName] localNotificationDispatcher:self.mockLocalNotificationDispatcher];
-//}
-//
-//- (void)tearDown
-//{
-//    [self.sut tearDown];
-//    self.mockLocalNotificationDispatcher = nil;
-//    self.sut = nil;
-//    [super tearDown];
-//}
-//
-//- (ZMClientMessage *)setupMessageWithExpirationTime:(NSTimeInterval)expirationTime
-//{
-//    ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.uiMOC];
-//    message.isEncrypted = YES;
-//    [ZMMessage setDefaultExpirationTime:expirationTime];
-//    [message setExpirationDate];
-//    XCTAssertFalse(message.isExpired);
-//    XCTAssert([self.uiMOC saveOrRollback]);
-//    [ZMMessage resetDefaultExpirationTime];
-//    return message;
-//}
-//
-//
-//- (void)checkThatMessage:(ZMMessage *)message isExpiredWithFailureRecorder:(ZMTFailureRecorder *)failureRecorder
-//{
-//    WaitForAllGroupsToBeEmpty(0.5);
-//    FHAssertFalse(failureRecorder, message.hasChanges);
-//    FHAssertEqualObjects(failureRecorder, message.expirationDate, nil);
-//    FHAssertEqual(failureRecorder, message.isExpired, YES);
-//}
-//
-//- (void)waitForMessage:(ZMMessage *)message toExpireWithFailureRecorder:(ZMTFailureRecorder *)failureRecorder
-//{
-//    FHAssertTrue(failureRecorder, [self waitOnMainLoopUntilBlock:^BOOL{
-//        return message.isExpired == YES;
-//    } timeout:2.2]);
-//}
-//
-//
-//
-//
-//- (void)testThatItExpiresAMessageImmediately
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:-2];
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//
-//    // then
-//    [self checkThatMessage:textMessage isExpiredWithFailureRecorder:NewFailureRecorder()];
-//}
-//
-//- (void)testThatItExpiresAMessageWhenItsTimeRunsOut
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.1];
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//    [self waitForMessage:textMessage toExpireWithFailureRecorder:NewFailureRecorder()];
-//
-//    // then
-//    [self checkThatMessage:textMessage isExpiredWithFailureRecorder:NewFailureRecorder()];
-//}
-//
-//#if TARGET_OS_IPHONE
-//- (void)testThatItNotifiesTheLocalNotificaitonDispatcherWhenItsTimeRunsOut
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.2];
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//    [self waitForMessage:textMessage toExpireWithFailureRecorder:NewFailureRecorder()];
-//
-//    // then
-//    [self checkThatMessage:textMessage isExpiredWithFailureRecorder:NewFailureRecorder()];
-//    [self.mockLocalNotificationDispatcher.failedMessage containsObject:textMessage];
-//
-//}
-//#endif
-//
-//- (void)testThatItDoesNotExpireAMessageWhenDeliveredIsSetToTrue
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.2];
-//    textMessage.delivered = YES;
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//
-//    [self spinMainQueueWithTimeout:0.2];
-//
-//    // then
-//    XCTAssertFalse(textMessage.isExpired);
-//}
-//
-//- (void)testThatItExpiresAMessageWhenDeliveredIsNotTrue
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.1];
-//    textMessage.delivered = NO;
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//
-//    XCTAssertTrue([self waitOnMainLoopUntilBlock:^BOOL{
-//        return textMessage.isExpired == YES;
-//    } timeout:0.5]);
-//
-//    // then
-//    XCTAssertTrue(textMessage.isExpired);
-//}
-//
-//- (void)testThatItDoesNotExpireAMessageForWhichTheTimerWasStopped
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.2];
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//
-//    // when
-//    [self.sut stopTimerForMessage:textMessage];
-//
-//    [self spinMainQueueWithTimeout:0.4];
-//
-//    // then
-//    XCTAssertNotNil(textMessage.expirationDate);
-//    XCTAssertFalse(textMessage.isExpired);
-//
-//}
-//
-//
-//- (void)testThatItDoesNotExpireAMessageThatHasNoExpirationDate
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0];
-//    [textMessage removeExpirationDate];
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//
-//    [self spinMainQueueWithTimeout:0.2];
-//
-//    // then
-//    XCTAssertNil(textMessage.expirationDate);
-//    XCTAssertFalse(textMessage.isExpired);
-//}
-//
-//
-//
-//- (void)testThatItStartsTimerForStoredMessagesOnFirstRequest
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.2];
-//
-//    // when
-//    [ZMChangeTrackerBootstrap bootStrapChangeTrackers:@[self.sut] onContext:self.uiMOC];
-//    [self waitForMessage:textMessage toExpireWithFailureRecorder:NewFailureRecorder()];
-//
-//    // then
-//    XCTAssertNil(textMessage.expirationDate);
-//    XCTAssertTrue(textMessage.isExpired);
-//}
-//
-//- (void)testThatItDoesNotHaveMessageTimersRunningWhenThereIsNoMessage
-//{
-//    XCTAssertFalse(self.sut.hasMessageTimersRunning);
-//}
-//
-//- (void)testThatItDoesNotHaveMessageTimersRunningWhenThereIsNoMessageBecauseTheyAreExpired
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:-2];
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    //then
-//    XCTAssertFalse(self.sut.hasMessageTimersRunning);
-//}
-//
-//
-//- (void)testThatItDoesNotHaveMessageTimersRunningAfterAMessageExpires
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.01];
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//    XCTAssertTrue([self waitOnMainLoopUntilBlock:^BOOL{
-//        return ! self.sut.hasMessageTimersRunning;
-//    } timeout:0.5]);
-//
-//
-//    //then
-//    XCTAssertFalse(self.sut.hasMessageTimersRunning);
-//}
-//
-//
-//- (void)testThatItHasMessageTimersRunningWhenThereIsAMessage
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.7];
-//
-//    // when
-//    [self.sut objectsDidChange:[NSSet setWithObject:textMessage]];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    //then
-//    XCTAssertTrue(self.sut.hasMessageTimersRunning);
-//}
-//
-//@end
-//
-//
-//
-//@implementation ZMMessageExpirationTimerTests (SlowSync)
-//
-//- (void)testThatItReturnsCorrectFetchRequest
-//{
-//    // when
-//    NSFetchRequest *request = [self.sut fetchRequestForTrackedObjects];
-//
-//    // then
-//    NSFetchRequest *expected = [ZMMessage sortedFetchRequestWithPredicate:[ZMMessage predicateForMessagesThatWillExpire]];
-//    XCTAssertEqualObjects(request, expected);
-//}
-//
-//- (void)testThatItAddsObjectsThatNeedProcessing
-//{
-//    // given
-//    ZMClientMessage *textMessage = [self setupMessageWithExpirationTime:0.4];
-//    ZMClientMessage *anotherTextMessage = [self setupMessageWithExpirationTime:0.4];
-//
-//    // this message should be ignored
-//    ZMKnockMessage *knockMessage = [ZMKnockMessage insertNewObjectInManagedObjectContext:self.uiMOC];
-//    [ZMMessage setDefaultExpirationTime:0.4];
-//    [knockMessage setExpirationDate];
-//    XCTAssert([self.uiMOC saveOrRollback]);
-//    [ZMMessage resetDefaultExpirationTime];
-//
-//    XCTAssertFalse(self.sut.hasMessageTimersRunning);
-//
-//    // when
-//    [self.sut addTrackedObjects:[NSSet setWithObjects:textMessage, anotherTextMessage, knockMessage, nil]];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    // then
-//    XCTAssertTrue(self.sut.hasMessageTimersRunning);
-//    XCTAssertEqual(self.sut.runningTimersCount, 2u);
-//}
-//
-//@end
+
+class MessageExpirationTimerTests: MessagingTest {
+
+    var sut: MessageExpirationTimer!
+    var localNotificationDispatcher: FakePushMessageHandler!
+    
+    override func setUp() {
+        super.setUp()
+        self.localNotificationDispatcher = FakePushMessageHandler()
+        self.sut = MessageExpirationTimer(moc: self.uiMOC, entityName: ZMClientMessage.entityName(), localNotificationDispatcher: self.localNotificationDispatcher)
+    }
+    
+    override func tearDown() {
+        self.sut.tearDown()
+        self.sut = nil
+        self.localNotificationDispatcher = nil
+        super.tearDown()
+    }
+}
+
+
+extension MessageExpirationTimerTests {
+    
+    func testThatItExpireAMessageImmediately() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: -2)
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        
+        // THEN
+        self.checkExpiration(of: message)
+    }
+    
+    func testThatItExpiresAMessageWhenItsTimeRunsOut() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.1)
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        self.waitForExpiration(of: message)
+        
+        // THEN
+        self.checkExpiration(of: message)
+    }
+    
+    func testThatItNotifiesTheLocalNotificaitonDispatcherWhenItsTimeRunsOut() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.1)
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        self.waitForExpiration(of: message)
+        
+        // THEN
+        XCTAssertEqual(self.localNotificationDispatcher.failedToSend, [message])
+    }
+    
+    func testThatItDoesNotExpireAMessageWhenDeliveredIsSetToTrue() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.1)
+        message.delivered = true
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        self.spinMainQueue(withTimeout: 0.4)
+        
+        // THEN
+        XCTAssertFalse(message.isExpired)
+    }
+    
+    func testThatItExpiresAMessageWhenDeliveredIsNotTrue() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.1)
+        message.delivered = false
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        self.spinMainQueue(withTimeout: 0.4)
+        
+        // THEN
+        self.checkExpiration(of: message)
+    }
+    
+    func testThatItDoesNotExpireAMessageForWhichTheTimerWasStopped() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.2)
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+
+        // WHEN
+        self.sut.stop(for: message)
+        self.spinMainQueue(withTimeout: 0.4)
+        
+        // THEN
+        XCTAssertNotNil(message.expirationDate)
+        XCTAssertFalse(message.isExpired)
+    }
+    
+    func testThatItDoesNotExpireAMessageThatHasNoExpirationDate() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.1)
+        message.removeExpirationDate()
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        self.spinMainQueue(withTimeout: 0.4)
+        
+        // THEN
+        XCTAssertNil(message.expirationDate)
+        XCTAssertFalse(message.isExpired)
+    }
+    
+    func testThatItStartsTimerForStoredMessagesOnFirstRequest() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.1)
+        
+        // WHEN
+        ZMChangeTrackerBootstrap.bootStrapChangeTrackers([self.sut], on: self.uiMOC)
+        self.waitForExpiration(of: message)
+        
+        // THEN
+        self.checkExpiration(of: message)
+    }
+    
+    func testThatItDoesNotHaveMessageTimersRunningWhenThereIsNoMessage() {
+        XCTAssertFalse(self.sut.hasMessageTimersRunning)
+    }
+    
+    func testThatItDoesNotHaveMessageTimersRunningWhenThereIsNoMessageBecauseTheyAreExpired() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: -2)
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        self.waitForExpiration(of: message)
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.2))
+        
+        // THEN
+        XCTAssertFalse(self.sut.hasMessageTimersRunning)
+    }
+    
+    func testThatItHasMessageTimersRunningWhenThereIsAMessage() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.5)
+        
+        // WHEN
+        self.sut.objectsDidChange(Set(arrayLiteral: message))
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.2))
+        
+        // THEN
+        XCTAssertTrue(self.sut.hasMessageTimersRunning)
+        self.waitForExpiration(of: message)
+    }
+}
+
+/// MARK: - Slow sync
+extension MessageExpirationTimerTests {
+    
+    func testThatItReturnsCorrectFetchRequest() {
+        // WHEN
+        let request = self.sut.fetchRequestForTrackedObjects()
+        
+        // THEN
+        let expected = ZMMessage.sortedFetchRequest(with: ZMMessage.predicateForMessagesThatWillExpire())
+        XCTAssertEqual(request, expected)
+    }
+    
+    func testThatItAddsObjectsThatNeedProcessing() {
+        // GIVEN
+        let message = self.clientMessage(expirationTime: 0.4)
+        let anotherMessage = self.clientMessage(expirationTime: 0.4)
+        
+        XCTAssertFalse(self.sut.hasMessageTimersRunning)
+        
+        // WHEN
+        self.sut.addTrackedObjects(Set(arrayLiteral: message, anotherMessage))
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        // THEN
+        XCTAssertTrue(self.sut.hasMessageTimersRunning)
+        XCTAssertEqual(self.sut.runningTimersCount, 2)
+    }
+}
+
+
+/// MARK: - Helpers
+extension MessageExpirationTimerTests {
+    
+    /// Creates a message with expiration time
+    fileprivate func clientMessage(expirationTime: TimeInterval) -> ZMClientMessage {
+        let message = ZMClientMessage.insertNewObject(in: self.uiMOC)
+        message.isEncrypted = true
+        ZMMessage.setDefaultExpirationTime(expirationTime)
+        message.setExpirationDate()
+        XCTAssertTrue(self.uiMOC.saveOrRollback())
+        ZMMessage.resetDefaultExpirationTime()
+        return message
+    }
+    
+    /// Checks that the message is expired. Asserts if not.
+    fileprivate func checkExpiration(of message: ZMMessage, file: StaticString = #file, line: UInt = #line) {
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5), file: file, line: line)
+        XCTAssertFalse(message.hasChanges, file: file, line: line)
+        XCTAssertNil(message.expirationDate, file: file, line: line)
+        XCTAssertTrue(message.isExpired, file: file, line: line)
+    }
+    
+    /// Wait for a message to expire. Asserts if it doesn't.
+    fileprivate func waitForExpiration(of message: ZMMessage, file: StaticString = #file, line: UInt = #line) {
+        XCTAssertTrue(self.waitOnMainLoop(until: { return message.isExpired }, timeout: 2), file: file, line: line)
+    }
+}
+
