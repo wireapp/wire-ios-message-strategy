@@ -53,9 +53,26 @@ class LinkPreviewUploadRequestStrategyTests: MessagingTest {
         process(message)
 
         // Then
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-        XCTAssertEqual(request.method, .methodPOST)
-        XCTAssertEqual(request.path, "/conversations/\(conversation.remoteIdentifier!.transportString())/otr/messages")
+        verifyItCreatesARequest(in: conversation)
+    }
+
+    func testThatItDoesCreateARequestInState_Uploaded_WhenTheFirstRequestFailed() {
+        // Given
+        let (conversation, message) = insertMessage(with: .uploaded)
+
+        // When
+        process(message)
+        guard let request = verifyItCreatesARequest(in: conversation) else { return }
+
+        // When
+        let response = ZMTransportResponse(transportSessionError: NSError.tryAgainLaterError())
+        request.complete(with: response)
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+
+        XCTAssertEqual(message.linkPreviewState, .uploaded)
+
+        // Then
+        verifyItCreatesARequest(in: conversation)
     }
 
     func testThatItDoesNotCreateARequestAfterGettingsAResponseForIt() {
@@ -64,9 +81,7 @@ class LinkPreviewUploadRequestStrategyTests: MessagingTest {
         process(message)
 
         // Then
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-        XCTAssertEqual(request.method, .methodPOST)
-        XCTAssertEqual(request.path, "/conversations/\(conversation.remoteIdentifier!.transportString())/otr/messages")
+        guard let request = verifyItCreatesARequest(in: conversation) else { return }
 
         // When
         let response = ZMTransportResponse(payload: nil, httpStatus: 200, transportSessionError: nil)
@@ -74,7 +89,7 @@ class LinkPreviewUploadRequestStrategyTests: MessagingTest {
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
         // Then
-        XCTAssertEqual(message.linkPreviewState.rawValue, ZMLinkPreviewState.done.rawValue)
+        XCTAssertEqual(message.linkPreviewState, .done)
         XCTAssertNil(sut.nextRequest())
     }
 
@@ -102,6 +117,15 @@ class LinkPreviewUploadRequestStrategyTests: MessagingTest {
 
         // Then
         XCTAssertNil(sut.nextRequest())
+    }
+
+    @discardableResult
+    func verifyItCreatesARequest(in conversation: ZMConversation, file: StaticString = #file, line: UInt = #line) -> ZMTransportRequest? {
+        let request = sut.nextRequest()
+        XCTAssertNotNil(request, "No request generated", file: file, line: line)
+        XCTAssertEqual(request?.method, .methodPOST, file: file, line: line)
+        XCTAssertEqual(request?.path, "/conversations/\(conversation.remoteIdentifier!.transportString())/otr/messages", file: file, line: line)
+        return request
     }
 
     func process(_ message: ZMClientMessage, file: StaticString = #file, line: UInt = #line) {
