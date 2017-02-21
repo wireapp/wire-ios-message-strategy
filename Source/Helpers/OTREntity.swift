@@ -67,6 +67,12 @@ extension OTREntity {
             return conversation.connection
         }
         
+        // If the conversation is degraded we shouldn't send the message until the conversation
+        // is marked as not secure or it's verified again
+        if conversation.securityLevel == .secureWithIgnored {
+            return conversation
+        }
+        
         // If we are missing clients, we need to refetch the clients before retrying
         if let selfClient = ZMUser.selfUser(in: conversation.managedObjectContext!).selfClient(),
             let missingClients = selfClient.missingClients , missingClients.count > 0
