@@ -18,6 +18,7 @@
 
 import Foundation
 import WireRequestStrategy
+import ZMCMockTransport
 
 class ClientMessageTranscoderTests: MessagingTest {
 
@@ -27,7 +28,10 @@ class ClientMessageTranscoderTests: MessagingTest {
     var sut: ClientMessageTranscoder!
     var groupConversation: ZMConversation!
     var oneToOneConversation: ZMConversation!
-    var user: ZMUser!
+    var selfClient: UserClient!
+    var otherUser: ZMUser!
+    var otherClient: UserClient!
+    var otherEncryptionContext: EncryptionContext!
     
     override func setUp() {
         super.setUp()
@@ -35,9 +39,9 @@ class ClientMessageTranscoderTests: MessagingTest {
         self.clientRegistrationStatus = MockClientRegistrationStatus()
         self.confirmationStatus = MockConfirmationStatus()
         
-        self.user = self.createUser()
-        self.groupConversation = self.createGroupConversation(with: self.user)
-        self.oneToOneConversation = self.setupOneToOneConversation(with: self.user)
+        self.setupUsersAndClients()
+        self.groupConversation = self.createGroupConversation(with: self.otherUser)
+        self.oneToOneConversation = self.setupOneToOneConversation(with: self.otherUser)
         
         self.sut = ClientMessageTranscoder(in: self.syncMOC, localNotificationDispatcher: self.localNotificationDispatcher, clientRegistrationStatus: self.clientRegistrationStatus, apnsConfirmationStatus: self.confirmationStatus)
         
@@ -48,7 +52,9 @@ class ClientMessageTranscoderTests: MessagingTest {
         self.localNotificationDispatcher = nil
         self.clientRegistrationStatus = nil
         self.confirmationStatus = nil
-        self.user = nil
+        self.otherUser = nil
+        self.otherClient = nil
+        self.selfClient = nil
         self.groupConversation = nil
         self.sut.tearDown()
         self.sut = nil
@@ -138,16 +144,14 @@ extension ClientMessageTranscoderTests {
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
-            let selfClient = self.createSelfClient()
-            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
             let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
             
             // WHEN
-            selfClient.missesClient(missingClient)
+            self.selfClient.missesClient(self.otherClient)
             
             // THEN
             let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: message)
-            XCTAssertEqual(dependency as? UserClient, selfClient)
+            XCTAssertEqual(dependency as? UserClient, self.selfClient)
         }
     }
     
@@ -155,12 +159,10 @@ extension ClientMessageTranscoderTests {
         self.syncMOC.performGroupedBlockAndWait {
 
             // GIVEN
-            let selfClient = self.createSelfClient()
-            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
             let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
 
             // WHEN
-            selfClient.missesClient(missingClient)
+            self.selfClient.missesClient(self.otherClient)
             self.groupConversation.needsToBeUpdatedFromBackend = true
             
             // THEN
@@ -173,12 +175,10 @@ extension ClientMessageTranscoderTests {
         self.syncMOC.performGroupedBlockAndWait {
 
             // GIVEN
-            let selfClient = self.createSelfClient()
-            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
             let message = self.oneToOneConversation.appendMessage(withText: "foo") as! ZMClientMessage
             
             // WHEN
-            selfClient.missesClient(missingClient)
+            self.selfClient.missesClient(self.otherClient)
             self.oneToOneConversation.connection?.needsToBeUpdatedFromBackend = true
             
             // THEN
@@ -191,14 +191,12 @@ extension ClientMessageTranscoderTests {
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
-            let selfClient = self.createSelfClient()
-            let missingClient = self.createClient(for: self.user, createSessionWithSelfUser: false)
             let user2 = self.createUser()
             let conversation2 = self.createGroupConversation(with: user2)
             let message = conversation2.appendMessage(withText: "foo") as! ZMClientMessage
             
             // WHEN
-            selfClient.missesClient(missingClient)
+            self.selfClient.missesClient(self.otherClient)
             
             // THEN
             let dependency = self.sut.dependentObjectNeedingUpdate(beforeProcessingObject: message)
@@ -258,6 +256,57 @@ extension ClientMessageTranscoderTests {
     }
 }
 
+// MARK: - Processing events
+
+extension ClientMessageTranscoderTests {
+
+    func testThatANewOtrMessageIsCreatedFromAnEvent() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let text = "Everything"
+            let base64Text = "CiQ5ZTU2NTQwOS0xODZiLTRlN2YtYTE4NC05NzE4MGE0MDAwMDQSDAoKRXZlcnl0aGluZw=="
+            let payload = [
+                "recipient": self.selfClient.remoteIdentifier,
+                "sender": self.otherClient.remoteIdentifier,
+                "text": base64Text
+            ]
+            let eventPayload = [
+                "type": "conversation.otr-message-add",
+                "data": payload,
+                "conversation": self.groupConversation.remoteIdentifier!.transportString(),
+                "time": Date().transportString()
+                ] as NSDictionary
+            guard let event = ZMUpdateEvent.decryptedUpdateEvent(fromEventStreamPayload: eventPayload, uuid: nil, transient: false, source: .webSocket) else {
+                XCTFail()
+                return
+            }
+            
+            // WHEN
+            self.sut.processEvents([event], liveEvents: false, prefetchResult: nil)
+            
+            // THEN
+            XCTAssertEqual((self.groupConversation.messages.lastObject as? ZMConversationMessage)?.textMessageData?.messageText, text)
+        }
+    }
+    
+    func testThatANewOtrMessageIsCreatedFromADecryptedAPNSEvent() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let text = "Everything"
+            let event = self.decryptMessageEventFromOtherClient(text: text)
+            
+            // WHEN
+            self.sut.processEvents([event], liveEvents: false, prefetchResult: nil)
+            
+            // THEN
+            XCTAssertEqual((self.groupConversation.messages.lastObject as? ZMClientMessage)?.textMessageData?.messageText, text)
+        }
+    }
+    
+}
+
 // MARK: - Request generation
 
 extension ClientMessageTranscoderTests {
@@ -266,8 +315,6 @@ extension ClientMessageTranscoderTests {
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
-            self.createSelfClient()
-            self.createClient(for: self.user, createSessionWithSelfUser: true)
             let message = self.groupConversation.appendMessage(withText: "foo") as! ZMClientMessage
             self.syncMOC.saveOrRollback()
             
@@ -286,115 +333,33 @@ extension ClientMessageTranscoderTests {
         }
     }
     
-    
-    func testThatANewOtrMessageIsCreatedFromAnEvent() {
+    func testThatItGeneratesARequestToSendAClientMessageExternalWithExternalBlob() {
         self.syncMOC.performGroupedBlockAndWait {
-         
+            
             // GIVEN
-            let client = self.createSelfClient()
-            let text = "Everything"
-            let base64Text = "CiQ5ZTU2NTQwOS0xODZiLTRlN2YtYTE4NC05NzE4MGE0MDAwMDQSDAoKRXZlcnl0aGluZw=="
-            let payload = [
-                "recipient": client.remoteIdentifier,
-                "sender": client.remoteIdentifier,
-                "text": base64Text
-            ]
-            let eventPayload = [
-                "type": "conversation.otr-message-add",
-                "payload": payload,
-                "conversation": self.groupConversation.remoteIdentifier!.transportString(),
-                "time": Date().transportString()
-            ] as NSDictionary
-            guard let event = ZMUpdateEvent.decryptedUpdateEvent(fromEventStreamPayload: eventPayload, uuid: nil, transient: false, source: .webSocket) else {
+            let message = self.groupConversation.appendMessage(withText: String(repeating: "Hi", count: 10000)) as! ZMClientMessage
+            self.syncMOC.saveOrRollback()
+            
+            // WHEN
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([message])) }
+            guard let request = self.sut.nextRequest() else {
                 XCTFail()
                 return
             }
             
-            // WHEN
-            self.sut.processEvents([event], liveEvents: false, prefetchResult: nil)
-            
             // THEN
-            XCTAssertEqual((self.groupConversation.messages.lastObject as? ZMConversationMessage)?.textMessageData?.messageText, text)
+            XCTAssertEqual(request.path, "/conversations/\(self.groupConversation.remoteIdentifier!.transportString())/otr/messages")
+            XCTAssertEqual(request.method, .methodPOST)
+            XCTAssertNotNil(request.binaryData)
+            XCTAssertEqual(request.binaryDataType, "application/x-protobuf")
+            
         }
     }
 }
 
 // TODO MARCO
 
-//
-//- (void)testThatANewOtrMessageIsCreatedFromAnEvent
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//
-//        // given
-//        UserClient *client = [self createSelfClient];
-//        ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//        conversation.remoteIdentifier = [NSUUID createUUID];
-//        [self.syncMOC saveOrRollback];
-//
-//        NSString *text = @"Everything";
-//        NSString *base64String = @"CiQ5ZTU2NTQwOS0xODZiLTRlN2YtYTE4NC05NzE4MGE0MDAwMDQSDAoKRXZlcnl0aGluZw==";
-//        NSDictionary *payload = @{@"recipient": client.remoteIdentifier, @"sender": client.remoteIdentifier, @"text": base64String};
-//        NSDictionary *eventPayload = @{@"type":         @"conversation.otr-message-add",
-//                                       @"data":         payload,
-//                                       @"conversation": conversation.remoteIdentifier.transportString,
-//                                       @"time":         [NSDate dateWithTimeIntervalSince1970:555555].transportString
-//                                       };
-//        ZMUpdateEvent *updateEvent = [ZMUpdateEvent decryptedUpdateEventFromEventStreamPayload:eventPayload uuid:[NSUUID createUUID] transient:NO source:ZMUpdateEventSourceWebSocket];
-//
-//        // when
-//        [self.sut processEvents:@[updateEvent] liveEvents:NO prefetchResult:nil];
-//
-//        // then
-//        XCTAssertEqualObjects([conversation.messages.lastObject messageText], text);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//- (void)testThatANewOtrMessageIsCreatedFromADecryptedAPNSEvent
-//{
-//    [self.syncMOC performGroupedBlock:^{
-//        // given
-//        UserClient *client = [self createSelfClient];
-//        UserClient *otherClient = [self createClientForUser:[ZMUser insertNewObjectInManagedObjectContext:self.syncMOC] createSessionWithSelfUser:NO];
-//        NSString *text = @"Everything";
-//        NSUUID *conversationID = [NSUUID createUUID];
-//        [self.syncMOC saveOrRollback];
-//
-//        //create encrypted message
-//        ZMGenericMessage *message = [ZMGenericMessage messageWithText:text nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-//        NSData *encryptedData = [self encryptedMessageToSelfWithMessage:message fromSender:otherClient];
-//
-//        NSDictionary *payload = @{@"recipient": client.remoteIdentifier, @"sender": otherClient.remoteIdentifier, @"text": [encryptedData base64String]};
-//        ZMUpdateEvent *updateEvent = [ZMUpdateEvent eventFromEventStreamPayload:
-//                                      @{
-//                                        @"type":@"conversation.otr-message-add",
-//                                        @"from":otherClient.user.remoteIdentifier.transportString,
-//                                        @"data":payload,
-//                                        @"conversation":conversationID.transportString,
-//                                        @"time":[NSDate dateWithTimeIntervalSince1970:555555].transportString
-//                                        } uuid:nil];
-//
-//        ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//        conversation.remoteIdentifier = conversationID;
-//        [self.syncMOC saveOrRollback];
-//
-//        __block ZMUpdateEvent *decryptedEvent;
-//        [self.syncMOC.zm_cryptKeyStore.encryptionContext perform:^(EncryptionSessionsDirectory * _Nonnull sessionsDirectory) {
-//            decryptedEvent = [sessionsDirectory decryptUpdateEventAndAddClient:updateEvent managedObjectContext:self.syncMOC];
-//        }];
-//
-//        // when
-//        [self.sut processEvents:@[decryptedEvent] liveEvents:NO prefetchResult:nil];
-//
-//        // then
-//        XCTAssertEqualObjects([conversation.messages.lastObject messageText], text);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
+///
 //- (void)testThatItGeneratesARequestToSendAClientMessageExternalWithExternalBlob
 //{
 //    NSString *longText = [@"Hello" stringByPaddingToLength:10000 withString:@"?" startingAtIndex:0];
@@ -1479,6 +1444,69 @@ extension ClientMessageTranscoderTests {
         conversation.remoteIdentifier = UUID.create()
         conversation.mutableOtherActiveParticipants.add(user)
         return conversation
+    }
+    
+    /// Creates an encryption context in a temp folder
+    func createEncryptionContext() -> EncryptionContext {
+        let url = URL(fileURLWithPath: [NSTemporaryDirectory(), UUID().uuidString].joined(separator: "/"))
+        try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [:])
+        return EncryptionContext(path: url)
+    }
+    
+    /// Creates an encryption context in a temp folder and creates keys
+    func setupUsersAndClients() {
+        
+        // user
+        self.otherUser = self.createUser()
+        
+        // other client
+        self.otherClient = UserClient.insertNewObject(in: self.syncMOC)
+        self.otherClient.remoteIdentifier = "aabbccdd"
+        self.otherClient.user = self.otherUser
+        self.syncMOC.saveOrRollback()
+        
+        // create context
+        self.otherEncryptionContext = self.createEncryptionContext()
+        
+        // get last prekey
+        self.selfClient = self.createSelfClient()
+        let lastPrekey = try! selfClient.keysStore.lastPreKey()
+        self.otherEncryptionContext.perform { session in
+            try! session.createClientSession(self.selfClient.sessionIdentifier!, base64PreKeyString: lastPrekey)
+        }
+    }
+    
+    /// Encrypt payload from "other client"
+    func encryptFromOtherClient(plaintext: Data) -> Data {
+        var cypertext: Data? = nil
+        self.otherEncryptionContext.perform { session in
+            cypertext = try! session.encrypt(plaintext, for: self.selfClient.sessionIdentifier!)
+        }
+        return cypertext!
+    }
+    
+    /// Creates an update event with encrypted message from the other client, decrypts it and returns it
+    func decryptMessageEventFromOtherClient(text: String) -> ZMUpdateEvent {
+        
+        let message = ZMGenericMessage.message(text: text, nonce: UUID.create().transportString())
+        let cyphertext = self.encryptFromOtherClient(plaintext: message.data())
+        let payload = ["recipient": self.selfClient.remoteIdentifier!,
+                       "sender": self.otherClient.remoteIdentifier!,
+                       "text": cyphertext.base64String()
+        ]
+        let event = ZMUpdateEvent(fromEventStreamPayload: [
+            "type": "conversation.otr-message-add",
+            "from": self.otherUser.remoteIdentifier!.transportString(),
+            "data": payload,
+            "conversation": self.groupConversation.remoteIdentifier!.transportString(),
+            "time": Date().transportString()
+            ] as NSDictionary, uuid: nil)
+        
+        var decryptedEvent: ZMUpdateEvent?
+        self.selfClient.keysStore.encryptionContext.perform { session in
+            decryptedEvent = session.decryptAndAddClient(event!, in: self.syncMOC)
+        }
+        return decryptedEvent!
     }
 }
 
