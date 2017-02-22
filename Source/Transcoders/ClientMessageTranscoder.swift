@@ -167,6 +167,7 @@ extension ClientMessageTranscoder {
         }
         
         self.update(message, from: response, keys: upstreamRequest.keys)
+        _ = message.parseMissingClientsResponse(response, clientDeletionDelegate: self.clientRegistrationStatus!)
         
         if genericMessage.hasReaction() == true {
             message.managedObjectContext?.delete(message)

@@ -25,7 +25,6 @@ extension ZMOTRMessage: OTREntity {
 
     /// Which object this message depends on when sending
     override public var dependentObjectNeedingUpdateBeforeProcessing: AnyObject? {
-        
         return self.dependentObjectNeedingUpdateBeforeProcessingOTREntity()
             ?? super.dependentObjectNeedingUpdateBeforeProcessing
     }
