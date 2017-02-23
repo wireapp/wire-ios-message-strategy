@@ -48,7 +48,7 @@ public extension UserClient {
 
 // Register new client, update it with new keys, deletes clients.
 @objc
-public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMUpstreamTranscoder, ZMContextChangeTrackerSource {
+public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMUpstreamTranscoder, ZMContextChangeTrackerSource, RequestStrategy {
     
     override public var configuration : ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
     fileprivate(set) var modifiedSync: ZMUpstreamModifiedObjectSync! = nil
@@ -82,6 +82,7 @@ public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMU
     public var hasOutstandingItems : Bool {
         return modifiedSync.hasOutstandingItems
     }
+
     public func shouldProcessUpdatesBeforeInserts() -> Bool {
         return false
     }
@@ -106,7 +107,7 @@ public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMU
         guard keys.contains(ZMUserClientMissingKey)
         else { fatal("Unknown keys to sync (\(keys))") }
         
-        guard let missing = client.missingClients , missing.count > 0
+        guard let missing = client.missingClients, missing.count > 0
         else { fatal("no missing clients found") }
         
         let request = requestsFactory.fetchMissingClientKeysRequest(missing)

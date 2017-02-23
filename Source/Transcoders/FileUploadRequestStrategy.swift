@@ -82,9 +82,9 @@ private let reponseHeaderAssetIdKey = "Location"
         return false
     }
     
-    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> ZMManagedObject? {
+    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> Any? {
         guard let message = dependant as? ZMAssetClientMessage else { return nil }
-        let dependency = message.dependendObjectNeedingUpdateBeforeProcessing()
+        let dependency = message.dependentObjectNeedingUpdateBeforeProcessing
         return dependency
     }
     
@@ -128,8 +128,8 @@ private let reponseHeaderAssetIdKey = "Location"
     public func updateInsertedObject(_ managedObject: ZMManagedObject,request upstreamRequest: ZMUpstreamRequest,response: ZMTransportResponse) {
         guard let message = managedObject as? ZMAssetClientMessage, let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: Set())
-        if let delegate = appStateDelegate?.clientDeletionDelegate {
-            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+            _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
     }
     
@@ -138,8 +138,8 @@ private let reponseHeaderAssetIdKey = "Location"
         if let payload = response.payload?.asDictionary() {
             message.update(withPostPayload: payload, updatedKeys: keysToParse)
         }
-        if let delegate = appStateDelegate?.clientDeletionDelegate {
-            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+            _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
         guard keysToParse.contains(ZMAssetClientMessageUploadedStateKey) else { return false }
         
@@ -181,8 +181,8 @@ private let reponseHeaderAssetIdKey = "Location"
         keysToParse keys: Set<String>)-> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         var failedBecauseOfMissingClients = false
-        if let delegate = appStateDelegate?.clientDeletionDelegate {
-            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)

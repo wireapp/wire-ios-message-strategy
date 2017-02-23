@@ -23,7 +23,6 @@
 #import "ZMMessageTranscoder+Internal.h"
 #import "ZMMessageExpirationTimer.h"
 
-#import "CBCryptoBox+UpdateEvents.h"
 #import <WireMessageStrategy/WireMessageStrategy-Swift.h>
 
 @interface ZMClientMessageTranscoder()
@@ -74,12 +73,12 @@
     return request;
 }
 
-- (void)updateInsertedObject:(ZMMessage *)message request:(ZMUpstreamRequest *)upstreamRequest response:(ZMTransportResponse *)response;
+- (void)updateInsertedObject:(ZMOTRMessage *)message request:(ZMUpstreamRequest *)upstreamRequest response:(ZMTransportResponse *)response;
 {
     id<ZMAppStateDelegate> strongDelegate = self.appStateDelegate;
     [super updateInsertedObject:message request:upstreamRequest response:response];
-    [(id)message parseUploadResponse:response clientDeletionDelegate:strongDelegate.clientDeletionDelegate];
-    
+    [message parseMissingClientsResponse:response clientRegistrationDelegate:strongDelegate.clientRegistrationDelegate];
+
     // if it's reaction
     if ([message isKindOfClass:[ZMClientMessage class]] && !message.isZombieObject) {
         
@@ -97,15 +96,14 @@
 - (BOOL)updateUpdatedObject:(ZMAssetClientMessage *)message requestUserInfo:(NSDictionary *)requestUserInfo response:(ZMTransportResponse *)response keysToParse:(NSSet *)keysToParse
 {
     BOOL result = [super updateUpdatedObject:message requestUserInfo:requestUserInfo response:response keysToParse:keysToParse];
-    
-    [message parseUploadResponse:response clientDeletionDelegate:self.appStateDelegate.clientDeletionDelegate];
+    [message parseMissingClientsResponse:response clientRegistrationDelegate:self.appStateDelegate.clientRegistrationDelegate];
     
     return result;
 }
 
 - (BOOL)shouldRetryToSyncAfterFailedToUpdateObject:(ZMClientMessage *)message request:(ZMUpstreamRequest *__unused)upstreamRequest response:(ZMTransportResponse *)response keysToParse:(NSSet * __unused)keys
 {
-    return [message parseUploadResponse:response clientDeletionDelegate:self.appStateDelegate.clientDeletionDelegate];
+    return [message parseMissingClientsResponse:response clientRegistrationDelegate:self.appStateDelegate.clientRegistrationDelegate];
 }
 
 - (BOOL)shouldCreateRequestToSyncObject:(ZMManagedObject *)managedObject forKeys:(NSSet<NSString *> *)keys withSync:(id)sync;
@@ -123,7 +121,7 @@
 
 - (ZMManagedObject *)dependentObjectNeedingUpdateBeforeProcessingObject:(ZMClientMessage *)message;
 {
-    return message.dependendObjectNeedingUpdateBeforeProcessing;
+    return message.dependentObjectNeedingUpdateBeforeProcessing;
 }
 
 - (ZMMessage *)messageFromUpdateEvent:(ZMUpdateEvent *)event

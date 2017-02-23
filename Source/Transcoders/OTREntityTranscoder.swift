@@ -36,9 +36,9 @@ private let ErrorLabel = "label"
 open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder {
     
     let context : NSManagedObjectContext
-    let clientRegistrationDelegate : ClientDeletionDelegate
+    let clientRegistrationDelegate : ClientRegistrationDelegate
     
-    public init(context: NSManagedObjectContext, clientRegistrationDelegate : ClientDeletionDelegate) {
+    public init(context: NSManagedObjectContext, clientRegistrationDelegate : ClientRegistrationDelegate) {
         self.context = context
         self.clientRegistrationDelegate = clientRegistrationDelegate
     }
@@ -56,7 +56,7 @@ open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder 
     open func shouldTryToResend(entity: Entity, afterFailureWithResponse response: ZMTransportResponse) -> Bool {
         
         if response.result == .permanentError {
-            if self.handleDeletedSelfClient(fromResponse: response, clientDeletionDelegate: clientRegistrationDelegate) {
+            if self.handleDeletedSelfClient(fromResponse: response, clientRegistrationDelegate: clientRegistrationDelegate) {
                 return false
             }
             
@@ -66,7 +66,7 @@ open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder 
         return false
     }
     
-    private func handleDeletedSelfClient(fromResponse response: ZMTransportResponse, clientDeletionDelegate: ClientDeletionDelegate) -> Bool {
+    private func handleDeletedSelfClient(fromResponse response: ZMTransportResponse, clientRegistrationDelegate: ClientRegistrationDelegate) -> Bool {
         // In case the self client got deleted remotely we will receive an event through the push channel and log out.
         // If we for some reason miss the push the BE will repond with a 403 and 'unknown-client' label to our
         // next sending attempt and we will logout and delete the current selfClient then
@@ -75,7 +75,7 @@ open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder 
             let label = payload[ErrorLabel] as? String ,
             label == UnknownClientLabel
         {
-            clientDeletionDelegate.didDetectCurrentClientDeletion()
+            clientRegistrationDelegate.didDetectCurrentClientDeletion()
             return true
         }
         
@@ -116,7 +116,7 @@ open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder 
             let clients = clientIDs.map { UserClient.fetchUserClient(withRemoteId: $0, forUser: user, createIfNeeded: true)! }
             
             // is this user not there?
-            entity.conversation.checkIfMissingActiveParticipant(user)
+            entity.conversation!.checkIfMissingActiveParticipant(user)
             
             return clients
         })

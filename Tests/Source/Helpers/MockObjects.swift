@@ -30,7 +30,7 @@ public class MockAppStateDelegate : NSObject, ZMAppStateDelegate {
         return self.mockTaskCancellationDelegate
     }
     
-    public var clientDeletionDelegate : ClientDeletionDelegate {
+    public var clientRegistrationDelegate : ClientRegistrationDelegate {
         return self.mockClientRegistrationStatus
     }
     
@@ -72,13 +72,17 @@ public class MockTaskCancellationDelegate: NSObject, ZMRequestCancellation {
 }
 
 
-public class MockClientRegistrationStatus: NSObject, ClientDeletionDelegate {
+public class MockClientRegistrationStatus: NSObject, ClientRegistrationDelegate {
     
     public var deletionCalls : Int = 0
     
     /// Notify that the current client was deleted remotely
     public func didDetectCurrentClientDeletion() {
         deletionCalls = deletionCalls+1
+    }
+    
+    public var clientIsReadyForRequests: Bool {
+        return true
     }
 }
 

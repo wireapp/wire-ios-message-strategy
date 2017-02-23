@@ -31,16 +31,10 @@ typedef NS_OPTIONS(NSInteger, ZMStrategyConfigurationOption) {
     ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing = 1 << 2,
 };
 
-
-@protocol ClientDeletionDelegate <NSObject>
-- (void)didDetectCurrentClientDeletion;
-@end
-
-
 @protocol ZMAppStateDelegate
 @property (nonatomic, readonly) ZMAppState appState;
 @property (nonatomic, readonly, nonnull) id<DeliveryConfirmationDelegate> confirmationDelegate;
-@property (nonatomic, readonly, nonnull) id<ClientDeletionDelegate> clientDeletionDelegate;
+@property (nonatomic, readonly, nonnull) id<ClientRegistrationDelegate> clientRegistrationDelegate;
 @property (nonatomic, readonly, nonnull) id<ZMRequestCancellation> taskCancellationDelegate;
 @end
 

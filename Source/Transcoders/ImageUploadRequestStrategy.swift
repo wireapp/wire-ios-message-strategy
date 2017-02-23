@@ -89,9 +89,9 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
         return nil // no-op
     }
     
-    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> ZMManagedObject? {
+    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> Any? {
         guard let message = dependant as? ZMMessage else { return nil }
-        return message.dependendObjectNeedingUpdateBeforeProcessing()
+        return message.dependentObjectNeedingUpdateBeforeProcessing
     }
     
     fileprivate func update(_ message: ZMAssetClientMessage, withResponse response: ZMTransportResponse, updatedKeys keys: Set<String>) {
@@ -99,8 +99,8 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
         
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-        if let delegate = appStateDelegate?.clientDeletionDelegate {
-             message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+             _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
     }
     
@@ -190,9 +190,9 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
     
     public func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
         guard let message = managedObject as? ZMAssetClientMessage,
-             let delegate = appStateDelegate?.clientDeletionDelegate else { return false }
+             let delegate = appStateDelegate?.clientRegistrationDelegate else { return false }
      
-        let shouldRetry = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        let shouldRetry = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         if !shouldRetry {
             message.uploadState = .uploadingFailed
         }

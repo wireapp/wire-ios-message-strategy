@@ -52,11 +52,11 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         missingUser.remoteIdentifier = UUID.create()
         
         let firstMissingClient = UserClient.insertNewObject(in: self.syncMOC)
-        firstMissingClient.remoteIdentifier = NSString.createAlphanumerical()
+        firstMissingClient.remoteIdentifier = NSString.createAlphanumerical() as String
         firstMissingClient.user = missingUser
         
         let secondMissingClient = UserClient.insertNewObject(in: self.syncMOC)
-        secondMissingClient.remoteIdentifier = NSString.createAlphanumerical()
+        secondMissingClient.remoteIdentifier = NSString.createAlphanumerical() as String
         secondMissingClient.user = missingUser
         
         // when
@@ -83,7 +83,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         let client = createSelfClient()
         
         let missingClient = UserClient.insertNewObject(in: self.sut.managedObjectContext)
-        missingClient.remoteIdentifier = NSString.createAlphanumerical()
+        missingClient.remoteIdentifier = NSString.createAlphanumerical() as String
         let missingUser = ZMUser.insertNewObject(in: self.sut.managedObjectContext)
         missingUser.remoteIdentifier = UUID.create()
         missingClient.user = missingUser
@@ -101,7 +101,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
     func testThatItDoesNotCreateARequestToFetchMissedKeysIfClientHasMissingClientsAndMissingKeyIsNotModified() {
         // given
         let client = createSelfClient()
-        let missingClient = createRemoteClient(nil, lastKey: nil)
+        let missingClient = createRemoteClient()
         
         client.mutableSetValue(forKey: ZMUserClientMissingKey).add(missingClient)
         sut.notifyChangeTrackers(client)
@@ -116,7 +116,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
     func testThatItDoesNotCreateARequestToFetchMissedKeysIfClientDoesNotHaveMissingClientsAndMissingKeyIsNotModified() {
         // given
         let client = createSelfClient()
-        let _ = createRemoteClient(nil, lastKey: nil)
+        let _ = createRemoteClient()
         
         client.missingClients = nil
         sut.notifyChangeTrackers(client)
@@ -131,7 +131,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
     func testThatItDoesNotCreateARequestToFetchMissedKeysIfClientDoesNotHaveMissingClientsAndMissingKeyIsModified() {
         // given
         let client = createSelfClient()
-        let _ = createRemoteClient(nil, lastKey: nil)
+        let _ = createRemoteClient()
         
         client.missingClients = nil
         client.setLocallyModifiedKeys(Set(arrayLiteral: ZMUserClientMissingKey))
@@ -150,11 +150,9 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         
         // given
         
-        let selfClient = createSelfClient()
-        let (prekeys, lastKey) = generatePrekeyAndLastKey(selfClient)
-        
-        let client1 = createRemoteClient(Array(prekeys[0..<1]), lastKey: lastKey)
-        let client2 = createRemoteClient(Array(prekeys[1..<2]), lastKey: lastKey)
+        let selfClient = createSelfClient()        
+        let client1 = createRemoteClient()
+        let client2 = createRemoteClient()
         
         selfClient.missesClient(client1)
         selfClient.missesClient(client2)
@@ -232,8 +230,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         
         //given
         let (selfClient, otherClient1) = createClients()
-        let lastKey = try! selfClient.keysStore.lastPreKey()
-        let otherClient2 = self.createRemoteClient(generateValidPrekeysStrings(selfClient, howMany: 1), lastKey: lastKey)
+        let otherClient2 = self.createRemoteClient()
         
         let payload : [ String : [String : AnyObject]] = [
             otherClient1.user!.remoteIdentifier!.transportString() : [:]
@@ -269,7 +266,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         //given
         let (selfClient, otherClient1) = createClients()
         let lastKey = try! selfClient.keysStore.lastPreKey()
-        let otherClient2 = self.createRemoteClient(generateValidPrekeysStrings(selfClient, howMany: 1), lastKey: lastKey)
+        let otherClient2 = self.createRemoteClient()
         
         let payload : [ String : [String : Any]] = [
             otherClient1.user!.remoteIdentifier!.transportString() :
@@ -294,8 +291,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         
         //given
         let (selfClient, otherClient1) = createClients()
-        let lastKey = try! selfClient.keysStore.lastPreKey()
-        let otherClient2 = self.createRemoteClient(generateValidPrekeysStrings(selfClient, howMany: 1), lastKey: lastKey)
+        let otherClient2 = self.createRemoteClient()
         
         let payload : [ String : [String : AnyObject]] = [
             otherClient1.user!.remoteIdentifier!.transportString() : [:]
@@ -303,7 +299,7 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         let (request, response) = missingClientsRequestAndResponse(selfClient, missingClients: [otherClient1, otherClient2], payload: payload)
         
         //when
-        let otherClient3 = self.createRemoteClient(generateValidPrekeysStrings(selfClient, howMany: 2), lastKey: lastKey)
+        let otherClient3 = self.createRemoteClient()
         selfClient.missesClient(otherClient3)
         let _ = self.sut.updateUpdatedObject(selfClient, requestUserInfo: request.userInfo, response: response, keysToParse: request.keys)
         
@@ -400,15 +396,6 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
         XCTAssertTrue(otherClient.failedToEstablishSession)
     }
     
-    func generateValidPrekeysStrings(_ selfClient: UserClient, howMany: UInt16) -> [String] {
-        var prekeys : [String] = []
-        selfClient.keysStore.encryptionContext.perform { (sessionsDirectory) in
-            let keysAndIds = try! sessionsDirectory.generatePrekeys((0..<howMany))
-            prekeys = keysAndIds.map { $0.prekey }
-        }
-        return prekeys
-    }
-    
     func assertRequestEqualsExpectedRequest(_ request: ZMTransportRequest?) {
         let client = ZMUser.selfUser(in: self.sut.managedObjectContext).selfClient()
         let expectedRequest = sut.requestsFactory.fetchMissingClientKeysRequest(client!.missingClients!).transportRequest!
@@ -471,8 +458,9 @@ class MissingClientsRequestStrategyTests: RequestStrategyTestBase {
             "type": "permanent" as AnyObject,
             "time": Date().transportString() as AnyObject
         ]
-        let newSelfClient = UserClient.createOrUpdateClient(payload, context: self.syncMOC)!
-        newSelfClient.user = selfClient.user
+        _ = UserClient.createOrUpdateSelfUserClient(payload, context: self.syncMOC)!
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        syncMOC.saveOrRollback()
         sut.notifyChangeTrackers(selfClient)
         
         // when

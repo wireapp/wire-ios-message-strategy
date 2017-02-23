@@ -22,7 +22,7 @@ import WireRequestStrategy
 public class GenericMessageEntity : OTREntity {
     
     public var message : ZMGenericMessage
-    public var conversation : ZMConversation
+    public var conversation : ZMConversation?
     public var completionHandler : (_ response: ZMTransportResponse) -> Void
     
     init(conversation: ZMConversation, message: ZMGenericMessage, completionHandler: @escaping (_ response: ZMTransportResponse) -> Void) {
@@ -32,15 +32,18 @@ public class GenericMessageEntity : OTREntity {
     }
     
     public var dependentObjectNeedingUpdateBeforeProcessing: AnyObject? {
-        return dependentObjectNeedingUpdateBeforeProcessingOTREntity
+        return self.dependentObjectNeedingUpdateBeforeProcessingOTREntity()
     }
     
+    public func missesRecipients(_ recipients: Set<UserClient>!) {
+        // no-op
+    }
 }
 
 extension GenericMessageEntity : EncryptedPayloadGenerator {
     
     public func encryptedMessagePayloadData() -> (data: Data, strategy: MissingClientsStrategy)? {
-        return message.encryptedMessagePayloadData(conversation, externalData: nil)
+        return message.encryptedMessagePayloadData(conversation!, externalData: nil)
     }
     
     public var debugInfo: String {
@@ -49,12 +52,12 @@ extension GenericMessageEntity : EncryptedPayloadGenerator {
     
 }
 
-public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageEntity>, ZMRequestGenerator {
+public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageEntity>, ZMRequestGenerator, ZMContextChangeTracker {
     
     private var sync : DependencyEntitySync<GenericMessageRequestStrategy>?
     private var requestFactory = ClientMessageRequestFactory()
     
-    public override init(context: NSManagedObjectContext, clientRegistrationDelegate: ClientDeletionDelegate) {
+    public override init(context: NSManagedObjectContext, clientRegistrationDelegate: ClientRegistrationDelegate) {
         super.init(context: context, clientRegistrationDelegate: clientRegistrationDelegate)
         
         sync = DependencyEntitySync(transcoder: self, context: context)
@@ -66,7 +69,7 @@ public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageE
     }
     
     public override func request(forEntity entity: GenericMessageEntity) -> ZMTransportRequest? {
-         return requestFactory.upstreamRequestForMessage(entity, forConversationWithId: entity.conversation.remoteIdentifier!)
+         return requestFactory.upstreamRequestForMessage(entity, forConversationWithId: entity.conversation!.remoteIdentifier!)
     }
     
     public override func request(forEntity entity: GenericMessageEntity, didCompleteWithResponse response: ZMTransportResponse) {
@@ -79,4 +82,15 @@ public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageE
         return sync?.nextRequest()
     }
     
+    public func objectsDidChange(_ object: Set<NSManagedObject>) {
+        sync?.objectsDidChange(object)
+    }
+    
+    public func fetchRequestForTrackedObjects() -> NSFetchRequest<NSFetchRequestResult>? {
+        return sync?.fetchRequestForTrackedObjects()
+    }
+    
+    public func addTrackedObjects(_ objects: Set<NSManagedObject>) {
+        sync?.addTrackedObjects(objects)
+    }
 }

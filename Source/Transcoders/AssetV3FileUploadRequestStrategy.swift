@@ -129,15 +129,15 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
         return nil // no-op
     }
 
-    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> ZMManagedObject? {
-        return (dependant as? ZMMessage)?.dependendObjectNeedingUpdateBeforeProcessing()
+    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> Any? {
+        return (dependant as? ZMMessage)?.dependentObjectNeedingUpdateBeforeProcessing
     }
 
     fileprivate func update(_ message: ZMAssetClientMessage, withResponse response: ZMTransportResponse, updatedKeys keys: Set<String>) {
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-        if let delegate = appStateDelegate?.clientDeletionDelegate {
-            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+            _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
     }
 
@@ -184,6 +184,11 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
             fatal("No asset ID present in payload: \(response.payload)")
         }
 
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+            // this will remove deleted clients that are returned in the payload
+            _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
+        }
+        
         if let updated = message.genericAssetMessage?.updatedUploaded(withAssetId: assetId, token: payload["token"] as? String) {
             message.add(updated)
         }
@@ -227,8 +232,8 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
                                              keysToParse keys: Set<String>)-> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         var failedBecauseOfMissingClients = false
-        if let delegate = appStateDelegate?.clientDeletionDelegate {
-            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)

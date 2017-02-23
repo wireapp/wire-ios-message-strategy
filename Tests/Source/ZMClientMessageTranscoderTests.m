@@ -27,7 +27,6 @@
 #import "ZMClientMessageTranscoder+Internal.h"
 #import "ZMMessageTranscoderTests.h"
 #import "ZMMessageExpirationTimer.h"
-#import "CBCryptoBox+UpdateEvents.h"
 #import "WireMessageStrategyTests-Swift.h"
 
 @interface FakeClientMessageRequestFactory : NSObject
@@ -141,6 +140,69 @@
     WaitForAllGroupsToBeEmpty(0.5);
 }
 
+- (void)testThatItDoesNotReturnConversationAsDependencyIfSecurityLevelIsNotSecure
+{
+    [self.syncMOC performGroupedBlock:^{
+        
+        //given
+        
+        ZMConversation *conversation = [self insertGroupConversation];
+        conversation.securityLevel = ZMConversationSecurityLevelNotSecure;
+        
+        ZMClientMessage *message = [self insertMessageInConversation:conversation];
+        
+        // when
+        ZMManagedObject *dependentObject1 = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
+        
+        // then
+        XCTAssertNil(dependentObject1);
+    }];
+    
+    WaitForAllGroupsToBeEmpty(0.5);
+}
+
+- (void)testThatItDoesNotReturnConversationAsDependencyIfSecurityLevelIsSecure
+{
+    [self.syncMOC performGroupedBlock:^{
+        
+        //given
+        
+        ZMConversation *conversation = [self insertGroupConversation];
+        conversation.securityLevel = ZMConversationSecurityLevelSecure;
+        
+        ZMClientMessage *message = [self insertMessageInConversation:conversation];
+        
+        // when
+        ZMManagedObject *dependentObject1 = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
+        
+        // then
+        XCTAssertNil(dependentObject1);
+    }];
+    
+    WaitForAllGroupsToBeEmpty(0.5);
+}
+
+- (void)testThatItReturnsConversationAsDependencyIfSecurityLevelIsSecureWithIgnored
+{
+    [self.syncMOC performGroupedBlock:^{
+        
+        //given
+        
+        ZMConversation *conversation = [self insertGroupConversation];
+        conversation.securityLevel = ZMConversationSecurityLevelSecureWithIgnored;
+        
+        ZMClientMessage *message = [self insertMessageInConversation:conversation];
+        
+        // when
+        ZMManagedObject *dependentObject1 = [self.sut dependentObjectNeedingUpdateBeforeProcessingObject:message];
+        
+        // then
+        XCTAssertNotNil(dependentObject1);
+        XCTAssertEqual(dependentObject1, conversation);
+    }];
+    
+    WaitForAllGroupsToBeEmpty(0.5);
+}
 
 - (void)testThatItReturnsConversationIfNeedsToBeUpdatedFromBackendBeforeMissingClients
 {
@@ -343,17 +405,20 @@
     [self.syncMOC performGroupedBlock:^{
         // given
         UserClient *client = [self createSelfClient];
+        UserClient *otherClient = [self createClientForUser:[ZMUser insertNewObjectInManagedObjectContext:self.syncMOC] createSessionWithSelfUser:NO];
         NSString *text = @"Everything";
         NSUUID *conversationID = [NSUUID createUUID];
+        [self.syncMOC saveOrRollback];
         
         //create encrypted message
         ZMGenericMessage *message = [ZMGenericMessage messageWithText:text nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-        NSData *encryptedData = [self encryptedMessage:message recipient:client];
+        NSData *encryptedData = [self encryptedMessageToSelfWithMessage:message fromSender:otherClient];
         
-        NSDictionary *payload = @{@"recipient": client.remoteIdentifier, @"sender": client.remoteIdentifier, @"text": [encryptedData base64String]};
+        NSDictionary *payload = @{@"recipient": client.remoteIdentifier, @"sender": otherClient.remoteIdentifier, @"text": [encryptedData base64String]};
         ZMUpdateEvent *updateEvent = [ZMUpdateEvent eventFromEventStreamPayload:
                                       @{
                                         @"type":@"conversation.otr-message-add",
+                                        @"from":otherClient.user.remoteIdentifier.transportString,
                                         @"data":payload,
                                         @"conversation":conversationID.transportString,
                                         @"time":[NSDate dateWithTimeIntervalSince1970:555555].transportString
@@ -428,7 +493,7 @@
     
     [self.syncMOC performGroupedBlock:^{
         conversation = self.insertGroupConversation;
-        message = [conversation appendOTRMessageWithText:messageText nonce:[NSUUID createUUID]];
+        message = [conversation appendOTRMessageWithText:messageText nonce:[NSUUID createUUID]fetchLinkPreview:@YES];
     }];
     WaitForAllGroupsToBeEmpty(0.5);
 
@@ -442,17 +507,11 @@
         selfClient = self.createSelfClient;
         
         //other user client
-        EncryptionContext *otherClientsBox = [[EncryptionContext alloc] initWithPath:[self.keyStoreURL URLByAppendingPathComponent:@"otr"]];
         [conversation.otherActiveParticipants enumerateObjectsUsingBlock:^(ZMUser *user, NSUInteger __unused idx, BOOL *__unused stop) {
             UserClient *userClient = [UserClient insertNewObjectInManagedObjectContext:self.syncMOC];
             userClient.remoteIdentifier = [NSString createAlphanumericalString];
             userClient.user = user;
-            
-            __block NSError *keyError;
-            [otherClientsBox perform:^(EncryptionSessionsDirectory * _Nonnull sessionsDirectory) {
-                NSString *key = [sessionsDirectory generatePrekey:1 error:&keyError];
-                [sessionsDirectory createClientSession:userClient.remoteIdentifier base64PreKeyString:key error:&keyError];
-            }];
+            [self establishSessionFromSelfToClient:userClient];
         }];
     }];
     

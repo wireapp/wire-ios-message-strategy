@@ -81,8 +81,8 @@ extension AssetClientMessageRequestStrategy: ZMUpstreamTranscoder {
         // no-op
     }
 
-    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> ZMManagedObject? {
-        return (dependant as? ZMMessage)?.dependendObjectNeedingUpdateBeforeProcessing()
+    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> Any? {
+        return (dependant as? ZMMessage)?.dependentObjectNeedingUpdateBeforeProcessing
     }
 
     public func request(forUpdating managedObject: ZMManagedObject, forKeys keys: Set<String>) -> ZMUpstreamRequest? {
@@ -94,8 +94,8 @@ extension AssetClientMessageRequestStrategy: ZMUpstreamTranscoder {
     public func updateUpdatedObject(_ managedObject: ZMManagedObject, requestUserInfo: [AnyHashable : Any]? = nil, response: ZMTransportResponse, keysToParse: Set<String>) -> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         message.update(withPostPayload: response.payload?.asDictionary() ?? [:], updatedKeys: keysToParse)
-        if let delegate = appStateDelegate?.clientDeletionDelegate{
-            message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate{
+            _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
 
         if response.result == .success {
@@ -151,8 +151,8 @@ extension AssetClientMessageRequestStrategy: ZMUpstreamTranscoder {
     public func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         var failedBecauseOfMissingClients = false
-        if let delegate = appStateDelegate?.clientDeletionDelegate {
-            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientDeletionDelegate: delegate)
+        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+            failedBecauseOfMissingClients = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
         if !failedBecauseOfMissingClients {
             let shouldUploadFailed = [ZMAssetUploadState.uploadingFullAsset, .uploadingThumbnail].contains(message.uploadState)
