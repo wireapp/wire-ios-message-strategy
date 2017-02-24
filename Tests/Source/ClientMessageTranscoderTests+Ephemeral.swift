@@ -18,127 +18,128 @@
 
 import Foundation
 
-////
-//
-//
-//@implementation ZMClientMessageTranscoderTests (Ephemeral)
-//
-//- (void)testThatItDoesNotObfuscatesEphemeralMessagesOnStart_SenderSelfUser_TimeNotPassed
-//{
-//    // given
-//    ZMConversation *conversation = [self setupOneOnOneConversation];
-//    conversation.messageDestructionTimeout = 10;
-//    ZMMessage *message = (id)[conversation appendMessageWithText:@"foo"];
-//    [message markAsSent];
-//    XCTAssertTrue(message.isEphemeral);
-//    XCTAssertFalse(message.isObfuscated);
-//    XCTAssertNotNil(message.sender);
-//    XCTAssertNotNil(message.destructionDate);
-//    [self.syncMOC saveOrRollback];
-//
-//    // when
-//    [self.sut tearDown];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self setupSUT];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    // then
-//    XCTAssertFalse(message.isObfuscated);
-//
-//    // teardown
-//    [self.syncMOC performGroupedBlockAndWait:^{
-//        [self.syncMOC zm_teardownMessageObfuscationTimer];
-//    }];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self.uiMOC performGroupedBlockAndWait:^{
-//        [self.uiMOC zm_teardownMessageDeletionTimer];
-//    }];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//}
-//
-//- (void)testThatItObfuscatesEphemeralMessagesOnStart_SenderSelfUser_TimePassed
-//{
-//    // given
-//    ZMConversation *conversation = [self setupOneOnOneConversation];
-//    conversation.messageDestructionTimeout = 1;
-//    ZMMessage *message = (id)[conversation appendMessageWithText:@"foo"];
-//    [message markAsSent];
-//    XCTAssertTrue(message.isEphemeral);
-//    XCTAssertFalse(message.isObfuscated);
-//    XCTAssertNotNil(message.sender);
-//    XCTAssertNotNil(message.destructionDate);
-//    [self.syncMOC saveOrRollback];
-//
-//    // when
-//    [self.sut tearDown];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self setupSUT];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self spinMainQueueWithTimeout:1.5];
-//
-//    // then
-//    [self.uiMOC refreshAllObjects];
-//    XCTAssertTrue(message.isObfuscated);
-//    XCTAssertNotEqual(message.hiddenInConversation, conversation);
-//    XCTAssertEqual(message.visibleInConversation, conversation);
-//
-//    // teardown
-//    [self.syncMOC performGroupedBlockAndWait:^{
-//        [self.syncMOC zm_teardownMessageObfuscationTimer];
-//    }];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self.uiMOC performGroupedBlockAndWait:^{
-//        [self.uiMOC zm_teardownMessageDeletionTimer];
-//    }];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//}
-//
-//- (void)testThatItDeletesEphemeralMessagesOnStart_SenderOtherUser
-//{
-//    // given
-//    self.uiMOC.zm_messageDeletionTimer.isTesting = YES;
-//    ZMConversation *conversation = [self setupOneOnOneConversationInContext:self.uiMOC];
-//    conversation.messageDestructionTimeout = 1.0;
-//    ZMMessage *message = (id)[conversation appendMessageWithText:@"foo"];
-//    message.sender = conversation.connectedUser;
-//    [message startSelfDestructionIfNeeded];
-//    XCTAssertTrue(message.isEphemeral);
-//    XCTAssertNotEqual(message.hiddenInConversation, conversation);
-//    XCTAssertEqual(message.visibleInConversation, conversation);
-//    XCTAssertNotNil(message.sender);
-//    XCTAssertNotNil(message.destructionDate);
-//    [self.uiMOC saveOrRollback];
-//
-//    // when
-//    [self.sut tearDown];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self setupSUT];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self spinMainQueueWithTimeout:1.5];
-//
-//    // then
-//    [self.uiMOC refreshAllObjects];
-//    XCTAssertNotEqual(message.visibleInConversation, conversation);
-//    XCTAssertEqual(message.hiddenInConversation, conversation);
-//
-//    // teardown
-//    [self.syncMOC performGroupedBlockAndWait:^{
-//        [self.syncMOC zm_teardownMessageObfuscationTimer];
-//    }];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//
-//    [self.uiMOC performGroupedBlockAndWait:^{
-//        [self.uiMOC zm_teardownMessageDeletionTimer];
-//    }];
-//    XCTAssert([self waitForAllGroupsToBeEmptyWithTimeout: 0.5]);
-//}
-//
-//@end
-//
+extension ClientMessageTranscoderTests {
+    
+    func recreateSut() {
+        self.sut = ClientMessageTranscoder(in: self.syncMOC, localNotificationDispatcher: self.localNotificationDispatcher, clientRegistrationStatus: self.clientRegistrationStatus, apnsConfirmationStatus: self.confirmationStatus)
+    }
+    
+    func testThatItDoesNotObfuscatesEphemeralMessagesOnStart_SenderSelfUser_TimeNotPassed() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            self.sut.tearDown()
+            self.sut = nil
+            self.groupConversation.messageDestructionTimeout = 10
+            let message = self.groupConversation.appendMessage(withText: "Foo")! as! ZMClientMessage
+            message.markAsSent()
+            self.syncMOC.saveOrRollback()
+            
+            // WHEN
+            self.recreateSut()
+            
+            // THEN
+            XCTAssertFalse(message.isObfuscated)
+        }
+    }
+    
+    func testThatItObfuscatesEphemeralMessagesOnStart_SenderSelfUser_TimePassed() {
+        
+        // GIVEN
+        var message: ZMClientMessage!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            self.groupConversation.messageDestructionTimeout = 1
+            message = self.groupConversation.appendMessage(withText: "Foo")! as! ZMClientMessage
+            message.markAsSent()
+            self.syncMOC.saveOrRollback()
+            XCTAssertFalse(message.isObfuscated)
+            XCTAssertNotNil(message.sender)
+            XCTAssertNotNil(message.destructionDate)
+        }
+        
+        // WHEN
+        self.sut.tearDown()
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        self.recreateSut()
+        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        self.spinMainQueue(withTimeout: 2)
+        
+        // THEN
+        self.syncMOC.performGroupedBlockAndWait {
+            XCTAssertTrue(message.isObfuscated)
+            XCTAssertTrue(self.groupConversation.messages.contains(message))
+        }
+    }
+
+    @available(iOS 8.3, *)
+    func testThatItDeletesEphemeralMessagesOnStart_SenderOtherUser_TimePassed() {
+        
+        // GIVEN
+        let text = "Come fosse antani"
+        self.syncMOC.performGroupedBlockAndWait {
+            // the timeout here has to be at least 5. If I return something smaller, it will anyway be approximated to 5
+            let generic = ZMGenericMessage.message(text: text, nonce: UUID.create().transportString(), expiresAfter: 5)
+            let event = self.decryptedUpdateEventFromOtherClient(message: generic)
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            self.sut.tearDown()
+        }
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+    
+        // simulate "reading it"
+        let uiConversation = try! self.uiMOC.existingObject(with: self.groupConversation.objectID) as! ZMConversation
+        let message = uiConversation.messages.lastObject as! ZMConversationMessage
+        _ = message.startSelfDestructionIfNeeded()
+        self.uiMOC.saveOrRollback()
+        
+        // stop all timers
+        self.stopEphemeralMessageTimers()
+        
+        // WHEN
+        self.spinMainQueue(withTimeout: 7)
+        self.syncMOC.refreshAllObjects()
+        self.recreateSut()
+        self.syncMOC.saveOrRollback()
+        
+        // THEN
+        self.uiMOC.refreshAllObjects()
+        XCTAssertNotEqual(message.textMessageData?.messageText, text) // or at least, it should not be one with that message
+    }
+    
+    @available(iOS 8.3, *)
+    func testThatItDoesNotDeletesEphemeralMessagesOnStart_SenderOtherUser_TimeNotPassed() {
+        
+        // GIVEN
+        let text = "Come fosse antani"
+        self.syncMOC.performGroupedBlockAndWait {
+            // the timeout here has to be at least 5. If I return something smaller, it will anyway be approximated to 5
+            let generic = ZMGenericMessage.message(text: text, nonce: UUID.create().transportString(), expiresAfter: 5)
+            let event = self.decryptedUpdateEventFromOtherClient(message: generic)
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            self.sut.tearDown()
+        }
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        // simulate "reading it"
+        let uiConversation = try! self.uiMOC.existingObject(with: self.groupConversation.objectID) as! ZMConversation
+        let message = uiConversation.messages.lastObject as! ZMConversationMessage
+        _ = message.startSelfDestructionIfNeeded()
+        self.uiMOC.saveOrRollback()
+        
+        // stop all timers
+        self.stopEphemeralMessageTimers()
+        
+        // WHEN
+        self.syncMOC.refreshAllObjects()
+        self.recreateSut()
+        self.syncMOC.saveOrRollback()
+        
+        // THEN
+        self.uiMOC.refreshAllObjects()
+        XCTAssertEqual(message.textMessageData?.messageText, text) // or at least, it should not be one with that message
+    }
+}
+

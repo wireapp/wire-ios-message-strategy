@@ -26,7 +26,7 @@ public class ClientMessageTranscoder: ZMObjectSyncStrategy {
     
     fileprivate let requestFactory: ClientMessageRequestFactory
     fileprivate weak var clientRegistrationStatus: ClientRegistrationDelegate?
-    fileprivate weak var apnsConfirmationStatus: DeliveryConfirmationDelegate?
+    fileprivate weak var deliveryConfirmation: DeliveryConfirmationDelegate?
     private(set) fileprivate var upstreamObjectSync: ZMUpstreamInsertedObjectSync!
     fileprivate let messageExpirationTimer: MessageExpirationTimer
     fileprivate weak var localNotificationDispatcher: PushMessageHandler!
@@ -39,7 +39,7 @@ public class ClientMessageTranscoder: ZMObjectSyncStrategy {
         self.localNotificationDispatcher = localNotificationDispatcher
         self.requestFactory = ClientMessageRequestFactory()
         self.clientRegistrationStatus = clientRegistrationStatus
-        self.apnsConfirmationStatus = apnsConfirmationStatus
+        self.deliveryConfirmation = apnsConfirmationStatus
         self.messageExpirationTimer = MessageExpirationTimer(moc: moc, entityName: ZMClientMessage.entityName(), localNotificationDispatcher: localNotificationDispatcher)
         
         super.init(managedObjectContext: moc)
@@ -90,7 +90,7 @@ extension ClientMessageTranscoder: ZMUpstreamTranscoder {
         guard let message = managedObject as? ZMClientMessage,
             !message.isExpired else { return nil }
         let request = self.requestFactory.upstreamRequestForMessage(message, forConversationWithId: message.conversation!.remoteIdentifier!)!
-        if message.genericMessage?.hasConfirmation() == true && self.apnsConfirmationStatus!.needsToSyncMessages {
+        if message.genericMessage?.hasConfirmation() == true && self.deliveryConfirmation!.needsToSyncMessages {
             request.forceToVoipSession()
         }
         
@@ -129,11 +129,11 @@ extension ClientMessageTranscoder {
             guard let updateResult = ZMOTRMessage.messageUpdateResult(from: event, in: self.managedObjectContext, prefetchResult: prefetchResult) else {
                  return nil
             }
-            if type(of: self.apnsConfirmationStatus!).sendDeliveryReceipts {
+            if type(of: self.deliveryConfirmation!).sendDeliveryReceipts {
                 if updateResult.needsConfirmation {
                     let confirmation = updateResult.message!.confirmReception()!
                     if event.source == .pushNotification {
-                        self.apnsConfirmationStatus?.needsToConfirmMessage(confirmation.nonce)
+                        self.deliveryConfirmation?.needsToConfirmMessage(confirmation.nonce)
                     }
                 }
             }
@@ -166,14 +166,14 @@ extension ClientMessageTranscoder {
                 return
         }
         
-        self.update(message, from: response, keys: upstreamRequest.keys)
+        self.update(message, from: response, keys: upstreamRequest.keys ?? Set())
         _ = message.parseMissingClientsResponse(response, clientDeletionDelegate: self.clientRegistrationStatus!)
         
         if genericMessage.hasReaction() == true {
             message.managedObjectContext?.delete(message)
         }
         if genericMessage.hasConfirmation() == true {
-            self.apnsConfirmationStatus?.didConfirmMessage(message.nonce)
+            self.deliveryConfirmation?.didConfirmMessage(message.nonce)
             message.managedObjectContext?.delete(message)
         }
     }

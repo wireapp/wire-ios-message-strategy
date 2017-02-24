@@ -110,7 +110,6 @@ extension MessagingTest {
     public func deleteAllOtherEncryptionContexts() {
         try?  FileManager.default.removeItem(at: self.otherClientsEncryptionContextsURL)
     }
-
     
     /// Returns the folder where the encryption contexts for other test clients are stored
     var otherClientsEncryptionContextsURL: URL {

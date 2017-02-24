@@ -19,215 +19,266 @@
 
 import Foundation
 
+// MARK: - Confirmation message
+extension ClientMessageTranscoderTests {
+    
+    func testThatItInsertAConfirmationMessageWhenReceivingAnEvent() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let event = self.decryptedUpdateEventFromOtherClient(text: "foo", conversation: self.oneToOneConversation)
+            
+            // WHEN
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            
+            // THEN
+            guard let confirmationMessage = self.lastConfirmationMessage else { return XCTFail() }
+            XCTAssertTrue(confirmationMessage.genericMessage!.hasConfirmation())
+            XCTAssertEqual(confirmationMessage.genericMessage!.confirmation.messageId, event.messageNonce()!.transportString())
+        }
+    }
+    
+    func testThatItSendsAConfirmationMessage() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let event = self.decryptedUpdateEventFromOtherClient(text: "foo", conversation: self.oneToOneConversation)
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            guard let confirmationMessage = self.lastConfirmationMessage else { return XCTFail() }
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([confirmationMessage])) }
+            
+            // WHEN
+            guard let request = self.sut.nextRequest() else { return XCTFail() }
+            
+            // THEN
+            guard let message = self.outgoingEncryptedMessage(from: request, for: self.otherClient) else { return XCTFail() }
+            XCTAssertTrue(message.hasConfirmation())
+        }
+    }
+    
+    func testThatItDeletesTheConfirmationMessageWhenSentSuccessfully() {
+        
+        // GIVEN
+        var confirmationMessage: ZMMessage!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            let event = self.decryptedUpdateEventFromOtherClient(text: "foo", conversation: self.oneToOneConversation)            
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            guard let confirmMessage = self.lastConfirmationMessage else { return XCTFail() }
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([confirmMessage])) }
+            confirmationMessage = confirmMessage
+            
+            // WHEN
+            guard let request = self.sut.nextRequest() else { return XCTFail() }
+            request.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
+        }
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+            
+        // THEN
+        self.syncMOC.performGroupedBlockAndWait {
+            XCTAssertTrue(confirmationMessage.isZombieObject)
+        }
+    }
 
-//@implementation ZMClientMessageTranscoderTests (MessageConfirmation)
-//
-//- (ZMUpdateEvent *)updateEventForTextMessage:(NSString *)text inConversationWithID:(NSUUID *)conversationID forClient:(UserClient *)client senderClient:(UserClient *)senderClient eventSource:(ZMUpdateEventSource)eventSource
-//{
-//    ZMGenericMessage *message = [ZMGenericMessage messageWithText:text nonce:[NSUUID createUUID].transportString expiresAfter:nil];
-//
-//    NSDictionary *payload = @{@"recipient": client.remoteIdentifier, @"sender": senderClient.remoteIdentifier, @"text": message.data.base64String};
-//
-//    NSDictionary *eventPayload = @{
-//                                   @"sender": senderClient.user.remoteIdentifier.transportString,
-//                                   @"type":@"conversation.otr-message-add",
-//                                   @"data":payload,
-//                                   @"conversation":conversationID.transportString,
-//                                   @"time":[NSDate dateWithTimeIntervalSince1970:555555].transportString
-//                                   };
-//    if (eventSource == ZMUpdateEventSourceDownload) {
-//        return [ZMUpdateEvent eventFromEventStreamPayload:eventPayload
-//                                                     uuid:nil];
-//    }
-//    return [ZMUpdateEvent eventsArrayFromTransportData:@{@"id" : NSUUID.createUUID.transportString,
-//                                                         @"payload" : @[eventPayload]} source:eventSource].firstObject;
-//}
-//
-//- (void)testThatItInsertAConfirmationMessageWhenReceivingAnEvent
-//{
-//    // given
-//    UserClient *client = [self createSelfClient];
-//    ZMUser *user1 = [ZMUser insertNewObjectInManagedObjectContext:self.syncMOC];
-//    user1.remoteIdentifier = [NSUUID createUUID];
-//    UserClient *senderClient = [self createClientForUser:user1 createSessionWithSelfUser:YES];
-//    [self.syncMOC saveOrRollback];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    NSString *text = @"Everything";
-//    ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//    conversation.conversationType = ZMTConversationTypeOneOnOne;
-//    conversation.remoteIdentifier = [NSUUID createUUID];
-//
-//    ZMUpdateEvent *updateEvent = [self updateEventForTextMessage:text inConversationWithID:conversation.remoteIdentifier forClient:client senderClient:senderClient eventSource:ZMUpdateEventSourcePushNotification];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    // expect
-//    [[self.notificationDispatcher expect] processMessage:OCMOCK_ANY];
-//    [[self.notificationDispatcher expect] processGenericMessage:OCMOCK_ANY];
-//
-//    // when
-//    [self.sut processEvents:@[updateEvent] liveEvents:YES prefetchResult:nil];
-//
-//    // then
-//    XCTAssertEqual(conversation.hiddenMessages.count, 1u);
-//    ZMClientMessage *confirmationMessage = conversation.hiddenMessages.lastObject;
-//    XCTAssertTrue(confirmationMessage.genericMessage.hasConfirmation);
-//    XCTAssertEqualObjects(confirmationMessage.genericMessage.confirmation.messageId, updateEvent.messageNonce.transportString);
-//}
-//
-//
-//- (void)checkThatItCallsConfirmationStatus:(BOOL)shouldCallConfirmationStatus whenReceivingAnEventThroughSource:(ZMUpdateEventSource)source
-//{
-//    // given
-//    UserClient *client = [self createSelfClient];
-//
-//    ZMConversation *conversation = [self setupOneOnOneConversation];
-//    UserClient *senderClient = [self createClientForUser:conversation.connectedUser createSessionWithSelfUser:YES];
-//
-//    [self.syncMOC saveOrRollback];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    NSString *text = @"Everything";
-//    ZMUpdateEvent *updateEvent = [self updateEventForTextMessage:text inConversationWithID:conversation.remoteIdentifier forClient:client senderClient:senderClient eventSource:source];
-//
-//    // expect
-//    if (shouldCallConfirmationStatus) {
-//        [[self.notificationDispatcher expect] processMessage:OCMOCK_ANY];
-//        [[self.notificationDispatcher expect] processGenericMessage:OCMOCK_ANY];
-//    }
-//
-//    // when
-//    [self.sut processEvents:@[updateEvent] liveEvents:YES prefetchResult:nil];
-//
-//    // then
-//    NSUUID *lastMessageNonce = [conversation.hiddenMessages.lastObject nonce];
-//    if (shouldCallConfirmationStatus) {
-//        XCTAssertTrue([self.mockAPNSConfirmationStatus.messagesToConfirm containsObject:lastMessageNonce]);
-//    } else {
-//        XCTAssertFalse([self.mockAPNSConfirmationStatus.messagesToConfirm containsObject:lastMessageNonce]);
-//    }
-//}
-//
-//
-//- (void)testThatItCallsConfirmationStatusWhenReceivingAnEventThroughPush
-//{
-//    [self checkThatItCallsConfirmationStatus:YES whenReceivingAnEventThroughSource:ZMUpdateEventSourcePushNotification];
-//}
-//
-//- (void)testThatItCallsConfirmationStatusWhenReceivingAnEventThroughWebSocket
-//{
-//    [self checkThatItCallsConfirmationStatus:NO whenReceivingAnEventThroughSource:ZMUpdateEventSourceWebSocket];
-//}
-//
-//- (void)testThatItCallsConfirmationStatusWhenReceivingAnEventThroughDownload
-//{
-//    [self checkThatItCallsConfirmationStatus:NO whenReceivingAnEventThroughSource:ZMUpdateEventSourceDownload];
-//}
-//
-//
-//
-//- (void)testThatItCallsConfirmationStatusWhenConfirmationMessageIsSentSuccessfully
-//{
-//    // given
-//    [self createSelfClient];
-//    ZMConversation *conversation = [self setupOneOnOneConversation];
-//
-//    ZMMessage *message = (id)[conversation appendMessageWithText:@"text"];
-//    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
-//    NSUUID *confirmationUUID = confirmationMessage.nonce;
-//    [self.sut.upstreamObjectSync objectsDidChange:[NSSet setWithObject:confirmationMessage]];
-//
-//    // when
-//    ZMTransportRequest *request = [self.sut.upstreamObjectSync nextRequest];
-//    [request completeWithResponse:[ZMTransportResponse responseWithPayload:@{} HTTPStatus:200 transportSessionError:nil]];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    // then
-//    XCTAssertTrue([self.mockAPNSConfirmationStatus.messagesConfirmed containsObject:confirmationUUID]);
-//}
-//
-//- (void)testThatItDeletesTheConfirmationMessageWhenSentSuccessfully
-//{
-//    // given
-//    [self createSelfClient];
-//    ZMConversation *conversation = [self setupOneOnOneConversation];
-//
-//    ZMMessage *message = (id)[conversation appendMessageWithText:@"text"];
-//    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
-//    [self.sut.upstreamObjectSync objectsDidChange:[NSSet setWithObject:confirmationMessage]];
-//
-//    // when
-//    ZMTransportRequest *request = [self.sut.upstreamObjectSync nextRequest];
-//    [request completeWithResponse:[ZMTransportResponse responseWithPayload:@{} HTTPStatus:200 transportSessionError:nil]];
-//    WaitForAllGroupsToBeEmpty(0.5);
-//
-//    // then
-//    XCTAssertTrue(confirmationMessage.isZombieObject);
-//}
-//
-//- (void)testThatItDoesSyncAConfirmationMessageIfSenderUserIsNotSpecifiedButIsInferedWithConntection;
-//{
-//    [self createSelfClient];
-//    ZMConversation *conversation = [self setupOneOnOneConversation];
-//
-//    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString expiresAfter:nil];
-//    ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.syncMOC];
-//    [message addData:genericMessage.data];
-//    [conversation sortedAppendMessage:message];
-//
-//    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
-//
-//    // when
-//    XCTAssertTrue([self.sut shouldCreateRequestToSyncObject:confirmationMessage forKeys:[NSSet set] withSync:self]);
-//}
-//
-//- (void)testThatItDoesSyncAConfirmationMessageIfSenderUserIsSpecified;
-//{
-//    [self createSelfClient];
-//    ZMConversation *conversation = [self setupOneOnOneConversation];
-//
-//    ZMMessage *message = (id)[conversation appendMessageWithText:@"text"];
-//    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
-//
-//    // when
-//    XCTAssertTrue([self.sut shouldCreateRequestToSyncObject:confirmationMessage forKeys:[NSSet set] withSync:self]);
-//}
-//
-//- (void)testThatItDoesSyncAConfirmationMessageIfSenderUserAndConnectIsNotSpecifiedButIsWithConversation;
-//{
-//    [self createSelfClient];
-//    ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//    conversation.conversationType = ZMTConversationTypeOneOnOne;
-//    conversation.remoteIdentifier = [NSUUID createUUID];
-//    [conversation.mutableOtherActiveParticipants addObject:[ZMUser insertNewObjectInManagedObjectContext:self.syncMOC]];
-//
-//    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString expiresAfter:nil];
-//    ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.syncMOC];
-//    [message addData:genericMessage.data];
-//    [conversation sortedAppendMessage:message];
-//
-//    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
-//
-//    // when
-//    XCTAssertTrue([self.sut shouldCreateRequestToSyncObject:confirmationMessage forKeys:[NSSet set] withSync:self]);
-//}
-//
-//- (void)testThatItDoesNotSyncAConfirmationMessageIfCannotInferUser;
-//{
-//    [self createSelfClient];
-//    ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//    conversation.conversationType = ZMTConversationTypeOneOnOne;
-//    conversation.remoteIdentifier = [NSUUID createUUID];
-//
-//    ZMGenericMessage *genericMessage = [ZMGenericMessage messageWithText:@"text" nonce:NSUUID.createUUID.transportString expiresAfter:nil];
-//    ZMClientMessage *message = [ZMClientMessage insertNewObjectInManagedObjectContext:self.syncMOC];
-//    [message addData:genericMessage.data];
-//    [conversation sortedAppendMessage:message];
-//
-//    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
-//
-//    // when
-//    XCTAssertFalse([self.sut shouldCreateRequestToSyncObject:confirmationMessage forKeys:[NSSet set] withSync:self]);
-//}
-//
-//@end
+    func testThatItDoesSyncAConfirmationMessageIfSenderUserIsNotSpecifiedButIsInferedWithConntection() {
+        
+        self.syncMOC.performGroupedBlockAndWait {
+
+            // GIVEN
+            // receive message
+            let text = "This is the message!"
+            let event = self.decryptedUpdateEventFromOtherClient(text: text, conversation: self.oneToOneConversation)
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            
+            guard let confirmMessage = self.lastConfirmationMessage else { return XCTFail() }
+            guard let originalMessage = self.oneToOneConversation.messages.lastObject as? ZMClientMessage else { return XCTFail() }
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([confirmMessage])) }
+            
+            // WHEN
+            // remove sender
+            originalMessage.sender = nil
+            self.syncMOC.saveOrRollback()
+            guard let request = self.sut.nextRequest() else { return XCTFail() }
+            
+            // THEN
+            guard let message = self.outgoingEncryptedMessage(from: request, for: self.otherClient) else { return XCTFail() }
+            XCTAssertTrue(message.hasConfirmation())
+        }
+    }
+    
+    func testThatItDoesSyncAConfirmationMessageIfSenderUserAndConnectIsNotSpecifiedButIsWithConversation() {
+        
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            // receive message
+            let text = "This is the message!"
+            let event = self.decryptedUpdateEventFromOtherClient(text: text, conversation: self.oneToOneConversation)
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            
+            // find confirmation
+            guard let confirmMessage = self.lastConfirmationMessage else { return XCTFail() }
+            guard let originalMessage = self.oneToOneConversation.messages.lastObject as? ZMClientMessage else { return XCTFail() }
+            guard originalMessage.textMessageData?.messageText == text else { return XCTFail("wrong message?") }
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([confirmMessage])) }
+            
+            // WHEN
+            // remove sender and connection
+            self.oneToOneConversation.connection = nil
+            originalMessage.sender = nil
+            self.syncMOC.saveOrRollback()
+            guard let request = self.sut.nextRequest() else { return XCTFail() }
+            
+            // THEN
+            guard let message = self.outgoingEncryptedMessage(from: request, for: self.otherClient) else { return XCTFail() }
+            XCTAssertTrue(message.hasConfirmation())
+        }
+    }
+    
+    func testThatItDoesNotSyncAConfirmationMessageIfCannotInferUser() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            // receive message
+            let text = "This is the message!"
+            let event = self.decryptedUpdateEventFromOtherClient(text: text, conversation: self.oneToOneConversation)
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            
+            // find confirmation
+            guard let confirmMessage = self.lastConfirmationMessage else { return XCTFail() }
+            guard let originalMessage = self.oneToOneConversation.messages.lastObject as? ZMClientMessage else { return XCTFail() }
+            guard originalMessage.textMessageData?.messageText == text else { return XCTFail("wrong message?") }
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([confirmMessage])) }
+            
+            // WHEN
+            // remove sender and connection
+            self.oneToOneConversation.connection = nil
+            originalMessage.sender = nil
+            self.oneToOneConversation.mutableOtherActiveParticipants.removeAllObjects()
+            self.syncMOC.saveOrRollback()
+            
+            // THEN
+            XCTAssertNil(self.sut.nextRequest())
+        }
+    }
+    
+    func testThatItCallsConfirmationStatusWhenReceivingAnEventThroughPush() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let event = self.decryptedUpdateEventFromOtherClient(text: "foo",
+                                                                 conversation: self.oneToOneConversation,
+                                                                 source: .pushNotification)
+            
+            // WHEN
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            
+            // THEN
+            guard let confirmMessage = self.lastConfirmationMessage else { return XCTFail() }
+            XCTAssertTrue(self.confirmationStatus.messagesToConfirm.contains(confirmMessage.nonce))
+        }
+    }
+    
+    func testThatItDoesNotCallsConfirmationStatusWhenReceivingAnEventThroughWebSocket() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let event = self.decryptedUpdateEventFromOtherClient(text: "foo",
+                                                                 conversation: self.oneToOneConversation,
+                                                                 source: .webSocket)
+            
+            // WHEN
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            
+            // THEN
+            guard let confirmMessage = self.lastConfirmationMessage else { return XCTFail() }
+            XCTAssertFalse(self.confirmationStatus.messagesToConfirm.contains(confirmMessage.nonce))
+        }
+    }
+    
+    func testThatItDoesNotCallsConfirmationStatusWhenReceivingAnEventThroughDownload() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let event = self.decryptedUpdateEventFromOtherClient(text: "foo",
+                                                                 conversation: self.oneToOneConversation,
+                                                                 source: .download)
+            
+            // WHEN
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            
+            // THEN
+            guard let confirmMessage = self.lastConfirmationMessage else { return XCTFail() }
+            XCTAssertFalse(self.confirmationStatus.messagesToConfirm.contains(confirmMessage.nonce))
+            XCTAssertFalse(self.confirmationStatus.messagesConfirmed.contains(confirmMessage.nonce))
+        }
+    }
+    
+    func testThatItCallsConfirmationStatusWhenConfirmationMessageIsSentSuccessfully() {
+        var confirmationNonce: UUID!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let event = self.decryptedUpdateEventFromOtherClient(text: "foo", conversation: self.oneToOneConversation)
+            self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
+            self.syncMOC.saveOrRollback()
+            guard let confirmationMessage = self.lastConfirmationMessage else { return XCTFail() }
+            confirmationNonce = confirmationMessage.nonce!
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([confirmationMessage])) }
+            
+            // WHEN
+            guard let request = self.sut.nextRequest() else { return XCTFail() }
+            request.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
+        }
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        // THEN
+        self.syncMOC.performGroupedBlockAndWait {
+            XCTAssertTrue(self.confirmationStatus.messagesConfirmed.contains(confirmationNonce))
+        }
+    }
+    
+    //
+    //- (void)testThatItCallsConfirmationStatusWhenConfirmationMessageIsSentSuccessfully
+    //{
+    //    // given
+    //    [self createSelfClient];
+    //    ZMConversation *conversation = [self setupOneOnOneConversation];
+    //
+    //    ZMMessage *message = (id)[conversation appendMessageWithText:@"text"];
+    //    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
+    //    NSUUID *confirmationUUID = confirmationMessage.nonce;
+    //    [self.sut.upstreamObjectSync objectsDidChange:[NSSet setWithObject:confirmationMessage]];
+    //
+    //    // when
+    //    ZMTransportRequest *request = [self.sut.upstreamObjectSync nextRequest];
+    //    [request completeWithResponse:[ZMTransportResponse responseWithPayload:@{} HTTPStatus:200 transportSessionError:nil]];
+    //    WaitForAllGroupsToBeEmpty(0.5);
+    //
+    //    // then
+    //    XCTAssertTrue([self.mockAPNSConfirmationStatus.messagesConfirmed containsObject:confirmationUUID]);
+    //}
+
+}
+
+// MARK: - Helpers
+extension ClientMessageTranscoderTests {
+    
+    /// Last confirmation message in the one to one conversation
+    var lastConfirmationMessage: ZMClientMessage? {
+        for message in self.oneToOneConversation.hiddenMessages.array.reversed() {
+            guard let clientMessage = message as? ZMClientMessage else { continue }
+            if clientMessage.genericMessage!.hasConfirmation() {
+                return clientMessage
+            }
+        }
+        return nil
+    }
+}
+

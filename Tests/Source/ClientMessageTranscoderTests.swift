@@ -35,6 +35,9 @@ class ClientMessageTranscoderTests: MessagingTest {
     
     override func setUp() {
         super.setUp()
+        self.deleteAllOtherEncryptionContexts()
+        self.syncMOC.zm_cryptKeyStore.deleteAndCreateNewBox()
+        
         self.localNotificationDispatcher = MockPushMessageHandler()
         self.clientRegistrationStatus = MockClientRegistrationStatus()
         self.confirmationStatus = MockConfirmationStatus()
@@ -58,7 +61,20 @@ class ClientMessageTranscoderTests: MessagingTest {
         self.groupConversation = nil
         self.sut.tearDown()
         self.sut = nil
+        self.stopEphemeralMessageTimers()
         super.tearDown()
+    }
+    
+    func stopEphemeralMessageTimers() {
+        self.syncMOC.performGroupedBlockAndWait {
+            self.syncMOC.zm_teardownMessageObfuscationTimer()
+        }
+        _ = self.waitForAllGroupsToBeEmpty(withTimeout: 0.5)
+        
+        self.uiMOC.performGroupedBlockAndWait {
+            self.uiMOC.zm_teardownMessageDeletionTimer()
+        }
+        _ = self.waitForAllGroupsToBeEmpty(withTimeout: 0.5)
     }
     
     private func setupOneToOneConversation(with user: ZMUser) -> ZMConversation {
@@ -67,6 +83,7 @@ class ClientMessageTranscoderTests: MessagingTest {
         conversation.remoteIdentifier = UUID.create()
         conversation.connection = ZMConnection.insertNewObject(in: self.syncMOC)
         conversation.connection!.to = user
+        conversation.mutableOtherActiveParticipants.add(user)
         return conversation
     }
 }
@@ -148,21 +165,9 @@ extension ClientMessageTranscoderTests {
             XCTAssertNotNil(request.binaryData)
             XCTAssertEqual(request.binaryDataType, "application/x-protobuf")
             
-            // check sender/receiver
-            guard let protobuf = ZMNewOtrMessage.parse(from: request.binaryData) else { return XCTFail() }
-            let userEntries = protobuf.recipients.flatMap({ $0 })
-            XCTAssertEqual(userEntries.count, 1)
-            let clientEntries = userEntries.first?.clients.flatMap({ $0 }) ?? []
-            XCTAssertEqual(clientEntries.count, 1)
-            let clientID = clientEntries.first?.client
-            XCTAssertEqual(clientID, self.otherClient.clientId)
-            
-            // text content
-            guard let cyphertext = clientEntries.first?.text else { return XCTFail("no encrypted data") }
-            guard let plaintext = self.decryptMessageFromSelf(cypherText: cyphertext, to: self.otherClient) else {
-                return XCTFail("failed to decrypt")
+            guard let receivedMessage = self.outgoingEncryptedMessage(from: request, for: self.otherClient) else {
+                return XCTFail("Invalid message")
             }
-            guard let receivedMessage = ZMGenericMessage.parse(from: plaintext) else { return XCTFail("Invalid message") }
             XCTAssertEqual(receivedMessage.textData?.content, text)
         }
     }
@@ -188,24 +193,16 @@ extension ClientMessageTranscoderTests {
             XCTAssertNotNil(request.binaryData)
             XCTAssertEqual(request.binaryDataType, "application/x-protobuf")
             
-            // check sender/receiver
-            guard let protobuf = ZMNewOtrMessage.parse(from: request.binaryData) else { return XCTFail() }
-            let userEntries = protobuf.recipients.flatMap({ $0 })
-            XCTAssertEqual(userEntries.count, 1)
-            let clientEntries = userEntries.first?.clients.flatMap({ $0 }) ?? []
-            XCTAssertEqual(clientEntries.count, 1)
-            let clientID = clientEntries.first?.client
-            XCTAssertEqual(clientID, self.otherClient.clientId)
-            
-            // text content
-            guard let cyphertext = clientEntries.first?.text else { return XCTFail("no encrypted data") }
-            guard let plaintext = self.decryptMessageFromSelf(cypherText: cyphertext, to: self.otherClient) else {
-                return XCTFail("failed to decrypt")
+            guard let receivedMessage = self.outgoingEncryptedMessage(from: request, for: self.otherClient) else {
+                return XCTFail("Invalid message")
             }
-            guard let receivedMessage = ZMGenericMessage.parse(from: plaintext) else { return XCTFail("Invalid message") }
             XCTAssertTrue(receivedMessage.hasExternal())
             guard let key = receivedMessage.external.otrKey,
                 let sha = receivedMessage.external.sha256 else { return XCTFail("No external key/sha") }
+            
+            guard let protobuf = self.outgoingMessageWrapper(from: request) else {
+                return XCTFail()
+            }
             XCTAssertTrue(protobuf.hasBlob())
             guard let blob = protobuf.blob else { return XCTFail("No blob") }
             XCTAssertEqual(blob.zmSHA256Digest(), sha)
@@ -220,40 +217,29 @@ extension ClientMessageTranscoderTests {
 // MARK: - Generic Message
 extension ClientMessageTranscoderTests {
     
+    /// TODO MARCO: why is this here?? Should be moved to data model
+    func testThatThePreviewGenericMessageDataHasTheOriginalSizeOfTheMediumGenericMessagedata() {
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let message = self.groupConversation.appendOTRMessage(withImageData: self.data(forResource: "1900x1500", extension: "jpg"), nonce: UUID.create())
+            
+            // WHEN
+            self.sut.contextChangeTrackers.forEach {
+                $0.objectsDidChange(Set([message]))
+            }
+            
+            // THEN
+            guard let mediumGenericMessage = message.imageAssetStorage?.genericMessage(for: .medium),
+                let previewGenericMessage = message.imageAssetStorage?.genericMessage(for: .preview) else {
+                    return XCTFail()
+            }
+            
+            XCTAssertEqual(mediumGenericMessage.image.height, previewGenericMessage.image.originalHeight)
+            XCTAssertEqual(mediumGenericMessage.image.width, previewGenericMessage.image.originalWidth)
+        }
+    }
 }
-
-//
-//
-//@implementation ZMClientMessageTranscoderTests (GenericMessageData)
-//
-//- (void)testThatThePreviewGenericMessageDataHasTheOriginalSizeOfTheMediumGenericMessagedata
-//{
-//    [self.syncMOC performGroupedBlockAndWait:^{
-//
-//        // given
-//        ZMConversation *conversation = [ZMConversation insertNewObjectInManagedObjectContext:self.syncMOC];
-//        ZMAssetClientMessage *message = [conversation appendOTRMessageWithImageData:[self dataForResource:@"1900x1500" extension:@"jpg"] nonce:[NSUUID createUUID]];
-//        [[(id)self.upstreamObjectSync stub] objectsDidChange:OCMOCK_ANY];
-//        [[(id)self.mockExpirationTimer stub] objectsDidChange:OCMOCK_ANY];
-//        // when
-//        for(id<ZMContextChangeTracker> tracker in self.sut.contextChangeTrackers) {
-//            [tracker objectsDidChange:[NSSet setWithObject:message]];
-//        }
-//
-//        // then
-//        ZMGenericMessage *mediumGenericMessage = [message.imageAssetStorage genericMessageForFormat:ZMImageFormatMedium];
-//        ZMGenericMessage *previewGenericMessage = [message.imageAssetStorage genericMessageForFormat:ZMImageFormatPreview];
-//
-//        XCTAssertEqual(mediumGenericMessage.image.height, previewGenericMessage.image.originalHeight);
-//        XCTAssertEqual(mediumGenericMessage.image.width, previewGenericMessage.image.originalWidth);
-//    }];
-//
-//    WaitForAllGroupsToBeEmpty(0.5);
-//}
-//
-//@end
-//
-
 
 
 // MARK: - Helpers
@@ -290,28 +276,46 @@ extension ClientMessageTranscoderTests {
     }
     
     /// Creates an update event with encrypted message from the other client, decrypts it and returns it
-    func decryptedUpdateEventFromOtherClient(text: String) -> ZMUpdateEvent {
+    func decryptedUpdateEventFromOtherClient(text: String,
+                                             conversation: ZMConversation? = nil,
+                                             source: ZMUpdateEventSource = .pushNotification
+        ) -> ZMUpdateEvent {
         
         let message = ZMGenericMessage.message(text: text, nonce: UUID.create().transportString())
+    return self.decryptedUpdateEventFromOtherClient(message: message, conversation: conversation, source: source)
+    }
+    
+    /// Creates an update event with encrypted message from the other client, decrypts it and returns it
+    func decryptedUpdateEventFromOtherClient(message: ZMGenericMessage,
+                                             conversation: ZMConversation? = nil,
+                                             source: ZMUpdateEventSource = .pushNotification
+                                             ) -> ZMUpdateEvent {
         let cyphertext = self.encryptedMessageToSelf(message: message, from: self.otherClient)
-        let payload = ["recipient": self.selfClient.remoteIdentifier!,
+        let innerPayload = ["recipient": self.selfClient.remoteIdentifier!,
                        "sender": self.otherClient.remoteIdentifier!,
                        "text": cyphertext.base64String()
         ]
-        let event = ZMUpdateEvent(fromEventStreamPayload: [
+        let payload = [
             "type": "conversation.otr-message-add",
             "from": self.otherUser.remoteIdentifier!.transportString(),
-            "data": payload,
-            "conversation": self.groupConversation.remoteIdentifier!.transportString(),
+            "data": innerPayload,
+            "conversation": (conversation ?? self.groupConversation).remoteIdentifier!.transportString(),
             "time": Date().transportString()
-            ] as NSDictionary, uuid: nil)
+        ] as [String: Any]
+        let wrapper = [
+            "id": UUID.create().transportString(),
+            "payload": [payload]
+        ] as [String: Any]
+        
+        let event = ZMUpdateEvent.eventsArray(from: wrapper as NSDictionary, source: source)!.first!
         
         var decryptedEvent: ZMUpdateEvent?
         self.selfClient.keysStore.encryptionContext.perform { session in
-            decryptedEvent = session.decryptAndAddClient(event!, in: self.syncMOC)
+            decryptedEvent = session.decryptAndAddClient(event, in: self.syncMOC)
         }
         return decryptedEvent!
     }
+
     
     /// Makes a conversation secure
     func set(conversation: ZMConversation, securityLevel: ZMConversationSecurityLevel) {
@@ -319,6 +323,57 @@ extension ClientMessageTranscoderTests {
         if conversation.securityLevel != securityLevel {
             fatalError()
         }
+    }
+    
+    
+    /// Extract the outgoing message wrapper
+    func outgoingMessageWrapper(from request: ZMTransportRequest,
+                                file: StaticString = #file,
+                                line: UInt = #line) -> ZMNewOtrMessage? {
+        guard let protobuf = ZMNewOtrMessage.parse(from: request.binaryData) else {
+            XCTFail("No binary data", file: file, line: line)
+            return nil
+        }
+        return protobuf
+    }
+    
+    /// Extract encrypted payload from a request
+    func outgoingEncryptedMessage(from request: ZMTransportRequest,
+                                 for client: UserClient,
+                                 line: UInt = #line,
+                                 file: StaticString = #file
+        ) -> ZMGenericMessage? {
+        
+        guard let protobuf = ZMNewOtrMessage.parse(from: request.binaryData) else {
+            XCTFail("No binary data", file: file, line: line)
+            return nil
+        }
+        // find user
+        let userEntries = protobuf.recipients.flatMap({ $0 })
+        guard let userEntry = userEntries.first(where: { $0.user == client.user!.userId() }) else {
+            XCTFail("User not found", file: file, line: line)
+            return nil
+        }
+        // find client
+        guard let clientEntry = userEntry.clients.first(where: { $0.client == client.clientId }) else {
+            XCTFail("Client not found", file: file, line: line)
+            return nil
+        }
+        
+        // text content
+        guard let cyphertext = clientEntry.text else {
+            XCTFail("No text", file: file, line: line)
+            return nil
+        }
+        guard let plaintext = self.decryptMessageFromSelf(cypherText: cyphertext, to: self.otherClient) else {
+            XCTFail("failed to decrypt", file: file, line: line)
+            return nil
+        }
+        guard let receivedMessage = ZMGenericMessage.parse(from: plaintext) else {
+            XCTFail("Invalid message")
+            return nil
+        }
+        return receivedMessage
     }
 }
 

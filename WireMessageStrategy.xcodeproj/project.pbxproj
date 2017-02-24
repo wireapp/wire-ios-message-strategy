@@ -26,6 +26,7 @@
 		54B2CBA41E5DE73C00BFFEAE /* ClientMessageTrancoderTests+MessageConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B2CBA31E5DE73C00BFFEAE /* ClientMessageTrancoderTests+MessageConfirmation.swift */; };
 		54B2CBA61E5DE79C00BFFEAE /* ClientMessageTranscoderTests+Ephemeral.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B2CBA51E5DE79C00BFFEAE /* ClientMessageTranscoderTests+Ephemeral.swift */; };
 		54B2CBA81E5DE7CF00BFFEAE /* ClientMessageTranscoderTests+ResponsePayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B2CBA71E5DE7CF00BFFEAE /* ClientMessageTranscoderTests+ResponsePayload.swift */; };
+		54CA69771E5EF67400E44960 /* ZMCDataModel.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 54CA69721E5EF66B00E44960 /* ZMCDataModel.framework */; };
 		54EE7CF71E4B7AEE00E6260C /* ZMOTRMessageMissingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54EE7CF61E4B7AEE00E6260C /* ZMOTRMessageMissingTests.swift */; };
 		54FAE67F1E39FD1900E6DE42 /* MessagingTest+Encryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FAE67D1E39F5CA00E6DE42 /* MessagingTest+Encryption.swift */; };
 		BF260C501DCA1FD9009C97D9 /* AssetV3PreviewDownloadStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF260C4F1DCA1FD9009C97D9 /* AssetV3PreviewDownloadStrategy.swift */; };
@@ -95,6 +96,27 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		54CA69711E5EF66B00E44960 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54CA696B1E5EF66B00E44960 /* ZMCDataModel.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F9C9A4FC1CAD5DF10039E10C;
+			remoteInfo = ZMCDataModel;
+		};
+		54CA69731E5EF66B00E44960 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54CA696B1E5EF66B00E44960 /* ZMCDataModel.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F9C9A5061CAD5DF10039E10C;
+			remoteInfo = ZMCDataModelTests;
+		};
+		54CA69751E5EF66B00E44960 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 54CA696B1E5EF66B00E44960 /* ZMCDataModel.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = F9C9A7F31CAED9510039E10C;
+			remoteInfo = ZMDataModelTestHost;
+		};
 		F9F056BE1D93D22000FA1AAD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F9F056AA1D93D22000FA1AAD /* Project object */;
@@ -165,6 +187,7 @@
 		54B2CBA31E5DE73C00BFFEAE /* ClientMessageTrancoderTests+MessageConfirmation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ClientMessageTrancoderTests+MessageConfirmation.swift"; sourceTree = "<group>"; };
 		54B2CBA51E5DE79C00BFFEAE /* ClientMessageTranscoderTests+Ephemeral.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ClientMessageTranscoderTests+Ephemeral.swift"; sourceTree = "<group>"; };
 		54B2CBA71E5DE7CF00BFFEAE /* ClientMessageTranscoderTests+ResponsePayload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "ClientMessageTranscoderTests+ResponsePayload.swift"; sourceTree = "<group>"; };
+		54CA696B1E5EF66B00E44960 /* ZMCDataModel.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ZMCDataModel.xcodeproj; path = "../wire-ios-data-model/ZMCDataModel.xcodeproj"; sourceTree = "<group>"; };
 		54EE7CF61E4B7AEE00E6260C /* ZMOTRMessageMissingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZMOTRMessageMissingTests.swift; sourceTree = "<group>"; };
 		54FAE67D1E39F5CA00E6DE42 /* MessagingTest+Encryption.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "MessagingTest+Encryption.swift"; sourceTree = "<group>"; };
 		BF260C4F1DCA1FD9009C97D9 /* AssetV3PreviewDownloadStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetV3PreviewDownloadStrategy.swift; sourceTree = "<group>"; };
@@ -255,6 +278,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				54CA69771E5EF67400E44960 /* ZMCDataModel.framework in Frameworks */,
 				5442A7341E4224DB00415104 /* libPhoneNumberiOS.framework in Frameworks */,
 				F9F0571E1D93D4DE00FA1AAD /* Foundation.framework in Frameworks */,
 			);
@@ -318,9 +342,20 @@
 			path = "zmc-config";
 			sourceTree = "<group>";
 		};
+		54CA696C1E5EF66B00E44960 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				54CA69721E5EF66B00E44960 /* ZMCDataModel.framework */,
+				54CA69741E5EF66B00E44960 /* ZMCDataModelTests.xctest */,
+				54CA69761E5EF66B00E44960 /* ZMDataModelTestHost.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		F9F056A91D93D22000FA1AAD = {
 			isa = PBXGroup;
 			children = (
+				54CA696B1E5EF66B00E44960 /* ZMCDataModel.xcodeproj */,
 				F9F056D31D93D25D00FA1AAD /* Cartfile.resolved */,
 				F9F056D41D93D25D00FA1AAD /* Cartfile */,
 				F9F0575F1D9412C300FA1AAD /* Cartfile.private */,
@@ -633,6 +668,12 @@
 			mainGroup = F9F056A91D93D22000FA1AAD;
 			productRefGroup = F9F056B41D93D22000FA1AAD /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 54CA696C1E5EF66B00E44960 /* Products */;
+					ProjectRef = 54CA696B1E5EF66B00E44960 /* ZMCDataModel.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				F9F056B21D93D22000FA1AAD /* WireMessageStrategy */,
@@ -641,6 +682,30 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		54CA69721E5EF66B00E44960 /* ZMCDataModel.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = ZMCDataModel.framework;
+			remoteRef = 54CA69711E5EF66B00E44960 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		54CA69741E5EF66B00E44960 /* ZMCDataModelTests.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = ZMCDataModelTests.xctest;
+			remoteRef = 54CA69731E5EF66B00E44960 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		54CA69761E5EF66B00E44960 /* ZMDataModelTestHost.app */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.application;
+			path = ZMDataModelTestHost.app;
+			remoteRef = 54CA69751E5EF66B00E44960 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		F9F056B11D93D22000FA1AAD /* Resources */ = {
