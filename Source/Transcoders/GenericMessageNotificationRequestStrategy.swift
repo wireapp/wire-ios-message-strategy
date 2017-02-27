@@ -17,17 +17,12 @@
 //
 
 
-@objc public final class GenericMessageNotificationRequestStrategy: NSObject, RequestStrategy {
+public final class GenericMessageNotificationRequestStrategy: GenericMessageRequestStrategy {
 
-    private let managedObjectContext: NSManagedObjectContext
-    private let genericMessageStrategy: GenericMessageRequestStrategy
     private var token: NotificationCenterObserverToken?
 
     public init(managedObjectContext: NSManagedObjectContext, clientRegistrationDelegate: ClientRegistrationDelegate) {
-        self.managedObjectContext = managedObjectContext
-        self.genericMessageStrategy = GenericMessageRequestStrategy(context: managedObjectContext, clientRegistrationDelegate: clientRegistrationDelegate)
-
-        super.init()
+        super.init(context: managedObjectContext, clientRegistrationDelegate: clientRegistrationDelegate)
         setupObserver()
     }
 
@@ -35,15 +30,11 @@
         token = NotificationCenterObserverToken(name: GenericMessageScheduleNotification.name) { [weak self] note in
             guard let `self` = self, let (message, conversation) = note.object as? (ZMGenericMessage, ZMConversation) else { return }
             let identifier = conversation.objectID
-            self.managedObjectContext.performGroupedBlock {
-                guard let syncConversation = (try? self.managedObjectContext.existingObject(with: identifier)) as? ZMConversation else { return }
-                self.genericMessageStrategy.schedule(message: message, inConversation: syncConversation, completionHandler: nil)
+            self.context.performGroupedBlock {
+                guard let syncConversation = (try? self.context.existingObject(with: identifier)) as? ZMConversation else { return }
+                self.schedule(message: message, inConversation: syncConversation, completionHandler: nil)
             }
         }
-    }
-
-    public func nextRequest() -> ZMTransportRequest? {
-        return genericMessageStrategy.nextRequest()
     }
 
 }

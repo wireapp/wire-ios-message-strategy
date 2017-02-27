@@ -52,6 +52,9 @@ extension GenericMessageEntity : EncryptedPayloadGenerator {
     
 }
 
+/// This should not be used as a standalone strategy but either subclassed or usde within another
+/// strategy. Please have a look at `CallingRequestStrategy` and `GenericMessageNotificationRequestStrategy`
+/// before modifying the behaviour of this class.
 public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageEntity>, ZMRequestGenerator, ZMContextChangeTracker {
     
     private var sync : DependencyEntitySync<GenericMessageRequestStrategy>?
