@@ -56,20 +56,11 @@ public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageE
     
     private var sync : DependencyEntitySync<GenericMessageRequestStrategy>?
     private var requestFactory = ClientMessageRequestFactory()
-    private var token: NotificationCenterObserverToken?
     
     public override init(context: NSManagedObjectContext, clientRegistrationDelegate: ClientRegistrationDelegate) {
         super.init(context: context, clientRegistrationDelegate: clientRegistrationDelegate)
         
         sync = DependencyEntitySync(transcoder: self, context: context)
-        token = NotificationCenterObserverToken(name: GenericMessageScheduleNotification.name) { [weak self] note in
-            guard let `self` = self, let (message, conversation) = note.object as? (ZMGenericMessage, ZMConversation) else { return }
-            let identifier = conversation.objectID
-            self.context.performGroupedBlock {
-                guard let syncConversation = (try? self.context.existingObject(with: identifier)) as? ZMConversation else { return }
-                self.schedule(message: message, inConversation: syncConversation, completionHandler: nil)
-            }
-        }
     }
     
     public func schedule(message: ZMGenericMessage, inConversation conversation: ZMConversation, completionHandler: ((_ response: ZMTransportResponse) -> Void)?) {
