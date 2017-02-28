@@ -36,14 +36,12 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
     
     override func setUp() {
         super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
         clientRegistrationStatus = MockClientRegistrationStatus()
         confirmationStatus = MockConfirmationStatus()
         sut = MissingClientsRequestStrategy(clientRegistrationStatus: clientRegistrationStatus, apnsConfirmationStatus: confirmationStatus, managedObjectContext: self.syncMOC)
     }
     
     override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
         clientRegistrationStatus = nil
         confirmationStatus = nil
         sut.tearDown()
@@ -87,10 +85,12 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
         sut.notifyChangeTrackers(self.selfClient)
         
         // WHEN
-        let request = self.sut.nextRequest()
+        guard let request = self.sut.nextRequest() else {
+            return XCTFail()
+        }
         
         // THEN
-        assertRequestEqualsExpectedRequest(request)
+        checkRequestForClientsPrekeys(request, expectedClients: [self.otherClient])
     }
 
     func testThatItDoesNotCreateARequestToFetchMissedKeysIfClientHasMissingClientsAndMissingKeyIsNotModified() {
@@ -136,25 +136,30 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
         
         // GIVEN
         self.selfClient.missesClient(self.otherClient)
-        let client2 = self.createClient(user: self.otherUser)
-        self.selfClient.missesClient(client2)
+        let user = self.createUser(alsoCreateClient: true)
+        self.selfClient.missesClient(user.clients.first!)
         
         sut.notifyChangeTrackers(selfClient)
         
         // WHEN
-        let firstRequest = self.sut.nextRequest()
+        guard let firstRequest = self.sut.nextRequest() else {
+            return XCTFail()
+        }
+        print(firstRequest.payload!)
         
         // THEN
-        assertRequestEqualsExpectedRequest(firstRequest)
-        firstRequest?.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
+        checkRequestForClientsPrekeys(firstRequest, expectedClients: [self.otherClient])
+        firstRequest.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
         // and when
-        let secondRequest = self.sut.nextRequest()
+        guard let secondRequest = self.sut.nextRequest() else {
+            return XCTFail()
+        }
         
         // THEN
-        assertRequestEqualsExpectedRequest(secondRequest)
-        secondRequest?.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
+        checkRequestForClientsPrekeys(secondRequest, expectedClients: [user.clients.first!])
+        secondRequest.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
         // and when
@@ -460,14 +465,23 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
 
 extension MissingClientsRequestStrategyTests {
     
-    func assertRequestEqualsExpectedRequest(_ request: ZMTransportRequest?, file: StaticString = #file, line: UInt = #line) {
-        let expectedRequest = sut.requestsFactory.fetchMissingClientKeysRequest(self.selfClient!.missingClients!).transportRequest!
-        
-        AssertOptionalNotNil(request, "Should return request if there is inserted UserClient object") { request in
-            XCTAssertNotNil(request.payload, "Request should contain payload")
-            XCTAssertEqual(request.method, expectedRequest.method)
-            XCTAssertEqual(request.path, expectedRequest.path)
-            XCTAssertTrue(request.payload!.isEqual(expectedRequest.payload))
+    func checkRequestForClientsPrekeys(_ request: ZMTransportRequest,
+                                       expectedClients: [UserClient],
+                                       file: StaticString = #file,
+                                       line: UInt = #line) {
+        guard let payload = request.payload as? [String: [String]] else {
+            return XCTFail("Request should contain payload", file: file, line: line)
+        }
+        XCTAssertEqual(request.method, .methodPOST, file: file, line: line)
+        XCTAssertEqual(request.path, "/users/prekeys", file: file, line: line)
+        expectedClients.forEach {
+            guard let userKey = $0.user?.remoteIdentifier?.transportString() else {
+                return XCTFail("Invalid user ID", file: file, line: line)
+            }
+            guard let userPayload = payload[userKey] else {
+                return XCTFail("No such user in payload \(userKey)", file: file, line: line)
+            }
+            XCTAssertTrue(userPayload.contains($0.remoteIdentifier!), file: file, line: line)
         }
     }
     

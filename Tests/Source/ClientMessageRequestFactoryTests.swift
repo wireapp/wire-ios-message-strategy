@@ -112,15 +112,17 @@ extension ClientMessageRequestFactoryTests {
             message.visibleInConversation = self.groupConversation
             
             // WHEN
-            let request = ClientMessageRequestFactory().upstreamRequestForAssetMessage(format, message: message)
+            guard let request = ClientMessageRequestFactory().upstreamRequestForAssetMessage(format, message: message) else {
+                return XCTFail()
+            }
             
             // THEN
-            let expectedPath = "/conversations/\(self.groupConversation.remoteIdentifier!)/otr/assets/\(message.assetId!.transportString())"
+            let expectedPath = "/conversations/\(self.groupConversation.remoteIdentifier!.transportString())/otr/assets/\(message.assetId!.transportString())"
 
-            XCTAssertEqual(request?.method, ZMTransportRequestMethod.methodPOST)
-            XCTAssertEqual(request?.path, expectedPath)
-            XCTAssertNotNil(request?.binaryData)
-            XCTAssertEqual(request?.shouldUseOnlyBackgroundSession, true)
+            XCTAssertEqual(request.method, ZMTransportRequestMethod.methodPOST)
+            XCTAssertEqual(request.path, expectedPath)
+            XCTAssertNotNil(request.binaryData)
+            XCTAssertEqual(request.shouldUseOnlyBackgroundSession, true)
         }
     }
 }

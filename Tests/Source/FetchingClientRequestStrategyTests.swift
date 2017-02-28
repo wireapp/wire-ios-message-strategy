@@ -184,20 +184,21 @@ extension FetchClientRequestStrategyTests {
     func testThatItAddsNewInsertedClientsToIgnoredClients() {
         
         // GIVEN
-        let user = otherClient.user
-        let payload =  [["id" : otherClient.remoteIdentifier!]]
+        let client = self.createClient(user: self.otherUser)
+        XCTAssertFalse(client.hasSessionWithSelfClient)
+        let payload =  [["id" : client.remoteIdentifier!]]
         let response = ZMTransportResponse(payload: payload as ZMTransportData, httpStatus: 200, transportSessionError: nil)
-        user?.fetchUserClients()
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.2))
+        self.otherUser.fetchUserClients()
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.2))
         
         // WHEN
-        let request = sut.nextRequest()
+        let request = self.sut.nextRequest()
         request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.2))
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.2))
         
         // THEN
-        XCTAssertFalse(selfClient.trustedClients.contains(otherClient))
-        XCTAssertTrue(selfClient.ignoredClients.contains(otherClient))
+        XCTAssertFalse(self.selfClient.trustedClients.contains(client))
+        XCTAssertTrue(self.selfClient.ignoredClients.contains(client))
     }
     
     func testThatItDeletesAnObjectWhenResponseDoesNotContainRemoteID() {
