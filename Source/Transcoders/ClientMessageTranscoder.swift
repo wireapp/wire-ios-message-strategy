@@ -125,7 +125,7 @@ extension ClientMessageTranscoder {
             fallthrough
         case .conversationOtrMessageAdd:
             fallthrough
-        case .conversationOtrAssetAdd: // TODO MARCO: why do we process OtrAssetAdd here?
+        case .conversationOtrAssetAdd:
             guard let updateResult = ZMOTRMessage.messageUpdateResult(from: event, in: self.managedObjectContext, prefetchResult: prefetchResult) else {
                  return nil
             }
