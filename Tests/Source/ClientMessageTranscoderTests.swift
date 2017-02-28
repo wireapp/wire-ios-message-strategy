@@ -185,7 +185,7 @@ extension ClientMessageTranscoderTests {
 // MARK: - Generic Message
 extension ClientMessageTranscoderTests {
     
-    /// TODO MARCO: why is this here?? Should be moved to data model
+    // TODO MARCO: why is this here?? Should be moved to data model
     func testThatThePreviewGenericMessageDataHasTheOriginalSizeOfTheMediumGenericMessagedata() {
         self.syncMOC.performGroupedBlockAndWait {
             

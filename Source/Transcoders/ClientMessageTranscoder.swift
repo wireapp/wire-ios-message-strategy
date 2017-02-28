@@ -251,7 +251,7 @@ extension ClientMessageTranscoder {
                 fallthrough
             case .conversationOtrAssetAdd:
                 fallthrough
-            case .conversationClientMessageAdd:  // TODO MARCO: why do we process OtrAssetAdd here?
+            case .conversationClientMessageAdd:
                 return $0.messageNonce()
             default:
                 return nil
@@ -264,7 +264,7 @@ extension ClientMessageTranscoder {
             switch $0.type {
             case .conversationClientMessageAdd:
                 fallthrough
-            case .conversationOtrAssetAdd: // TODO MARCO: why do we process OtrAssetAdd here?
+            case .conversationOtrAssetAdd:
                 fallthrough
             case .conversationClientMessageAdd:
                 if let nonce = $0.messageNonce() {
