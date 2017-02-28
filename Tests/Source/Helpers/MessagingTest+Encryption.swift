@@ -16,7 +16,6 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
-import ZMCMockTransport
 import XCTest
 import ZMTesting
 import Cryptobox
@@ -34,7 +33,7 @@ extension MessagingTestBase {
             selfClient.user!.remoteIdentifier = UUID()
         }
         if selfClient.remoteIdentifier == nil {
-            selfClient.remoteIdentifier = NSString.createAlphanumerical() as String
+            selfClient.remoteIdentifier = UUID.create().transportString()
         }
         
         var cypherText: Data?
@@ -121,7 +120,7 @@ extension MessagingTestBase {
     /// If the client has no remote identifier, it will create one
     fileprivate func encryptionContext(for client: UserClient) -> EncryptionContext {
         if client.remoteIdentifier == nil {
-            client.remoteIdentifier = NSString.createAlphanumerical() as String
+            client.remoteIdentifier = UUID.create().transportString()
         }
         let url =  self.otherClientsEncryptionContextsURL.appendingPathComponent("client-\(client.remoteIdentifier!)")
         try! FileManager.default.createDirectory(at: url, withIntermediateDirectories: true, attributes: [:])

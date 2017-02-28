@@ -112,6 +112,8 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
         let conversation = createConversation()
         conversation.messageDestructionTimeout = 5
         guard let (message, assetId, token) = createFileMessageWithAssetId(in: conversation) else { return XCTFail("No message") }
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.2))
+        self.spinMainQueue(withTimeout: 0.1) // give the disk some time?
 
         guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No assetData found") }
         XCTAssert(assetData.hasUploaded())

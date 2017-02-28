@@ -109,7 +109,7 @@ class OTREntityTranscoderTests : MessagingTestBase {
         XCTAssertEqual(selfClient.missingClients!.first!.remoteIdentifier, clientId)
     }
     
-    func testThatItHandlesMissingClient_addUserToConversationIfNotAlreadyThere() {
+    func testThatItHandlesMissingClient_MarkAsNeedsToDownloadNotAlreadyThere() {
         
         // given
         let user = self.createUser()
@@ -124,7 +124,7 @@ class OTREntityTranscoderTests : MessagingTestBase {
         sut.request(forEntity: mockEntity, didCompleteWithResponse: response)
         
         // then
-        XCTAssertTrue(self.groupConversation.activeParticipants.contains(user))
+        XCTAssertTrue(self.groupConversation.needsToBeUpdatedFromBackend)
     }
     
 }

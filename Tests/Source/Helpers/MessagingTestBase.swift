@@ -194,7 +194,7 @@ extension MessagingTestBase {
     /// Creates a new client for a user
     func createClient(user: ZMUser) -> UserClient {
         let client = UserClient.insertNewObject(in: self.syncMOC)
-        client.remoteIdentifier = NSString.createAlphanumerical() as String
+        client.remoteIdentifier = UUID.create().transportString()
         client.user = user
         self.syncMOC.saveOrRollback()
         return client

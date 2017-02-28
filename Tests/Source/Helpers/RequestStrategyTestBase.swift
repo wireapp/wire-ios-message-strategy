@@ -17,7 +17,6 @@
 //
 
 import Foundation
-import ZMCMockTransport
 import WireRequestStrategy
 import XCTest
 import WireMessageStrategy

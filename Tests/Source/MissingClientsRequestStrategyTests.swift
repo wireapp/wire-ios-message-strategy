@@ -20,7 +20,6 @@ import XCTest
 @testable import WireMessageStrategy
 import ZMUtilities
 import ZMTesting
-import ZMCMockTransport
 import ZMCDataModel
 import WireRequestStrategy
 
@@ -137,28 +136,41 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
         // GIVEN
         self.selfClient.missesClient(self.otherClient)
         let user = self.createUser(alsoCreateClient: true)
-        self.selfClient.missesClient(user.clients.first!)
+        let otherClient2 = user.clients.first!
+        self.selfClient.missesClient(otherClient2)
         
         sut.notifyChangeTrackers(selfClient)
         
         // WHEN
-        guard let firstRequest = self.sut.nextRequest() else {
+        guard let firstRequest = self.sut.nextRequest(),
+            let firstPayload = firstRequest.payload as? [String: [String]] else {
             return XCTFail()
         }
-        print(firstRequest.payload!)
         
         // THEN
-        checkRequestForClientsPrekeys(firstRequest, expectedClients: [self.otherClient])
+        XCTAssertEqual(firstRequest.method, .methodPOST)
+        XCTAssertEqual(firstRequest.path, "/users/prekeys")
+        XCTAssertEqual(firstPayload.count, 1)
+        guard let firstEntry = firstPayload.first else {
+            return XCTFail()
+        }
+        
         firstRequest.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
         // and when
-        guard let secondRequest = self.sut.nextRequest() else {
+        guard let secondRequest = self.sut.nextRequest(),
+            let secondPayload = secondRequest.payload as? [String: [String]] else {
             return XCTFail()
         }
         
         // THEN
-        checkRequestForClientsPrekeys(secondRequest, expectedClients: [user.clients.first!])
+        XCTAssertEqual(secondRequest.method, .methodPOST)
+        XCTAssertEqual(secondRequest.path, "/users/prekeys")
+        XCTAssertEqual(secondPayload.count, 1)
+        guard let secondEntry = secondPayload.first else {
+            return XCTFail()
+        }
         secondRequest.complete(with: ZMTransportResponse(payload: NSDictionary(), httpStatus: 200, transportSessionError: nil))
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
@@ -167,6 +179,18 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
         
         // THEN
         XCTAssertNil(thirdRequest, "Should not request clients keys any more")
+        XCTAssertTrue([user.remoteIdentifier!.transportString(),
+                       self.otherUser.remoteIdentifier!.transportString()].contains(firstEntry.key),
+                      "Unrecognized user")
+        XCTAssertTrue([user.remoteIdentifier!.transportString(),
+                       self.otherUser.remoteIdentifier!.transportString()].contains(secondEntry.key),
+                      "Unrecognized user")
+        XCTAssertNotEqual(firstEntry.key, secondEntry.key)
+        let expectedClients1 = [self.otherClient.remoteIdentifier!]
+        let expectedClients2 = [otherClient2.remoteIdentifier!]
+        XCTAssertTrue(firstEntry.value == expectedClients1 || firstEntry.value == expectedClients2, "Not matching clients")
+        XCTAssertTrue(secondEntry.value == expectedClients1 || secondEntry.value == expectedClients2, "Not matching clients")
+        XCTAssertNotEqual(firstEntry.value, secondEntry.value)
     }
 
     func testThatItRemovesMissingClientWhenResponseContainsItsKey() {
@@ -404,7 +428,7 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
     func testThatItCreatesMissingClientsRequestAfterRemoteSelfClientIsFetched() {
         
         // GIVEN
-        let identifier = String.createAlphanumerical()
+        let identifier = UUID.create().transportString()
         let payload = [
             "id": identifier as NSString,
             "type": "permanent" as NSString,

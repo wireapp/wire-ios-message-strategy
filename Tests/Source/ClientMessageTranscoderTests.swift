@@ -18,8 +18,8 @@
 
 import Foundation
 import WireRequestStrategy
-import ZMCMockTransport
 import WireMessageStrategy
+import XCTest
 
 class ClientMessageTranscoderTests: MessagingTestBase {
 
