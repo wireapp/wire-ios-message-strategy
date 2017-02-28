@@ -91,8 +91,39 @@ extension MessagingTestBase {
                             "sender": self.otherClient.remoteIdentifier!,
                             "text": cyphertext.base64String()
         ]
+        return self.decryptedUpdateEventFromOtherClient(innerPayload: innerPayload,
+                                                        conversation: conversation,
+                                                        source: source,
+                                                        type: "conversation.otr-message-add"
+        )
+    }
+    
+    /// Creates an update event with encrypted message from the other client, decrypts it and returns it
+    func decryptedAssetUpdateEventFromOtherClient(message: ZMGenericMessage,
+                                             conversation: ZMConversation? = nil,
+                                             source: ZMUpdateEventSource = .pushNotification
+        ) -> ZMUpdateEvent {
+        let cyphertext = self.encryptedMessageToSelf(message: message, from: self.otherClient)
+        let innerPayload = ["recipient": self.selfClient.remoteIdentifier!,
+                            "sender": self.otherClient.remoteIdentifier!,
+                            "id": UUID.create().transportString(),
+                            "key": cyphertext.base64String()
+        ]
+        return self.decryptedUpdateEventFromOtherClient(innerPayload: innerPayload,
+                                                        conversation: conversation,
+                                                        source: source,
+                                                        type: "conversation.otr-asset-add"
+                            )
+    }
+    
+    /// Creates an update event with encrypted message from the other client, decrypts it and returns it
+    private func decryptedUpdateEventFromOtherClient(innerPayload: [String: Any],
+                                                  conversation: ZMConversation?,
+                                                  source: ZMUpdateEventSource,
+                                                  type: String
+        ) -> ZMUpdateEvent {
         let payload = [
-            "type": "conversation.otr-message-add",
+            "type": type,
             "from": self.otherUser.remoteIdentifier!.transportString(),
             "data": innerPayload,
             "conversation": (conversation ?? self.groupConversation).remoteIdentifier!.transportString(),
