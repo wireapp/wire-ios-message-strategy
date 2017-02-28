@@ -87,7 +87,6 @@ extension ClientMessageRequestFactoryTests {
             let imageData = self.verySmallJPEGData()
             let format = ZMImageFormat.medium
             let message = self.createImageMessage(imageData: imageData, format: format, processed: true, stored: false, encrypted: true, ephemeral: false, moc: self.syncMOC)
-            message.visibleInConversation = self.groupConversation
             
             // WHEN
             let request = ClientMessageRequestFactory().upstreamRequestForAssetMessage(format, message: message)
@@ -109,7 +108,6 @@ extension ClientMessageRequestFactoryTests {
             let format = ZMImageFormat.medium
             let message = self.createImageMessage(imageData: imageData, format: format, processed: false, stored: false, encrypted: true, ephemeral: false, moc: self.syncMOC)
             message.assetId = UUID.create()
-            message.visibleInConversation = self.groupConversation
             
             // WHEN
             guard let request = ClientMessageRequestFactory().upstreamRequestForAssetMessage(format, message: message) else {
@@ -133,8 +131,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItCreatesRequestToUploadAFileMessage_Placeholder() {
         // GIVEN
-        let (message, _, _) = createAssetFileMessage(false, encryptedDataOnDisk: false)
-        message.visibleInConversation = self.groupConversation
+        let (message, _, _) = self.createAssetFileMessage(false, encryptedDataOnDisk: false)
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -150,8 +147,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItCreatesRequestToUploadAFileMessage_Placeholder_UploadedDataPresent() {
         // GIVEN
-        let (message, _, _) = createAssetFileMessage(true, encryptedDataOnDisk: true)
-        message.visibleInConversation = self.groupConversation
+        let (message, _, _) = self.createAssetFileMessage(true, encryptedDataOnDisk: true)
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -167,9 +163,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItCreatesRequestToUploadAFileMessage_FileData() {
         // GIVEN
-        let (message, _, _) = createAssetFileMessage(true)
-        message.visibleInConversation = self.groupConversation
-
+        let (message, _, _) = self.createAssetFileMessage(true)
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -183,8 +177,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItCreatesRequestToReuploadFileMessageMetaData_WhenAssetIdIsPresent() {
         // GIVEN
-        let (message, _, _) = createAssetFileMessage()
-        message.visibleInConversation = self.groupConversation
+        let (message, _, _) = self.createAssetFileMessage()
         message.assetId = UUID.create()
         
         // WHEN
@@ -201,8 +194,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatTheRequestToReuploadAFileMessageDoesNotContainTheBinaryFileData() {
         // GIVEN
-        let (message, _, nonce) = createAssetFileMessage()
-        message.visibleInConversation = self.groupConversation
+        let (message, _, nonce) = self.createAssetFileMessage()
         message.assetId = UUID.create()
         
         // WHEN
@@ -218,9 +210,8 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItDoesNotCreatesRequestToReuploadFileMessageMetaData_WhenAssetIdIsPresent_Placeholder() {
         // GIVEN
-        let (message, _, _) = createAssetFileMessage()
+        let (message, _, _) = self.createAssetFileMessage()
         message.assetId = UUID.create()
-        message.visibleInConversation = self.groupConversation
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -235,8 +226,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItWritesTheMultiPartRequestDataToDisk() {
         // GIVEN
-        let (message, data, nonce) = createAssetFileMessage()
-        message.visibleInConversation = self.groupConversation
+        let (message, data, nonce) = self.createAssetFileMessage()
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -254,8 +244,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItSetsTheDataMD5() {
         // GIVEN
-        let (message, data, nonce) = createAssetFileMessage(true)
-        message.visibleInConversation = self.groupConversation
+        let (message, data, nonce) = self.createAssetFileMessage(true)
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -274,8 +263,13 @@ extension ClientMessageRequestFactoryTests {
     func testThatItDoesNotCreateARequestIfTheMessageIsNotAFileAssetMessage_AssetClientMessage_Image() {
         // GIVEN
         let imageData = verySmallJPEGData()
-        let message = createImageMessage(imageData: imageData, format: .medium, processed: true, stored: false, encrypted: true, ephemeral: false, moc: syncMOC)
-        message.visibleInConversation = self.groupConversation
+        let message = self.createImageMessage(imageData: imageData,
+                                              format: .medium,
+                                              processed: true,
+                                              stored: false,
+                                              encrypted: true,
+                                              ephemeral: false,
+                                              moc: syncMOC)
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -287,8 +281,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItReturnsNilWhenThereIsNoEncryptedDataToUploadOnDisk() {
         // GIVEN
-        let (message, _, _) = createAssetFileMessage(encryptedDataOnDisk: false)
-        message.visibleInConversation = self.groupConversation
+        let (message, _, _) = self.createAssetFileMessage(encryptedDataOnDisk: false)
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -300,8 +293,7 @@ extension ClientMessageRequestFactoryTests {
     
     func testThatItStoresTheUploadDataInTheCachesDirectoryAndMarksThemAsNotBeingBackedUp() {
         // GIVEN
-        let (message, _, nonce) = createAssetFileMessage()
-        message.visibleInConversation = self.groupConversation
+        let (message, _, nonce) = self.createAssetFileMessage()
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -344,7 +336,9 @@ extension ClientMessageRequestFactoryTests {
         return documentsURL.appendingPathComponent("file.dat")
     }
     
-    func createAssetFileMessage(_ withUploaded: Bool = true, encryptedDataOnDisk: Bool = true, isEphemeral: Bool = false) -> (ZMAssetClientMessage, Data, UUID) {
+    func createAssetFileMessage(_ withUploaded: Bool = true,
+                                encryptedDataOnDisk: Bool = true,
+                                isEphemeral: Bool = false) -> (ZMAssetClientMessage, Data, UUID) {
         let data = createTestFile(testURL)
         let nonce = UUID.create()
         let metadata = ZMFileMetadata(fileURL: testURL)
@@ -370,6 +364,7 @@ extension ClientMessageRequestFactoryTests {
             self.syncMOC.zm_fileAssetCache.storeAssetData(nonce, fileName: name!, encrypted: true, data: data)
         }
         
+        message.visibleInConversation = self.groupConversation
         return (message, data, nonce)
     }
     
@@ -444,7 +439,7 @@ extension ClientMessageRequestFactoryTests {
     func testThatItCreatesRequestToUploadAnEphemeralFileMessage_FileData() {
         
         // GIVEN
-        let (message, _, _) = createAssetFileMessage(true, isEphemeral: true)
+        let (message, _, _) = self.createAssetFileMessage(true, isEphemeral: true)
         
         // WHEN
         let sut = ClientMessageRequestFactory()
@@ -465,8 +460,13 @@ extension ClientMessageRequestFactoryTests {
             let imageData = self.verySmallJPEGData()
             let format = ZMImageFormat.medium
             
-            let message = self.createImageMessage(imageData: imageData, format: format, processed: true, stored: false, encrypted: true, ephemeral: true, moc: self.syncMOC)
-            message.visibleInConversation = self.groupConversation
+            let message = self.createImageMessage(imageData: imageData,
+                                                  format: format,
+                                                  processed: true,
+                                                  stored: false,
+                                                  encrypted: true,
+                                                  ephemeral: true,
+                                                  moc: self.syncMOC)
             
             // WHEN
             let request = ClientMessageRequestFactory().upstreamRequestForAssetMessage(format, message: message)
@@ -482,7 +482,13 @@ extension ClientMessageRequestFactoryTests {
 
 extension ClientMessageRequestFactoryTests {
     
-    func createImageMessage(imageData: Data, format: ZMImageFormat, processed: Bool, stored: Bool, encrypted: Bool, ephemeral: Bool, moc: NSManagedObjectContext) -> ZMAssetClientMessage {
+    func createImageMessage(imageData: Data,
+                            format: ZMImageFormat,
+                            processed: Bool,
+                            stored: Bool,
+                            encrypted: Bool,
+                            ephemeral: Bool,
+                            moc: NSManagedObjectContext) -> ZMAssetClientMessage {
         let nonce = UUID.create()
         let imageMessage = ZMAssetClientMessage(originalImageData: imageData, nonce: nonce, managedObjectContext: moc, expiresAfter: ephemeral ? 10 : 0)
         imageMessage.isEncrypted = encrypted
@@ -507,6 +513,7 @@ extension ClientMessageRequestFactoryTests {
                 directory?.storeAssetData(nonce, format: format, encrypted: true, data: imageData)
             }
         }
+        imageMessage.visibleInConversation = self.groupConversation
         return imageMessage
     }
 }
