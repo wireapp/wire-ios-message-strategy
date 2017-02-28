@@ -16,10 +16,9 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
-import Foundation
-import XCTest
-
+import ZMCDataModel
 @testable import WireMessageStrategy
+import XCTest
 
 
 class MockOTREntity : OTREntity {
@@ -40,23 +39,23 @@ class MockOTREntity : OTREntity {
     
 }
 
-class OTREntityTranscoderTests : MessagingTest {
+class OTREntityTranscoderTests : MessagingTestBase {
     
     let mockClientRegistrationStatus = MockClientRegistrationStatus()
     var mockEntity : MockOTREntity!
-    var conversation : ZMConversation!
-    var selfClient : UserClient!
     var sut : OTREntityTranscoder<MockOTREntity>!
     
     override func setUp() {
         super.setUp()
         
-        conversation = ZMConversation.insertNewObject(in: syncMOC)
-        mockEntity = MockOTREntity(conversation: conversation)
-        sut = OTREntityTranscoder(context: syncMOC, clientRegistrationDelegate: mockClientRegistrationStatus)
-        
-        selfClient = createSelfClient()
-        
+        self.mockEntity = MockOTREntity(conversation: self.groupConversation)
+        self.sut = OTREntityTranscoder(context: syncMOC, clientRegistrationDelegate: mockClientRegistrationStatus)
+    }
+    
+    override func tearDown() {
+        self.mockEntity = nil
+        self.sut = nil
+        super.tearDown()
     }
     
     func testThatItHandlesDeletionOfSelfClient() {
@@ -78,12 +77,8 @@ class OTREntityTranscoderTests : MessagingTest {
     func testThatItHandlesDeletionOfClient() {
         
         // given
-        let user = ZMUser.insertNewObject(in: syncMOC)
-        user.remoteIdentifier = UUID.create()
-        let client = createClient(for: user, createSessionWithSelfUser: true)
-        
         let payload = [
-            "deleted" : ["\(user.remoteIdentifier!)" : [client.remoteIdentifier!] ]
+            "deleted" : ["\(self.otherUser.remoteIdentifier!)" : [self.otherClient.remoteIdentifier!] ]
         ]
         let response = ZMTransportResponse(payload: payload as NSDictionary, httpStatus: 200, transportSessionError: nil)
         
@@ -91,7 +86,7 @@ class OTREntityTranscoderTests : MessagingTest {
         sut.request(forEntity: mockEntity, didCompleteWithResponse: response)
         
         // then
-        XCTAssertTrue(client.isDeleted)
+        XCTAssertTrue(self.otherClient.isDeleted)
     }
     
     func testThatItHandlesMissingClient_addsClientToListOfMissingClients() {
@@ -117,7 +112,6 @@ class OTREntityTranscoderTests : MessagingTest {
     func testThatItHandlesMissingClient_addUserToConversationIfNotAlreadyThere() {
         
         // given
-        conversation.conversationType = .oneOnOne
         let user = ZMUser.insertNewObject(in: syncMOC)
         user.remoteIdentifier = UUID.create()
         let clientId = "ajsd9898u13a"
@@ -131,7 +125,7 @@ class OTREntityTranscoderTests : MessagingTest {
         sut.request(forEntity: mockEntity, didCompleteWithResponse: response)
         
         // then
-        XCTAssertTrue(conversation.activeParticipants.contains(user))
+        XCTAssertTrue(self.groupConversation.activeParticipants.contains(user))
     }
     
 }

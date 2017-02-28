@@ -19,9 +19,11 @@
 
 import Foundation
 import WireRequestStrategy
+import WireMessageStrategy
+import ZMCDataModel
+import XCTest
 
-
-class MessageExpirationTimerTests: MessagingTest {
+class MessageExpirationTimerTests: MessagingTestBase {
 
     var sut: MessageExpirationTimer!
     var localNotificationDispatcher: MockPushMessageHandler!

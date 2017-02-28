@@ -18,6 +18,9 @@
 
 
 import Foundation
+import XCTest
+import ZMCDataModel
+import WireMessageStrategy
 
 // MARK: - Confirmation message
 extension ClientMessageTranscoderTests {
@@ -243,27 +246,6 @@ extension ClientMessageTranscoderTests {
             XCTAssertTrue(self.confirmationStatus.messagesConfirmed.contains(confirmationNonce))
         }
     }
-    
-    //
-    //- (void)testThatItCallsConfirmationStatusWhenConfirmationMessageIsSentSuccessfully
-    //{
-    //    // given
-    //    [self createSelfClient];
-    //    ZMConversation *conversation = [self setupOneOnOneConversation];
-    //
-    //    ZMMessage *message = (id)[conversation appendMessageWithText:@"text"];
-    //    ZMClientMessage *confirmationMessage = [(id)message confirmReception];
-    //    NSUUID *confirmationUUID = confirmationMessage.nonce;
-    //    [self.sut.upstreamObjectSync objectsDidChange:[NSSet setWithObject:confirmationMessage]];
-    //
-    //    // when
-    //    ZMTransportRequest *request = [self.sut.upstreamObjectSync nextRequest];
-    //    [request completeWithResponse:[ZMTransportResponse responseWithPayload:@{} HTTPStatus:200 transportSessionError:nil]];
-    //    WaitForAllGroupsToBeEmpty(0.5);
-    //
-    //    // then
-    //    XCTAssertTrue([self.mockAPNSConfirmationStatus.messagesConfirmed containsObject:confirmationUUID]);
-    //}
 
 }
 

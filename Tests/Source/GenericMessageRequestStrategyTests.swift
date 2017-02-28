@@ -17,55 +17,41 @@
 //
 
 import Foundation
-
+import XCTest
+import ZMCDataModel
 @testable import WireMessageStrategy
 
-class GenericMessageRequestStrategyTests : MessagingTest {
+class GenericMessageRequestStrategyTests : MessagingTestBase {
     
     let mockClientRegistrationStatus = MockClientRegistrationStatus()
-    var conversation: ZMConversation!
     var sut : GenericMessageRequestStrategy!
     
     override func setUp() {
         super.setUp()
         
         sut = GenericMessageRequestStrategy(context: syncMOC, clientRegistrationDelegate: mockClientRegistrationStatus)
-        
-        createSelfClient()
-        
-        let user = ZMUser.insertNewObject(in: syncMOC)
-        user.remoteIdentifier = UUID.create()
-        _ = createClient(for: user, createSessionWithSelfUser: true)
-        
-        conversation = ZMConversation.insertNewObject(in: syncMOC)
-        conversation.conversationType = .group
-        conversation.remoteIdentifier = UUID.create()
-        conversation.addParticipant(user)
     }
     
     func testThatItCreatesARequestForAGenericMessage() {
         
         // given
         let genericMessage = ZMGenericMessage(editMessage: "foo", newText: "bar", nonce: UUID.create().transportString())
-        sut.schedule(message: genericMessage, inConversation: conversation) { ( _ ) in }
+        sut.schedule(message: genericMessage, inConversation: self.groupConversation) { ( _ ) in }
         
         // when
         let request = sut.nextRequest()
         
         // then
         XCTAssertEqual(request!.method, .methodPOST)
-        XCTAssertEqual(request!.path, "/conversations/\(conversation.remoteIdentifier!.transportString())/otr/messages")
+        XCTAssertEqual(request!.path, "/conversations/\(self.groupConversation.remoteIdentifier!.transportString())/otr/messages")
     }
     
     func testThatItForwardsObjectDidChangeToTheSync(){
         // given
-        let selfClient = createSelfClient()
-        let user = conversation.otherActiveParticipants.firstObject as! ZMUser
-        let newClient = createClient(for: user, createSessionWithSelfUser: false)
-        selfClient.missesClient(newClient)
+        self.selfClient.missesClient(self.otherClient)
         
         let genericMessage = ZMGenericMessage(editMessage: "foo", newText: "bar", nonce: UUID.create().transportString())
-        sut.schedule(message: genericMessage, inConversation: conversation) { ( _ ) in }
+        sut.schedule(message: genericMessage, inConversation: self.groupConversation) { ( _ ) in }
         
         // when
         let request1 = sut.nextRequest()
@@ -74,13 +60,13 @@ class GenericMessageRequestStrategyTests : MessagingTest {
         XCTAssertNil(request1)
         
         // and when
-        selfClient.removeMissingClient(newClient)
+        selfClient.removeMissingClient(self.otherClient)
         sut.objectsDidChange(Set([selfClient]))
         let request2 = sut.nextRequest()
 
         // then
         XCTAssertEqual(request2!.method, .methodPOST)
-        XCTAssertEqual(request2!.path, "/conversations/\(conversation.remoteIdentifier!.transportString())/otr/messages")
+        XCTAssertEqual(request2!.path, "/conversations/\(self.groupConversation.remoteIdentifier!.transportString())/otr/messages")
     }
     
 }

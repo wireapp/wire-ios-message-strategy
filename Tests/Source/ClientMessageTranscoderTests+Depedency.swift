@@ -17,6 +17,8 @@
 //
 
 import Foundation
+import XCTest
+import ZMCDataModel
 
 
 // MARK: - Dependency

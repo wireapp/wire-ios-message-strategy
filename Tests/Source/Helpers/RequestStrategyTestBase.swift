@@ -19,39 +19,14 @@
 import Foundation
 import ZMCMockTransport
 import WireRequestStrategy
+import XCTest
+import WireMessageStrategy
+import ZMCDataModel
+
 
 extension ZMContextChangeTrackerSource {
     func notifyChangeTrackers(_ client : UserClient) {
         contextChangeTrackers.forEach{$0.objectsDidChange(Set(arrayLiteral:client))}
-    }
-}
-
-
-class RequestStrategyTestBase : MessagingTest {
-        
-    func createClients() -> (UserClient, UserClient) {
-        let selfClient = self.createSelfClient()
-        let otherClient = createRemoteClient()
-        return (selfClient, otherClient)
-    }
-    
-    func createRemoteClient() -> UserClient {
-        
-        var mockUser: MockUser!
-        var mockClient: MockUserClient!
-        
-        self.mockTransportSession.performRemoteChanges { (session) -> Void in
-            mockUser = session.insertUser(withName: "foo")
-            mockClient = session.registerClient(for: mockUser, label: mockUser.name!, type: "permanent")
-        }
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-        
-        let client = UserClient.insertNewObject(in: syncMOC)
-        client.remoteIdentifier = mockClient.identifier
-        let user = ZMUser.insertNewObject(in: syncMOC)
-        user.remoteIdentifier = UUID(uuidString: mockUser.identifier)
-        client.user = user
-        return client
     }
 }
 

@@ -17,6 +17,9 @@
 //
 
 import Foundation
+import XCTest
+import WireMessageStrategy
+import ZMCDataModel
 
 extension ClientMessageTranscoderTests {
     
@@ -79,7 +82,8 @@ extension ClientMessageTranscoderTests {
         // GIVEN
         let text = "Come fosse antani"
         self.syncMOC.performGroupedBlockAndWait {
-            // the timeout here has to be at least 5. If I return something smaller, it will anyway be approximated to 5
+            // the timeout here has to be at least 5. If I return something smaller, it will anyway be approximated to 5 internally
+            // as it's the lowest allowed timeout
             let generic = ZMGenericMessage.message(text: text, nonce: UUID.create().transportString(), expiresAfter: 5)
             let event = self.decryptedUpdateEventFromOtherClient(message: generic)
             self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
@@ -98,7 +102,7 @@ extension ClientMessageTranscoderTests {
         self.stopEphemeralMessageTimers()
         
         // WHEN
-        self.spinMainQueue(withTimeout: 7)
+        self.spinMainQueue(withTimeout: 8)
         self.syncMOC.refreshAllObjects()
         self.recreateSut()
         self.syncMOC.saveOrRollback()

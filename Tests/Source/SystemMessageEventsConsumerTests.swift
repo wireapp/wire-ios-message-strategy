@@ -17,8 +17,12 @@
 //
 
 import Foundation
+import XCTest
+import WireMessageStrategy
+import ZMCDataModel
 
-class SystemMessageEventsConsumerTests: RequestStrategyTestBase {
+
+class SystemMessageEventsConsumerTests: MessagingTestBase {
     
     var sut: SystemMessageEventsConsumer!
     var localNotificationDispatcher: MockPushMessageHandler!

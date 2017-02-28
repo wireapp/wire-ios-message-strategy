@@ -8,7 +8,8 @@
 
 import Foundation
 import WireRequestStrategy
-
+import WireMessageStrategy
+import ZMCDataModel
 
 class MockClientRegistrationStatus: NSObject, ClientRegistrationDelegate {
     

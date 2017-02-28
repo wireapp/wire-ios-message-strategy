@@ -22,7 +22,7 @@ import ZMTesting
 import Cryptobox
 import ZMCDataModel
 
-extension MessagingTest {
+extension MessagingTestBase {
     
     /// Encrypts a message from the given client to the self user. 
     /// It will create a session between the two if needed
@@ -104,11 +104,11 @@ extension MessagingTest {
 }
 
 
-extension MessagingTest {
+extension MessagingTestBase {
 
     /// Delete all other clients encryption contexts
-    public func deleteAllOtherEncryptionContexts() {
-        try?  FileManager.default.removeItem(at: self.otherClientsEncryptionContextsURL)
+    func deleteAllOtherEncryptionContexts() {
+        try? FileManager.default.removeItem(at: self.otherClientsEncryptionContextsURL)
     }
     
     /// Returns the folder where the encryption contexts for other test clients are stored

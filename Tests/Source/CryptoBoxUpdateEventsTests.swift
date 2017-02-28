@@ -19,19 +19,14 @@
 import Foundation
 
 // TODO MARCO
-//
-//@import Cryptobox;
-//@import ZMCMockTransport;
-//
-//#import "MessagingTest.h"
-//#import "WireMessageStrategyTests-Swift.h"
-//
-//@interface ZMCryptoBoxUpdateEventsTests : MessagingTest
-//
-//@end
-//
-//@implementation ZMCryptoBoxUpdateEventsTests
-//
+
+class CryptoboxUpdateEventsTests: MessagingTestBase {
+
+    func testThatItCanDecryptOTRMessageAddEvent() {
+        
+    }
+}
+
 //- (void)testThatItCanDecryptOTRMessageAddEvent
 //{
 //    // given
@@ -233,3 +228,18 @@ import Foundation
 //
 //@end
 //
+
+// MARK: Helpers
+//extension CryptoboxUpdateEventsTests {
+//    
+//    func eventStreamPayload(sender: ZMUser,
+//                            internalPayload: [String: Any],
+//                            type: String,
+//                            conversation: ZMConversation? = nil) {
+//        return [
+//            "time": Date().transportString(),
+//            "data": payload,
+//            "conversation":
+//        ]
+//    }
+//}

@@ -19,10 +19,12 @@
 
 import Foundation
 @testable import WireMessageStrategy
+import XCTest
+import ZMCDataModel
 
 private let testDataURL = Bundle(for: AssetV3DownloadRequestStrategyTests.self).url(forResource: "Lorem Ipsum", withExtension: "txt")!
 
-class AssetV3DownloadRequestStrategyTests: MessagingTest {
+class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
 
     var authStatus: MockClientRegistrationStatus!
     var cancellationProvider: MockTaskCancellationProvider!
@@ -301,9 +303,7 @@ extension AssetV3DownloadRequestStrategyTests {
         let encryptedData = plainTextData.zmEncryptPrefixingPlainTextIV(key: key)
         let sha = encryptedData.zmSHA256Digest()
         let messageId = UUID.create()
-        
-        let selfClient = createSelfClient()
-        
+                
         let asset = ZMAssetBuilder()
             .setOriginal(ZMAssetOriginalBuilder()
                 .setMimeType("image/jpeg")

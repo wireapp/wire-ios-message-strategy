@@ -19,72 +19,40 @@
 import Foundation
 import WireRequestStrategy
 import ZMCMockTransport
+import WireMessageStrategy
 
-class ClientMessageTranscoderTests: MessagingTest {
+class ClientMessageTranscoderTests: MessagingTestBase {
 
     var clientRegistrationStatus: MockClientRegistrationStatus!
     var localNotificationDispatcher: MockPushMessageHandler!
     var confirmationStatus: MockConfirmationStatus!
     var sut: ClientMessageTranscoder!
-    var groupConversation: ZMConversation!
-    var oneToOneConversation: ZMConversation!
-    var selfClient: UserClient!
-    var otherUser: ZMUser!
-    var otherClient: UserClient!
-    var otherEncryptionContext: EncryptionContext!
     
     override func setUp() {
         super.setUp()
-        self.deleteAllOtherEncryptionContexts()
-        self.syncMOC.zm_cryptKeyStore.deleteAndCreateNewBox()
-        
         self.localNotificationDispatcher = MockPushMessageHandler()
         self.clientRegistrationStatus = MockClientRegistrationStatus()
         self.confirmationStatus = MockConfirmationStatus()
-        
-        self.setupUsersAndClients()
-        self.groupConversation = self.createGroupConversation(with: self.otherUser)
-        self.oneToOneConversation = self.setupOneToOneConversation(with: self.otherUser)
-        
         self.sut = ClientMessageTranscoder(in: self.syncMOC, localNotificationDispatcher: self.localNotificationDispatcher, clientRegistrationStatus: self.clientRegistrationStatus, apnsConfirmationStatus: self.confirmationStatus)
-        
-        self.syncMOC.saveOrRollback()
     }
     
     override func tearDown() {
         self.localNotificationDispatcher = nil
         self.clientRegistrationStatus = nil
         self.confirmationStatus = nil
-        self.otherUser = nil
-        self.otherClient = nil
-        self.selfClient = nil
-        self.groupConversation = nil
+        
         self.sut.tearDown()
         self.sut = nil
-        self.stopEphemeralMessageTimers()
+        
         super.tearDown()
     }
     
-    func stopEphemeralMessageTimers() {
-        self.syncMOC.performGroupedBlockAndWait {
-            self.syncMOC.zm_teardownMessageObfuscationTimer()
+    /// Makes a conversation secure
+    func set(conversation: ZMConversation, securityLevel: ZMConversationSecurityLevel) {
+        conversation.setValue(NSNumber(value: securityLevel.rawValue), forKey: #keyPath(ZMConversation.securityLevel))
+        if conversation.securityLevel != securityLevel {
+            fatalError()
         }
-        _ = self.waitForAllGroupsToBeEmpty(withTimeout: 0.5)
-        
-        self.uiMOC.performGroupedBlockAndWait {
-            self.uiMOC.zm_teardownMessageDeletionTimer()
-        }
-        _ = self.waitForAllGroupsToBeEmpty(withTimeout: 0.5)
-    }
-    
-    private func setupOneToOneConversation(with user: ZMUser) -> ZMConversation {
-        let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
-        conversation.conversationType = .oneOnOne
-        conversation.remoteIdentifier = UUID.create()
-        conversation.connection = ZMConnection.insertNewObject(in: self.syncMOC)
-        conversation.connection!.to = user
-        conversation.mutableOtherActiveParticipants.add(user)
-        return conversation
     }
 }
 
@@ -238,142 +206,6 @@ extension ClientMessageTranscoderTests {
             XCTAssertEqual(mediumGenericMessage.image.height, previewGenericMessage.image.originalHeight)
             XCTAssertEqual(mediumGenericMessage.image.width, previewGenericMessage.image.originalWidth)
         }
-    }
-}
-
-
-// MARK: - Helpers
-extension ClientMessageTranscoderTests {
-    
-    func createUser() -> ZMUser {
-        let user = ZMUser.insertNewObject(in: self.syncMOC)
-        user.remoteIdentifier = UUID.create()
-        return user
-    }
-    
-    func createGroupConversation(with user: ZMUser) -> ZMConversation {
-        let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
-        conversation.conversationType = .group
-        conversation.remoteIdentifier = UUID.create()
-        conversation.mutableOtherActiveParticipants.add(user)
-        return conversation
-    }
-    
-    /// Creates an encryption context in a temp folder and creates keys
-    func setupUsersAndClients() {
-        
-        // user
-        self.otherUser = self.createUser()
-        self.selfClient = self.createSelfClient()
-        
-        // other client
-        self.otherClient = UserClient.insertNewObject(in: self.syncMOC)
-        self.otherClient.remoteIdentifier = "aabbccdd"
-        self.otherClient.user = self.otherUser
-        self.syncMOC.saveOrRollback()
-        
-        self.establishSessionFromSelf(to: self.otherClient)
-    }
-    
-    /// Creates an update event with encrypted message from the other client, decrypts it and returns it
-    func decryptedUpdateEventFromOtherClient(text: String,
-                                             conversation: ZMConversation? = nil,
-                                             source: ZMUpdateEventSource = .pushNotification
-        ) -> ZMUpdateEvent {
-        
-        let message = ZMGenericMessage.message(text: text, nonce: UUID.create().transportString())
-    return self.decryptedUpdateEventFromOtherClient(message: message, conversation: conversation, source: source)
-    }
-    
-    /// Creates an update event with encrypted message from the other client, decrypts it and returns it
-    func decryptedUpdateEventFromOtherClient(message: ZMGenericMessage,
-                                             conversation: ZMConversation? = nil,
-                                             source: ZMUpdateEventSource = .pushNotification
-                                             ) -> ZMUpdateEvent {
-        let cyphertext = self.encryptedMessageToSelf(message: message, from: self.otherClient)
-        let innerPayload = ["recipient": self.selfClient.remoteIdentifier!,
-                       "sender": self.otherClient.remoteIdentifier!,
-                       "text": cyphertext.base64String()
-        ]
-        let payload = [
-            "type": "conversation.otr-message-add",
-            "from": self.otherUser.remoteIdentifier!.transportString(),
-            "data": innerPayload,
-            "conversation": (conversation ?? self.groupConversation).remoteIdentifier!.transportString(),
-            "time": Date().transportString()
-        ] as [String: Any]
-        let wrapper = [
-            "id": UUID.create().transportString(),
-            "payload": [payload]
-        ] as [String: Any]
-        
-        let event = ZMUpdateEvent.eventsArray(from: wrapper as NSDictionary, source: source)!.first!
-        
-        var decryptedEvent: ZMUpdateEvent?
-        self.selfClient.keysStore.encryptionContext.perform { session in
-            decryptedEvent = session.decryptAndAddClient(event, in: self.syncMOC)
-        }
-        return decryptedEvent!
-    }
-
-    
-    /// Makes a conversation secure
-    func set(conversation: ZMConversation, securityLevel: ZMConversationSecurityLevel) {
-        conversation.setValue(NSNumber(value: securityLevel.rawValue), forKey: #keyPath(ZMConversation.securityLevel))
-        if conversation.securityLevel != securityLevel {
-            fatalError()
-        }
-    }
-    
-    
-    /// Extract the outgoing message wrapper
-    func outgoingMessageWrapper(from request: ZMTransportRequest,
-                                file: StaticString = #file,
-                                line: UInt = #line) -> ZMNewOtrMessage? {
-        guard let protobuf = ZMNewOtrMessage.parse(from: request.binaryData) else {
-            XCTFail("No binary data", file: file, line: line)
-            return nil
-        }
-        return protobuf
-    }
-    
-    /// Extract encrypted payload from a request
-    func outgoingEncryptedMessage(from request: ZMTransportRequest,
-                                 for client: UserClient,
-                                 line: UInt = #line,
-                                 file: StaticString = #file
-        ) -> ZMGenericMessage? {
-        
-        guard let protobuf = ZMNewOtrMessage.parse(from: request.binaryData) else {
-            XCTFail("No binary data", file: file, line: line)
-            return nil
-        }
-        // find user
-        let userEntries = protobuf.recipients.flatMap({ $0 })
-        guard let userEntry = userEntries.first(where: { $0.user == client.user!.userId() }) else {
-            XCTFail("User not found", file: file, line: line)
-            return nil
-        }
-        // find client
-        guard let clientEntry = userEntry.clients.first(where: { $0.client == client.clientId }) else {
-            XCTFail("Client not found", file: file, line: line)
-            return nil
-        }
-        
-        // text content
-        guard let cyphertext = clientEntry.text else {
-            XCTFail("No text", file: file, line: line)
-            return nil
-        }
-        guard let plaintext = self.decryptMessageFromSelf(cypherText: cyphertext, to: self.otherClient) else {
-            XCTFail("failed to decrypt", file: file, line: line)
-            return nil
-        }
-        guard let receivedMessage = ZMGenericMessage.parse(from: plaintext) else {
-            XCTFail("Invalid message")
-            return nil
-        }
-        return receivedMessage
     }
 }
 
