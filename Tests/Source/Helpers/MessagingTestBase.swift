@@ -62,6 +62,8 @@ class MessagingTestBase: ZMTBaseTest {
         self.deleteAllFilesInCache()
         self.deleteAllOtherEncryptionContexts()
         
+        _ = self.waitForAllGroupsToBeEmpty(withTimeout: 10)
+        
         super.tearDown()
     }
 }
@@ -133,7 +135,11 @@ extension MessagingTestBase {
             return nil
         }
         // find user
-        let userEntries = protobuf.recipients.flatMap({ $0 })
+        guard let recipients = protobuf.recipients else {
+            XCTFail("Recipients not found")
+            return nil
+        }
+        let userEntries = recipients.flatMap({ $0 })
         guard let userEntry = userEntries.first(where: { $0.user == client.user!.userId() }) else {
             XCTFail("User not found", file: file, line: line)
             return nil
@@ -171,6 +177,7 @@ extension MessagingTestBase {
         conversation.connection = ZMConnection.insertNewObject(in: self.syncMOC)
         conversation.connection!.to = user
         conversation.mutableOtherActiveParticipants.add(user)
+        self.syncMOC.saveOrRollback()
         return conversation
     }
     
@@ -188,7 +195,7 @@ extension MessagingTestBase {
     func createClient(user: ZMUser) -> UserClient {
         let client = UserClient.insertNewObject(in: self.syncMOC)
         client.remoteIdentifier = NSString.createAlphanumerical() as String
-        client.user = self.otherUser
+        client.user = user
         self.syncMOC.saveOrRollback()
         return client
     }
@@ -256,14 +263,11 @@ extension MessagingTestBase {
         self.uiMOC = NSManagedObjectContext.createUserInterfaceContextWithStore(at: storeURL)
         let imageAssetCache = ImageAssetCache(MBLimit: 100)
         let fileAssetCache = FileAssetCache(location: nil)
-        
-        self.uiMOC.add(self.dispatchGroup)
         self.uiMOC.userInfo["TestName"] = self.name
         
         self.syncMOC = NSManagedObjectContext.createSyncContextWithStore(at: storeURL, keyStore: storeURL.deletingLastPathComponent())
         self.syncMOC.performGroupedBlockAndWait {
             self.syncMOC.userInfo["TestName"] = self.name
-            self.syncMOC.add(self.dispatchGroup)
             self.syncMOC.saveOrRollback()
             
             self.syncMOC.zm_userInterface = self.uiMOC
@@ -279,9 +283,7 @@ extension MessagingTestBase {
     fileprivate func tearDownManagedObjectContexes() {
         self.syncMOC.performGroupedBlockAndWait {
             self.syncMOC.zm_tearDownCryptKeyStore()
-            self.syncMOC.userInfo.removeAllObjects()
         }
-        self.uiMOC.userInfo.removeAllObjects()
         let refUI = self.uiMOC
         let refSync = self.syncMOC
         
@@ -293,13 +295,19 @@ extension MessagingTestBase {
         }
         refSync?.performAndWait {
             // wait for any operation to complete
+            refSync?.userInfo.removeAllObjects()
         }
         refUI?.performAndWait {
             // wait for any operation to complete
+            refUI?.userInfo.removeAllObjects()
         }
         
         NSManagedObjectContext.resetUserInterfaceContext()
         NSManagedObjectContext.resetSharedPersistentStoreCoordinator()
+    }
+    
+    override var allDispatchGroups: [ZMSDispatchGroup] {
+        return super.allDispatchGroups + [self.syncMOC?.dispatchGroup, self.uiMOC?.dispatchGroup].flatMap { $0 }
     }
 }
 

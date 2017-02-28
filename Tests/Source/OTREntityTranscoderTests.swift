@@ -112,8 +112,7 @@ class OTREntityTranscoderTests : MessagingTestBase {
     func testThatItHandlesMissingClient_addUserToConversationIfNotAlreadyThere() {
         
         // given
-        let user = ZMUser.insertNewObject(in: syncMOC)
-        user.remoteIdentifier = UUID.create()
+        let user = self.createUser()
         let clientId = "ajsd9898u13a"
         
         let payload = [
