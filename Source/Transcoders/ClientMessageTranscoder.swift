@@ -115,7 +115,7 @@ extension ClientMessageTranscoder: ZMUpstreamTranscoder {
 
 extension ClientMessageTranscoder {
 
-    var hasPendingMessages: Bool {
+    public var hasPendingMessages: Bool {
         return self.messageExpirationTimer.hasMessageTimersRunning || self.upstreamObjectSync.hasCurrentlyRunningRequests;
     }
     
