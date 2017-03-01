@@ -19,7 +19,7 @@
 import Foundation
 import ZMCDataModel
 
-public protocol PushMessageHandler: class {
+@objc public protocol PushMessageHandler: NSObjectProtocol {
     
     /// Create a notification for the message if needed
     ///
