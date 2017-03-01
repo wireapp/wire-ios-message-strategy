@@ -31,18 +31,11 @@ public class SystemMessageEventsConsumer: NSObject, ZMEventConsumer {
     }
     
     public func processEvents(_ events: [ZMUpdateEvent], liveEvents: Bool, prefetchResult: ZMFetchRequestBatchResult?) {
-        let messages = events.flatMap { event -> ZMMessage? in
-            // system messages don't have nonces anyway
-            guard let msg = ZMSystemMessage.createOrUpdate(from: event, in: self.moc, prefetchResult: nil) else {
-                return nil
-            }
-            self.localNotificationDispatcher.process(msg)
-            return msg
-        }
+        let messages = events.flatMap { ZMSystemMessage.createOrUpdate(from: $0, in: self.moc, prefetchResult: nil) }
+        messages.forEach { self.localNotificationDispatcher.process($0) }
+        
         if liveEvents {
-            messages.forEach {
-                $0.conversation?.resortMessages(withUpdatedMessage: $0)
-            }
+            messages.forEach { $0.conversation?.resortMessages(withUpdatedMessage: $0) }
         }
     }
 }

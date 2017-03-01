@@ -68,7 +68,9 @@ public class MessageExpirationTimer: ZMMessageTimer, ZMContextChangeTracker {
         let now = Date()
         let messages = objects.flatMap { $0 as? ZMMessage }
         messages.forEach {
+            
             guard type(of: $0).entityName() == self.entityName else { return }
+            
             if let filter = self.filter, !filter.evaluate(with: $0) {
                 return
             }

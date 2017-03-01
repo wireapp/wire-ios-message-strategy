@@ -19,23 +19,6 @@
 import Foundation
 import WireRequestStrategy
 
-
-
-/// HTTP status of a request that's not authorized (client could have been deleted)
-private let ClientNotAuthorizedResponseStatus = 403
-
-/// Label error for uploading a message with a client that does not exist
-private let UnknownClientLabel = "unknown-client"
-
-/// Label for clients that are missing from the uploaded payload
-private let MissingLabel = "missing"
-
-/// Label for clients that were deleted and are still present in the uploaded payload
-private let DeletedLabel = "deleted"
-
-/// Error label
-private let ErrorLabel = "label"
-
 open class OTREntityTranscoder<Entity : OTREntity> : NSObject, EntityTranscoder {
     
     let context : NSManagedObjectContext

@@ -121,11 +121,7 @@ extension ClientMessageTranscoder {
     
     func message(from event: ZMUpdateEvent, prefetchResult: ZMFetchRequestBatchResult?) -> ZMMessage? {
         switch event.type {
-        case .conversationClientMessageAdd:
-            fallthrough
-        case .conversationOtrMessageAdd:
-            fallthrough
-        case .conversationOtrAssetAdd:
+        case .conversationClientMessageAdd, .conversationOtrMessageAdd, .conversationOtrAssetAdd:
             guard let updateResult = ZMOTRMessage.messageUpdateResult(from: event, in: self.managedObjectContext, prefetchResult: prefetchResult) else {
                  return nil
             }
@@ -169,10 +165,10 @@ extension ClientMessageTranscoder {
         self.update(message, from: response, keys: upstreamRequest.keys ?? Set())
         _ = message.parseMissingClientsResponse(response, clientDeletionDelegate: self.clientRegistrationStatus!)
         
-        if genericMessage.hasReaction() == true {
+        if genericMessage.hasReaction() {
             message.managedObjectContext?.delete(message)
         }
-        if genericMessage.hasConfirmation() == true {
+        if genericMessage.hasConfirmation() {
             self.deliveryConfirmation?.didConfirmMessage(message.nonce)
             message.managedObjectContext?.delete(message)
         }
@@ -247,11 +243,7 @@ extension ClientMessageTranscoder {
     public func messageNoncesToPrefetch(toProcessEvents events: [ZMUpdateEvent]) -> Set<UUID> {
         return Set(events.flatMap {
             switch $0.type {
-            case .conversationClientMessageAdd:
-                fallthrough
-            case .conversationOtrAssetAdd:
-                fallthrough
-            case .conversationClientMessageAdd:
+            case .conversationClientMessageAdd, .conversationOtrMessageAdd, .conversationOtrAssetAdd:
                 return $0.messageNonce()
             default:
                 return nil
@@ -262,11 +254,7 @@ extension ClientMessageTranscoder {
     private func nonces(for updateEvents: [ZMUpdateEvent]) -> [UpdateEventWithNonce] {
         return updateEvents.flatMap {
             switch $0.type {
-            case .conversationClientMessageAdd:
-                fallthrough
-            case .conversationOtrAssetAdd:
-                fallthrough
-            case .conversationClientMessageAdd:
+            case .conversationClientMessageAdd, .conversationOtrMessageAdd, .conversationOtrAssetAdd:
                 if let nonce = $0.messageNonce() {
                     return UpdateEventWithNonce(event: $0, nonce: nonce)
                 }
