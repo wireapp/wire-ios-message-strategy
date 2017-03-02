@@ -231,7 +231,7 @@ extension ClientMessageTranscoder {
 }
 
 // MARK: - Update events
-extension ClientMessageTranscoder {
+extension ClientMessageTranscoder : ZMEventConsumer {
     
     public func processEvents(_ events: [ZMUpdateEvent], liveEvents: Bool, prefetchResult: ZMFetchRequestBatchResult?) {
         let messages = events.flatMap { self.message(from: $0, prefetchResult: prefetchResult) }
