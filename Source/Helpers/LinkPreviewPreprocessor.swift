@@ -84,7 +84,7 @@ private let zmLog = ZMSLog(tag: "link previews")
         
         if let preview = linkPreviews.first, let messageText = message.textMessageData?.messageText, !message.isObfuscated {
             let updatedMessage = ZMGenericMessage.message(text: messageText, linkPreview: preview.protocolBuffer, nonce: message.nonce.transportString(), expiresAfter: NSNumber(value: message.deletionTimeout))
-            message.add(updatedMessage.data())
+            message.add(updatedMessage.data(), sender: message.sender)
             
             if let imageData = preview.imageData.first {
                 zmLog.debug("Image in linkPreview, setting linkPreviewState to .downloaded for message with text \(messageText)")

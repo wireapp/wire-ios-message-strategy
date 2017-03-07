@@ -150,7 +150,7 @@ extension LinkPreviewAssetUploadRequestStrategy : ZMUpstreamTranscoder {
         if let linkPreview = message.genericMessage?.linkPreviews.first, !message.isObfuscated {
             let updatedPreview = linkPreview.update(withAssetKey: assetKey, assetToken: payload["token"] as? String)
             let genericMessage = ZMGenericMessage.message(text: (message.textMessageData?.messageText)!, linkPreview: updatedPreview, nonce: message.nonce.transportString(), expiresAfter: NSNumber(value: message.deletionTimeout))
-            message.add(genericMessage.data())
+            message.add(genericMessage.data(), sender: message.sender)
             zmLog.debug("Uploaded image for message with linkPreview: \(linkPreview), genericMessage: \(message.genericMessage)")
             message.linkPreviewState = .uploaded
             return true
