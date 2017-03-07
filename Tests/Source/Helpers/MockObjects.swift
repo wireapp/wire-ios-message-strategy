@@ -51,7 +51,7 @@ class MockClientRegistrationStatus: NSObject, ClientRegistrationDelegate {
     }
 }
 
-class MockPushMessageHandler: PushMessageHandler {
+class MockPushMessageHandler: NSObject, PushMessageHandler {
     
     public func didFailToSend(_ message: ZMMessage) {
         failedToSend.append(message)

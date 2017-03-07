@@ -24,12 +24,21 @@ import ZMCDataModel
 class GenericMessageRequestStrategyTests : MessagingTestBase {
     
     let mockClientRegistrationStatus = MockClientRegistrationStatus()
+    var conversation: ZMConversation!
     var sut : GenericMessageRequestStrategy!
     
     override func setUp() {
         super.setUp()
         
         sut = GenericMessageRequestStrategy(context: syncMOC, clientRegistrationDelegate: mockClientRegistrationStatus)
+        
+        let user = ZMUser.insertNewObject(in: syncMOC)
+        user.remoteIdentifier = UUID.create()
+        
+        conversation = ZMConversation.insertNewObject(in: syncMOC)
+        conversation.conversationType = .group
+        conversation.remoteIdentifier = UUID.create()
+        conversation.addParticipant(user)
     }
     
     func testThatItCallsEntityCompletionHandlerOnRequestCompletion() {
