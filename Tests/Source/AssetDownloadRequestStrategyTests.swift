@@ -294,7 +294,9 @@ extension AssetDownloadRequestStrategyTests {
         XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
         // THEN
-        XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+        self.syncMOC.performGroupedBlockAndWait {
+            XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+        }
     }
     
     func testThatItDoesNotMarkDownloadAsFailedWhenNotDownloading() {
@@ -422,16 +424,18 @@ extension AssetDownloadRequestStrategyTests {
     func testThatItInformsTheTaskCancellationProviderToCancelARequestForAnAssetMessageWhenItReceivesTheNotification() {
         // GIVEN
         var message: ZMAssetClientMessage!
+        var identifier: ZMTaskIdentifier?
         self.syncMOC.performGroupedBlockAndWait {
             message = self.createFileTransferMessage(self.conversation)
             XCTAssertNotNil(message.objectID)
-        
-            // GIVEN the task has been created
             guard let request = self.sut.nextRequest() else { return XCTFail("No request created") }
-        
             request.callTaskCreationHandlers(withIdentifier: 42, sessionIdentifier: self.name!)
+        }
+        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        self.syncMOC.performGroupedBlockAndWait {
+            identifier = message.associatedTaskIdentifier
+            XCTAssertNotNil(identifier)
             XCTAssertTrue(self.syncMOC.saveOrRollback())
-            XCTAssertNotNil(message.associatedTaskIdentifier)
         }
         
         // WHEN the transfer is cancelled
@@ -444,7 +448,7 @@ extension AssetDownloadRequestStrategyTests {
         self.syncMOC.performGroupedBlockAndWait {
             XCTAssertEqual(self.cancellationProvider.cancelledIdentifiers.count, 1)
             let cancelledIdentifier = self.cancellationProvider.cancelledIdentifiers.first
-            XCTAssertEqual(cancelledIdentifier, message.associatedTaskIdentifier)
+            XCTAssertEqual(cancelledIdentifier, identifier)
             
             // It should nil-out the identifier as it has been cancelled
             XCTAssertNil(message.associatedTaskIdentifier)
