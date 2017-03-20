@@ -1,1 +1,1 @@
-github "wireapp/wire-ios-request-strategy" "fix/refactor-dependent-objects"
+github "wireapp/wire-ios-request-strategy" ~> 29.0
