@@ -25,7 +25,7 @@ import ZMCDataModel
 
 class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
 
-    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
+    fileprivate var mockApplicationStatus : MockApplicationStatus!
     fileprivate var sut : AssetV3FileUploadRequestStrategy!
     fileprivate var conversation: ZMConversation!
     fileprivate var data: Data!
@@ -33,10 +33,10 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
-        self.mockAppStateDelegate = MockAppStateDelegate()
-        mockAppStateDelegate.mockAppState = .eventProcessing
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
 
-        sut = AssetV3FileUploadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
+        sut = AssetV3FileUploadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
         conversation = ZMConversation.insertNewObject(in: syncMOC)
         conversation.remoteIdentifier = UUID.create()
         testFileURL = testURLWithFilename("file.dat")

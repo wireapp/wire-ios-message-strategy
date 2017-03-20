@@ -53,23 +53,21 @@ extension ZMAssetClientMessage {
 }
 
 
-public final class AssetV3FileUploadRequestStrategy: ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
+public final class AssetV3FileUploadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource {
 
     fileprivate let requestFactory = AssetRequestFactory()
     fileprivate var upstreamSync: ZMUpstreamModifiedObjectSync!
     fileprivate var filePreprocessor : FilePreprocessor
 
     fileprivate var assetAnalytics: AssetAnalytics
-    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
-
-
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+    
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         let filter = NSPredicate(format: "version == 3 && uploadState == %d", ZMAssetUploadState.uploadingFullAsset.rawValue)
         filePreprocessor = FilePreprocessor(managedObjectContext: managedObjectContext, filter: filter)
         assetAnalytics = AssetAnalytics(managedObjectContext: managedObjectContext)
 
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
-
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
+        
         upstreamSync = ZMUpstreamModifiedObjectSync(
             transcoder: self,
             entityName: ZMAssetClientMessage.entityName(),
@@ -117,7 +115,7 @@ extension AssetV3FileUploadRequestStrategy: ZMContextChangeTracker {
 
     fileprivate func cancelOutstandingUploadRequests(forMessage message: ZMAssetClientMessage) {
         guard let identifier = message.associatedTaskIdentifier else { return }
-        appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
+        applicationStatus?.requestCancellation.cancelTask(with: identifier)
     }
 
 }
@@ -136,7 +134,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
     fileprivate func update(_ message: ZMAssetClientMessage, withResponse response: ZMTransportResponse, updatedKeys keys: Set<String>) {
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+        if let delegate = applicationStatus?.clientRegistrationDelegate {
             _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
     }
@@ -184,7 +182,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
             fatal("No asset ID present in payload: \(response.payload)")
         }
 
-        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+        if let delegate = applicationStatus?.clientRegistrationDelegate {
             // this will remove deleted clients that are returned in the payload
             _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
@@ -232,7 +230,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
                                              keysToParse keys: Set<String>)-> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         var failedBecauseOfMissingClients = false
-        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+        if let delegate = applicationStatus?.clientRegistrationDelegate {
             failedBecauseOfMissingClients = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
         if !failedBecauseOfMissingClients {

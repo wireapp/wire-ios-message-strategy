@@ -28,7 +28,7 @@ private let testDataURL = Bundle(for: AssetV3PreviewDownloadRequestStrategyTests
 
 class AssetV3PreviewDownloadRequestStrategyTests: MessagingTestBase {
 
-    var mockAppStateDelegate : MockAppStateDelegate!
+    var mockApplicationStatus : MockApplicationStatus!
     var sut: AssetV3PreviewDownloadRequestStrategy!
     var conversation: ZMConversation!
 
@@ -36,9 +36,9 @@ class AssetV3PreviewDownloadRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
-        self.mockAppStateDelegate = MockAppStateDelegate()
-        mockAppStateDelegate.mockAppState = .eventProcessing
-        sut = AssetV3PreviewDownloadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        sut = AssetV3PreviewDownloadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
         conversation = createConversation()
     }
 
@@ -108,9 +108,8 @@ class AssetV3PreviewDownloadRequestStrategyTests: MessagingTestBase {
     }
 
     func testThatItGeneratesNoRequestsIfNotAuthenticated() {
-//        mockAppStateDelegate.mockAppState = .unauthenticated TODO
         // GIVEN
-        authStatus.mockClientIsReadyForRequests = false
+        mockApplicationStatus.mockSynchronizationState = .unauthenticated
         let _ = createMessage(in: conversation)
 
         // THEN

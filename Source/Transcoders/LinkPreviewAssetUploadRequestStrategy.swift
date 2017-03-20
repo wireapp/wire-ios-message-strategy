@@ -63,9 +63,8 @@ extension ZMImagePreprocessingTracker {
 }
 
 
-public final class LinkPreviewAssetUploadRequestStrategy : ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
+public final class LinkPreviewAssetUploadRequestStrategy : AbstractRequestStrategy, ZMContextChangeTrackerSource {
     
-    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
     let requestFactory = AssetRequestFactory()
     
     /// Processors
@@ -76,19 +75,18 @@ public final class LinkPreviewAssetUploadRequestStrategy : ZMAbstractRequestStra
     fileprivate var assetUpstreamSync : ZMUpstreamModifiedObjectSync!
     
     @available(*, unavailable)
-    public override init(managedObjectContext moc: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         fatalError()
     }
     
-    public init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate, linkPreviewPreprocessor: LinkPreviewPreprocessor?, previewImagePreprocessor: ZMImagePreprocessingTracker?)
-    {
+    public init(managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus, linkPreviewPreprocessor: LinkPreviewPreprocessor?, previewImagePreprocessor: ZMImagePreprocessingTracker?) {
         if nil == LinkPreviewDetectorHelper.test_debug_linkPreviewDetector() {
             LinkPreviewDetectorHelper.setTest_debug_linkPreviewDetector(LinkPreviewDetector(resultsQueue: OperationQueue.current!))
         }
         self.linkPreviewPreprocessor = linkPreviewPreprocessor ?? LinkPreviewPreprocessor(linkPreviewDetector: LinkPreviewDetectorHelper.test_debug_linkPreviewDetector()!, managedObjectContext: managedObjectContext)
         self.previewImagePreprocessor = previewImagePreprocessor ?? ZMImagePreprocessingTracker.createPreviewImagePreprocessingTracker(managedObjectContext: managedObjectContext)
         
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
         
         self.assetUpstreamSync = ZMUpstreamModifiedObjectSync(
             transcoder: self,

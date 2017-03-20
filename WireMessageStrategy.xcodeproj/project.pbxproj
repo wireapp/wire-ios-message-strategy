@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		160C31291E65EC500012E4BC /* AbstractRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160C31281E65EC500012E4BC /* AbstractRequestStrategy.swift */; };
+		160C312B1E65FB6D0012E4BC /* ApplicationStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160C312A1E65FB6D0012E4BC /* ApplicationStatus.swift */; };
+		160C312D1E65FE060012E4BC /* ZMStrategyConfigurationOption.h in Headers */ = {isa = PBXBuildFile; fileRef = 160C312C1E65FDBB0012E4BC /* ZMStrategyConfigurationOption.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		16D0E0791DF822E10075DF8F /* GenericMessageRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D0E0781DF822E10075DF8F /* GenericMessageRequestStrategy.swift */; };
 		16D0E0811DF88B820075DF8F /* OTREntityTranscoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D0E0801DF88B820075DF8F /* OTREntityTranscoder.swift */; };
 		16D0E0851DF8954F0075DF8F /* OTREntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16D0E0841DF8954F0075DF8F /* OTREntity.swift */; };
@@ -46,8 +49,6 @@
 		BFED61C11E5C59C700F352F8 /* LinkPreviewUploadRequestStrategyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFED61C01E5C59C700F352F8 /* LinkPreviewUploadRequestStrategyTests.swift */; };
 		CED80BAC1E03FAC40053915D /* FetchingClientRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED80BAB1E03FAC40053915D /* FetchingClientRequestStrategy.swift */; };
 		CED80BAE1E03FAD50053915D /* FetchingClientRequestStrategyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED80BAD1E03FAD50053915D /* FetchingClientRequestStrategyTests.swift */; };
-		F93C4C6D1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.h in Headers */ = {isa = PBXBuildFile; fileRef = F93C4C6B1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		F93C4C6E1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.m in Sources */ = {isa = PBXBuildFile; fileRef = F93C4C6C1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.m */; };
 		F963E9221D95885700098AD3 /* AssetDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */; };
 		F963E9231D95885700098AD3 /* ImageDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */; };
 		F963E9241D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E9211D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift */; };
@@ -135,6 +136,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		160C31281E65EC500012E4BC /* AbstractRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AbstractRequestStrategy.swift; sourceTree = "<group>"; };
+		160C312A1E65FB6D0012E4BC /* ApplicationStatus.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ApplicationStatus.swift; sourceTree = "<group>"; };
+		160C312C1E65FDBB0012E4BC /* ZMStrategyConfigurationOption.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZMStrategyConfigurationOption.h; sourceTree = "<group>"; };
 		16D0E0781DF822E10075DF8F /* GenericMessageRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = GenericMessageRequestStrategy.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		16D0E0801DF88B820075DF8F /* OTREntityTranscoder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = OTREntityTranscoder.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		16D0E0841DF8954F0075DF8F /* OTREntity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = OTREntity.swift; sourceTree = "<group>"; };
@@ -192,8 +196,6 @@
 		BFED61C01E5C59C700F352F8 /* LinkPreviewUploadRequestStrategyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinkPreviewUploadRequestStrategyTests.swift; sourceTree = "<group>"; };
 		CED80BAB1E03FAC40053915D /* FetchingClientRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FetchingClientRequestStrategy.swift; sourceTree = "<group>"; };
 		CED80BAD1E03FAD50053915D /* FetchingClientRequestStrategyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FetchingClientRequestStrategyTests.swift; sourceTree = "<group>"; };
-		F93C4C6B1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZMAbstractRequestStrategy.h; path = Transcoders/ZMAbstractRequestStrategy.h; sourceTree = "<group>"; };
-		F93C4C6C1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZMAbstractRequestStrategy.m; sourceTree = "<group>"; };
 		F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetDownloadRequestStrategy.swift; sourceTree = "<group>"; };
 		F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDownloadRequestStrategy.swift; sourceTree = "<group>"; };
 		F963E9211D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinkPreviewAssetDownloadRequestStrategy.swift; sourceTree = "<group>"; };
@@ -380,7 +382,7 @@
 		F9F056DD1D93D3FF00FA1AAD /* Transcoders */ = {
 			isa = PBXGroup;
 			children = (
-				F93C4C6C1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.m */,
+				160C31281E65EC500012E4BC /* AbstractRequestStrategy.swift */,
 				CED80BAB1E03FAC40053915D /* FetchingClientRequestStrategy.swift */,
 				F963E9331D958BBE00098AD3 /* MissingClientsRequestFactory.swift */,
 				F963E9341D958BBE00098AD3 /* MissingClientsRequestStrategy.swift */,
@@ -410,7 +412,7 @@
 			isa = PBXGroup;
 			children = (
 				F9F056CF1D93D25D00FA1AAD /* WireMessageStrategy.h */,
-				F93C4C6B1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.h */,
+				160C312C1E65FDBB0012E4BC /* ZMStrategyConfigurationOption.h */,
 			);
 			name = Public;
 			sourceTree = "<group>";
@@ -462,6 +464,7 @@
 				BFE85DEC1DD9F47C00BCD68B /* AssetAnalytics.swift */,
 				F9F0573C1D93DC8100FA1AAD /* ZMMessage+Dependency.swift */,
 				54979CB61E37CC95005EA09F /* EncryptionSessionDirectory+UpdateEvents.swift */,
+				160C312A1E65FB6D0012E4BC /* ApplicationStatus.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
@@ -549,7 +552,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F93C4C6D1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.h in Headers */,
+				160C312D1E65FE060012E4BC /* ZMStrategyConfigurationOption.h in Headers */,
 				F9F056D61D93D25D00FA1AAD /* WireMessageStrategy.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -737,6 +740,7 @@
 				54327FE81E54636400B08FFC /* MessageExpirationTimer.swift in Sources */,
 				F9F057D71D943DA200FA1AAD /* ImageUploadRequestStrategy.swift in Sources */,
 				F963E9231D95885700098AD3 /* ImageDownloadRequestStrategy.swift in Sources */,
+				160C312B1E65FB6D0012E4BC /* ApplicationStatus.swift in Sources */,
 				F963E9221D95885700098AD3 /* AssetDownloadRequestStrategy.swift in Sources */,
 				54327FE61E545A8900B08FFC /* ClientMessageTranscoder.swift in Sources */,
 				F9F0573D1D93DC8100FA1AAD /* ZMMessage+Dependency.swift in Sources */,
@@ -750,10 +754,10 @@
 				F9F057401D93DD5300FA1AAD /* ClientMessageRequestFactory+Files.swift in Sources */,
 				BF260C501DCA1FD9009C97D9 /* AssetV3PreviewDownloadStrategy.swift in Sources */,
 				F963E9241D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift in Sources */,
-				F93C4C6E1E1E73F0007E9CEE /* ZMAbstractRequestStrategy.m in Sources */,
 				F9F057E41D95384200FA1AAD /* LinkPreviewPreprocessor.swift in Sources */,
 				F963E9351D958BBE00098AD3 /* MissingClientsRequestFactory.swift in Sources */,
 				BF420D431DD3241F003582F2 /* AssetClientMessageRequestStrategy.swift in Sources */,
+				160C31291E65EC500012E4BC /* AbstractRequestStrategy.swift in Sources */,
 				BFA94E641DCC99E000782005 /* AssetV3DownloadRequestStrategy.swift in Sources */,
 				BFC32F8C1DD1D37F00EDD540 /* AssetV3ImageUploadRequestStrategy.swift in Sources */,
 				54979CB71E37CC95005EA09F /* EncryptionSessionDirectory+UpdateEvents.swift in Sources */,

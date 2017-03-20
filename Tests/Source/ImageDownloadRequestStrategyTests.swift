@@ -23,19 +23,15 @@ import ZMCDataModel
 
 class ImageDownloadRequestStrategyTests: MessagingTestBase {
     
-    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
+    fileprivate var mockApplicationStatus : MockApplicationStatus!
     fileprivate var sut : ImageDownloadRequestStrategy!
     
     override func setUp() {
         super.setUp()
         
-// TODO
-//        self.mockAppStateDelegate = MockAppStateDelegate()
-//        mockAppStateDelegate.mockAppState = .eventProcessing
-//        self.sut = ImageDownloadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: self.mockAppStateDelegate)
-        
-        self.clientRegistrationStatus = MockClientRegistrationStatus()
-        self.sut = ImageDownloadRequestStrategy(clientRegistrationStatus: clientRegistrationStatus , managedObjectContext: self.syncMOC)        
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        self.sut = ImageDownloadRequestStrategy(withManagedObjectContext: self.syncMOC, applicationStatus: mockApplicationStatus)
     }
     
     func createImageMessage(withAssetId assetId: UUID?) -> ZMAssetClientMessage {

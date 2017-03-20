@@ -37,15 +37,15 @@ public class MockTaskCancellationProvider: NSObject, ZMRequestCancellation {
 
 class AssetDownloadRequestStrategyTests: MessagingTestBase {
     
-    var mockAppStateDelegate: MockAppStateDelegate!
+    var mockApplicationStatus: MockApplicationStatus!
     var sut: AssetDownloadRequestStrategy!
     var conversation: ZMConversation!
     
     override func setUp() {
         super.setUp()
-        mockAppStateDelegate = MockAppStateDelegate()
-        mockAppStateDelegate.mockAppState = .eventProcessing
-        sut = AssetDownloadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        sut = AssetDownloadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
         conversation = createConversation()
     }
     
@@ -82,9 +82,8 @@ extension AssetDownloadRequestStrategyTests {
     }
     
     func testThatItGeneratesNoRequestsIfNotAuthenticated() {
-//        mockAppStateDelegate.mockAppState = .unauthenticated TODO
         // GIVEN
-        self.authStatus.mockClientIsReadyForRequests = false
+        mockApplicationStatus.mockSynchronizationState = .unauthenticated
         let _ = self.createFileTransferMessage(self.conversation)
         
         // WHEN
@@ -373,8 +372,8 @@ extension AssetDownloadRequestStrategyTests {
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
         // THEN the cancellation provider should be informed to cancel the request
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 1)
-        let cancelledIdentifier = cancellationProvider.cancelledIdentifiers.first
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.count, 1)
+        let cancelledIdentifier = mockApplicationStatus.cancelledIdentifiers.first
         XCTAssertEqual(cancelledIdentifier, identifier)
         
         // It should nil-out the identifier as it has been cancelled

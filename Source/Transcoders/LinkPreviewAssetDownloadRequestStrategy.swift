@@ -21,14 +21,13 @@ import Foundation
 import WireRequestStrategy
 
 
-@objc public final class LinkPreviewAssetDownloadRequestStrategy: ZMAbstractRequestStrategy {
+@objc public final class LinkPreviewAssetDownloadRequestStrategy: AbstractRequestStrategy {
     
     fileprivate var assetDownstreamObjectSync: ZMDownstreamObjectSyncWithWhitelist!
     fileprivate let assetRequestFactory = AssetDownloadRequestFactory()
-    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
 
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
         
         let downloadFilter = NSPredicate { object, _ in
             guard let message = object as? ZMClientMessage, let genericMessage = message.genericMessage, genericMessage.textData != nil else { return false }

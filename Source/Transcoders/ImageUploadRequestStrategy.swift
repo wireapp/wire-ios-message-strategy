@@ -38,24 +38,23 @@ fileprivate extension ZMImagePreprocessingTracker {
 }
 
 
-public final class ImageUploadRequestStrategy: ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
+public final class ImageUploadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource {
     
     fileprivate let imagePreprocessor : ZMImagePreprocessingTracker
     fileprivate let requestFactory : ClientMessageRequestFactory = ClientMessageRequestFactory()
     fileprivate var upstreamSync : ZMUpstreamModifiedObjectSync!
-    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
 
     @available (*, unavailable)
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate){
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus){
         fatalError();
     }
     
-    public init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate,
+    public init(managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus,
                 maxConcurrentImageOperation: NSNumber?)
     {
         self.imagePreprocessor = ZMImagePreprocessingTracker.createImagePreprocessor(managedObjectContext: managedObjectContext, maxConcurrentImageOperation: maxConcurrentImageOperation?.intValue)
         
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
         
         let insertPredicate = NSPredicate(format: "\(ZMAssetClientMessageUploadedStateKey) != \(ZMAssetUploadState.done.rawValue) && version < 3")
         let uploadFilter = NSPredicate { (object : Any, _) -> Bool in
@@ -99,7 +98,7 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
         
         guard let payload = response.payload?.asDictionary() else { return }
         message.update(withPostPayload: payload, updatedKeys: keys)
-        if let delegate = appStateDelegate?.clientRegistrationDelegate {
+        if let delegate = applicationStatus?.clientRegistrationDelegate {
              _ = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         }
     }
@@ -190,7 +189,7 @@ extension ImageUploadRequestStrategy : ZMUpstreamTranscoder {
     
     public func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
         guard let message = managedObject as? ZMAssetClientMessage,
-             let delegate = appStateDelegate?.clientRegistrationDelegate else { return false }
+             let delegate = applicationStatus?.clientRegistrationDelegate else { return false }
      
         let shouldRetry = message.parseUploadResponse(response, clientRegistrationDelegate: delegate)
         if !shouldRetry {

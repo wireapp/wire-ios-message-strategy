@@ -18,16 +18,17 @@
 
 
 import Foundation
+import WireRequestStrategy
 import WireMessageStrategy
 import ZMCDataModel
 
-public class MockAppStateDelegate : NSObject, ZMAppStateDelegate {
+public class MockApplicationStatus : NSObject, ApplicationStatus {
     
-    public var confirmationDelegate : DeliveryConfirmationDelegate {
+    public var deliveryConfirmation: DeliveryConfirmationDelegate {
         return self.mockConfirmationStatus
     }
     
-    public var taskCancellationDelegate : ZMRequestCancellation {
+    public var requestCancellation : ZMRequestCancellation {
         return self.mockTaskCancellationDelegate
     }
     
@@ -39,12 +40,18 @@ public class MockAppStateDelegate : NSObject, ZMAppStateDelegate {
     public let mockTaskCancellationDelegate = MockTaskCancellationDelegate()
     public var mockClientRegistrationStatus = MockClientRegistrationStatus()
     
-    public var mockAppState = ZMAppState.unauthenticated
+    public var mockSynchronizationState : SynchronizationState = .unauthenticated
     
-    public var appState: ZMAppState {
-        return mockAppState
+    public var synchronizationState: SynchronizationState {
+        return mockSynchronizationState
     }
+
+    public var mockOperationState : OperationState = .foreground
     
+    public var operationState: OperationState {
+        return mockOperationState
+    }
+        
     public var cancelledIdentifiers : [ZMTaskIdentifier] {
         return mockTaskCancellationDelegate.cancelledIdentifiers
     }

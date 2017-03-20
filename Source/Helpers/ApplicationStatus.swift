@@ -16,13 +16,28 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
+import Foundation
+import WireRequestStrategy
 
-#import <UIKit/UIKit.h>
+@objc(ZMSynchronizationState)
+public enum SynchronizationState : UInt {
+    case unauthenticated
+    case synchronising
+    case eventProcessing
+}
 
-//! Project version number for DDModel.
-FOUNDATION_EXPORT double WireMessageStrategyVersionNumber;
+@objc(ZMOperationState)
+public enum OperationState : UInt {
+    case background
+    case foreground
+}
 
-//! Project version string for DDModel.
-FOUNDATION_EXPORT const unsigned char WireMessageStrategyVersionString[];
-
-#import <WireMessageStrategy/ZMStrategyConfigurationOption.h>
+@objc(ZMApplicationStatus)
+public protocol ApplicationStatus : class {
+    var synchronizationState : SynchronizationState { get }
+    var operationState : OperationState { get }
+    
+    var clientRegistrationDelegate : ClientRegistrationDelegate { get }
+    var requestCancellation : ZMRequestCancellation { get }
+    var deliveryConfirmation : DeliveryConfirmationDelegate { get }
+}

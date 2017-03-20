@@ -26,7 +26,7 @@ import WireRequestStrategy
 class MissingClientsRequestStrategyTests: MessagingTestBase {
 
     var sut: MissingClientsRequestStrategy!
-    var mockAppStateDelegate: MockAppStateDelegate!
+    var mockApplicationStatus : MockApplicationStatus!
     
     var validPrekey: String {
         return try! self.selfClient.keysStore.lastPreKey()
@@ -34,21 +34,14 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
     
     override func setUp() {
         super.setUp()
-// TODO
-//        mockAppStateDelegate = MockAppStateDelegate()
-//        mockAppStateDelegate.mockAppState = .eventProcessing
-//        sut = MissingClientsRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: mockAppStateDelegate)
-
-        clientRegistrationStatus = MockClientRegistrationStatus()
-        confirmationStatus = MockConfirmationStatus()
-        sut = MissingClientsRequestStrategy(clientRegistrationStatus: clientRegistrationStatus, apnsConfirmationStatus: confirmationStatus, managedObjectContext: self.syncMOC)
+        
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        sut = MissingClientsRequestStrategy(withManagedObjectContext: self.syncMOC, applicationStatus: mockApplicationStatus)
     }
     
     override func tearDown() {
-//        mockAppStateDelegate = nil TODO
-        clientRegistrationStatus = nil
-        confirmationStatus = nil
-        sut.tearDown()
+        mockApplicationStatus = nil
         sut = nil
         super.tearDown()
     }

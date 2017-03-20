@@ -26,19 +26,15 @@ import ZMCDataModel
 
 class ImageUploadRequestStrategyTests: MessagingTestBase {
     
-    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
+    fileprivate var mockApplicationStatus : MockApplicationStatus!
     fileprivate var sut : ImageUploadRequestStrategy!
     
     override func setUp() {
         super.setUp()
-// TODO        
-//        self.mockAppStateDelegate = MockAppStateDelegate()
-//        mockAppStateDelegate.mockAppState = .eventProcessing
-//
-//        self.sut = ImageUploadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate:mockAppStateDelegate, maxConcurrentImageOperation: nil)
         
-        self.clientRegistrationStatus = MockClientRegistrationStatus()
-        self.sut = ImageUploadRequestStrategy(clientRegistrationStatus: clientRegistrationStatus, managedObjectContext: self.syncMOC)
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        self.sut = ImageUploadRequestStrategy(managedObjectContext: self.syncMOC, applicationStatus: mockApplicationStatus, maxConcurrentImageOperation: nil)
     }
     
     /// MARK - Helpers

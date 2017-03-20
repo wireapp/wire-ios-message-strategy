@@ -40,7 +40,7 @@ public extension ZMUser {
 }
 
 @objc
-public final class FetchingClientRequestStrategy : ZMAbstractRequestStrategy, ZMEventConsumer {
+public final class FetchingClientRequestStrategy : AbstractRequestStrategy, ZMEventConsumer {
 
     fileprivate(set) var fetchAllClientsSync: ZMSingleRequestSync! = nil
     
@@ -54,12 +54,10 @@ public final class FetchingClientRequestStrategy : ZMAbstractRequestStrategy, ZM
         }
     }
     
-    public override var configuration: ZMStrategyConfigurationOption {
-        return [.allowsRequestsDuringEventProcessing]
-    }
-    
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
+        
+        self.configuration = [.allowsRequestsDuringEventProcessing]
         
         self.userClientsSync = ZMRemoteIdentifierObjectSync(transcoder: self, managedObjectContext: self.managedObjectContext)
         

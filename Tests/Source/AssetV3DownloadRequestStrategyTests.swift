@@ -26,23 +26,17 @@ private let testDataURL = Bundle(for: AssetV3DownloadRequestStrategyTests.self).
 
 class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
 
-    var mockAppStateDelegate: MockAppStateDelegate!
+    var mockApplicationStatus: MockApplicationStatus!
     var sut: AssetV3DownloadRequestStrategy!
     var conversation: ZMConversation!
 
     override func setUp() {
         super.setUp()
-// TODO
-//        mockAppStateDelegate = MockAppStateDelegate()
-//        mockAppStateDelegate.mockAppState = .eventProcessing
-//        sut = AssetV3DownloadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
-        authStatus = MockClientRegistrationStatus()
-        cancellationProvider = MockTaskCancellationProvider()
-        sut = AssetV3DownloadRequestStrategy(
-            authStatus: authStatus,
-            taskCancellationProvider: cancellationProvider,
-            managedObjectContext: syncMOC
-        )
+        
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        sut = AssetV3DownloadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
+        
         self.syncMOC.performGroupedBlockAndWait {
             self.conversation = self.createConversation()
         }
@@ -149,10 +143,9 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
     }
 
     func testThatItGeneratesNoRequestsIfNotAuthenticated_V3() {
-//        mockAppStateDelegate.mockAppState = .unauthenticated TODO
         syncMOC.performGroupedBlockAndWait {
             // GIVEN
-            self.authStatus.mockClientIsReadyForRequests = false
+            self.mockApplicationStatus.mockSynchronizationState = .unauthenticated
             _ = self.createFileMessageWithAssetId(in: self.conversation)! // V3
             
             // THEN
@@ -467,10 +460,6 @@ extension AssetV3DownloadRequestStrategyTests {
         let identifier = message.associatedTaskIdentifier
         XCTAssertNotNil(identifier)
 
-//        // then the cancellation provider should be informed to cancel the request
-//        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 1)
-//        let cancelledIdentifier = mockAppStateDelegate.cancelledIdentifiers.first
-//        XCTAssertEqual(cancelledIdentifier, identifier) TODO
         // WHEN the transfer is cancelled
         self.syncMOC.performGroupedBlockAndWait {
             message.fileMessageData?.cancelTransfer()
@@ -480,8 +469,8 @@ extension AssetV3DownloadRequestStrategyTests {
         
         self.syncMOC.performGroupedBlockAndWait {
             // THEN the cancellation provider should be informed to cancel the request
-            XCTAssertEqual(self.cancellationProvider.cancelledIdentifiers.count, 1)
-            let cancelledIdentifier = self.cancellationProvider.cancelledIdentifiers.first
+            XCTAssertEqual(self.mockApplicationStatus.cancelledIdentifiers.count, 1)
+            let cancelledIdentifier = self.mockApplicationStatus.cancelledIdentifiers.first
             XCTAssertEqual(cancelledIdentifier, identifier)
             
             // It should nil-out the identifier as it has been cancelled

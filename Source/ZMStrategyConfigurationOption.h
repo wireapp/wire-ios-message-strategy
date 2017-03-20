@@ -16,13 +16,10 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
-
-#import <UIKit/UIKit.h>
-
-//! Project version number for DDModel.
-FOUNDATION_EXPORT double WireMessageStrategyVersionNumber;
-
-//! Project version string for DDModel.
-FOUNDATION_EXPORT const unsigned char WireMessageStrategyVersionString[];
-
-#import <WireMessageStrategy/ZMStrategyConfigurationOption.h>
+typedef NS_OPTIONS(NSUInteger, ZMStrategyConfigurationOption) {
+    ZMStrategyConfigurationOptionDoesNotAllowRequests = 0,
+    ZMStrategyConfigurationOptionAllowsRequestsWhileUnauthenticated = 1 << 0,
+    ZMStrategyConfigurationOptionAllowsRequestsWhileInBackground = 1 << 1,
+    ZMStrategyConfigurationOptionAllowsRequestsDuringSync = 1 << 2,
+    ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing = 1 << 3,
+};

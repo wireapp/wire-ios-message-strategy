@@ -27,15 +27,15 @@ import XCTest
 class LinkPreviewAssetUploadRequestStrategyTests: MessagingTestBase {
     
     fileprivate var sut: LinkPreviewAssetUploadRequestStrategy!
-    fileprivate var mockAppStateDelegate: MockAppStateDelegate!
+    fileprivate var mockApplicationStatus: MockApplicationStatus!
     
     override func setUp() {
         super.setUp()
         
-        self.mockAppStateDelegate = MockAppStateDelegate()
-        mockAppStateDelegate.mockAppState = .eventProcessing
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
 
-        self.sut = LinkPreviewAssetUploadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: mockAppStateDelegate, linkPreviewPreprocessor: nil, previewImagePreprocessor: nil)
+        self.sut = LinkPreviewAssetUploadRequestStrategy(managedObjectContext: self.syncMOC, applicationStatus: mockApplicationStatus, linkPreviewPreprocessor: nil, previewImagePreprocessor: nil)
     }
     
     /// Creates a message that should generate request
@@ -129,7 +129,7 @@ extension LinkPreviewAssetUploadRequestStrategyTests {
         let message = createMessage(article.permanentURL!.absoluteString, linkPreviewState: .processed, linkPreview: article)
         self.syncMOC.zm_imageAssetCache.storeAssetData(message.nonce, format: .medium, encrypted: true, data: article.imageData.first!)
         process(sut, message: message)
-        mockAppStateDelegate.mockAppState = .unauthenticated
+        mockApplicationStatus.mockSynchronizationState = .unauthenticated
         
         // WHEN
         let request = sut.nextRequest()

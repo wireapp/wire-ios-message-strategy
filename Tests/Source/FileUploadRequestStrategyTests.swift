@@ -38,19 +38,13 @@ private let testData = try! Data(contentsOf: testDataURL)
 class FileUploadRequestStrategyTests: MessagingTestBase {
 
     fileprivate var sut: FileUploadRequestStrategy!
-    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
+    fileprivate var mockApplicationStatus : MockApplicationStatus!
     
     override func setUp() {
         super.setUp()
-//        self.mockAppStateDelegate = MockAppStateDelegate()
-//        mockAppStateDelegate.mockAppState = .eventProcessing TODO
-        self.cancellationProvider = FakeCancelationProvider()
-		self.clientRegistrationStatus = MockClientRegistrationStatus()
-        self.sut = FileUploadRequestStrategy(
-			clientRegistrationStatus: self.clientRegistrationStatus,
-            managedObjectContext: self.syncMOC,
-            taskCancellationProvider: self.cancellationProvider
-        )
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        self.sut = FileUploadRequestStrategy(withManagedObjectContext: self.syncMOC, applicationStatus: mockApplicationStatus)
     }
     
     /// Creates a message that should generate request
@@ -228,9 +222,8 @@ extension FileUploadRequestStrategyTests {
     
     func testThatItDoesNotGeneratesARequestWhenNotAuthenticated() {
         
-//        mockAppStateDelegate.mockAppState = .unauthenticated TODO
         // GIVEN
-	self.clientRegistrationStatus.mockClientIsReadyForRequests = false
+        self.mockApplicationStatus.mockSynchronizationState = .unauthenticated
         let msg = createMessage("foo")
         self.process(sut, message: msg)
         
@@ -516,7 +509,7 @@ extension FileUploadRequestStrategyTests {
         msg.associatedTaskIdentifier = identifier
         process(sut, message: msg)
         guard let request = sut.nextRequest() else { return XCTFail() }
-        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.count, 0)
         
         // WHEN
         request.complete(with: ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 400, transportSessionError: nil))
@@ -524,7 +517,7 @@ extension FileUploadRequestStrategyTests {
         
         // THEN there should not be a running upload request as the upload failed by itself,
         // next request would be the Asset.NotUploaded request
-        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.count, 0)
     }
     
     func testThatItDoesNotCancelCurrentlyRunningRequestWhenTheUploadFails_Thumbnail() {
@@ -539,7 +532,7 @@ extension FileUploadRequestStrategyTests {
         
         XCTAssertEqual(msg.genericAssetMessage?.asset.preview.hasImage(), true)
         guard let request = sut.nextRequest() else { return XCTFail() }
-        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.count, 0)
         
         // WHEN
         msg.fileMessageData!.cancelTransfer()
@@ -548,7 +541,7 @@ extension FileUploadRequestStrategyTests {
 
         // THEN there should not be a running upload request as the upload failed by itself,
         // next request would be the Asset.NotUploaded request
-        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.count, 0)
     }
     
     func testThatItCancelsCurrentlyRunningRequestWhenTheUploadIsCancelledAndItCreatesThe_NotUploaded_Request() {
@@ -559,7 +552,7 @@ extension FileUploadRequestStrategyTests {
         msg.associatedTaskIdentifier = identifier
         process(sut, message: msg)
         guard let request = sut.nextRequest() else { return XCTFail() }
-        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 0)
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.count, 0)
         
         // WHEN
         msg.fileMessageData?.cancelTransfer()
@@ -571,12 +564,10 @@ extension FileUploadRequestStrategyTests {
         
         // THEN
         guard let _ = sut.nextRequest() else { return XCTFail("Request was nil") } // Asset.NotUploaded
-        
-//        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 1) TODO
-//        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.first, identifier) 
+         
         // THEN
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.count, 1)
-        XCTAssertEqual(cancellationProvider.cancelledIdentifiers.first, identifier)
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.count, 1)
+        XCTAssertEqual(mockApplicationStatus.cancelledIdentifiers.first, identifier)
     }
     
     func testThatItUpdatesTheAssociatedTaskIdentifierWhenTheTaskHasBeenCreated_PlaceholderUpload() {
