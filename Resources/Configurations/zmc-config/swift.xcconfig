@@ -17,28 +17,7 @@
 // 
 
 
-#import "MessagingTest.h"
+// Swift
+//
 
-@class ZMMessageTranscoder;
-@class ZMUser;
-@class ZMUpstreamInsertedObjectSync;
-
-@interface ZMMessageTranscoderTests : MessagingTest {
-    ZMMessageTranscoder *_sut;
-}
-
-@property (nonatomic) ZMMessageTranscoder *sut;
-@property (nonatomic) ZMUser *user1;
-@property (nonatomic) ZMUser *selfUser;
-
-@property (nonatomic) ZMUpstreamInsertedObjectSync *upstreamObjectSync;
-
-@property (nonatomic) id notificationDispatcher;
-@property (nonatomic) id mockExpirationTimer;
-@property (nonatomic) id mockAppStateDelegate;
-
-- (ZMConversation *)insertGroupConversation;
-- (ZMConversation *)insertGroupConversationInMoc:(NSManagedObjectContext *)moc;
-
-@end
-
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @loader_path/Frameworks @loader_path/../Frameworks @executable_path/Frameworks @executable_path/../Frameworks

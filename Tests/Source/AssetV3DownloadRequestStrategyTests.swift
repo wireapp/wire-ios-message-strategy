@@ -19,10 +19,12 @@
 
 import Foundation
 @testable import WireMessageStrategy
+import XCTest
+import ZMCDataModel
 
 private let testDataURL = Bundle(for: AssetV3DownloadRequestStrategyTests.self).url(forResource: "Lorem Ipsum", withExtension: "txt")!
 
-class AssetV3DownloadRequestStrategyTests: MessagingTest {
+class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
 
     var mockAppStateDelegate: MockAppStateDelegate!
     var sut: AssetV3DownloadRequestStrategy!
@@ -30,41 +32,51 @@ class AssetV3DownloadRequestStrategyTests: MessagingTest {
 
     override func setUp() {
         super.setUp()
-        mockAppStateDelegate = MockAppStateDelegate()
-        mockAppStateDelegate.mockAppState = .eventProcessing
-        sut = AssetV3DownloadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
-        conversation = createConversation()
+// TODO
+//        mockAppStateDelegate = MockAppStateDelegate()
+//        mockAppStateDelegate.mockAppState = .eventProcessing
+//        sut = AssetV3DownloadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
+        authStatus = MockClientRegistrationStatus()
+        cancellationProvider = MockTaskCancellationProvider()
+        sut = AssetV3DownloadRequestStrategy(
+            authStatus: authStatus,
+            taskCancellationProvider: cancellationProvider,
+            managedObjectContext: syncMOC
+        )
+        self.syncMOC.performGroupedBlockAndWait {
+            self.conversation = self.createConversation()
+        }
     }
 
     fileprivate func createConversation() -> ZMConversation {
-        let conversation = ZMConversation.insertNewObject(in: syncMOC)
-        conversation.remoteIdentifier = UUID.create()
-        return conversation
+        let conv = ZMConversation.insertNewObject(in: syncMOC)
+        conv.remoteIdentifier = UUID.create()
+        return conv
     }
     
     fileprivate func createFileMessageWithAssetId(
-        in conversation: ZMConversation,
+        in aConversation: ZMConversation,
         otrKey: Data = Data.randomEncryptionKey(),
         sha: Data  = Data.randomEncryptionKey()
         ) -> (message: ZMAssetClientMessage, assetId: String, assetToken: String)? {
 
-        let message = conversation.appendMessage(with: ZMFileMetadata(fileURL: testDataURL), version3: true) as! ZMAssetClientMessage
-
+        let message = aConversation.appendMessage(with: ZMFileMetadata(fileURL: testDataURL), version3: true) as! ZMAssetClientMessage
         let (assetId, token) = (UUID.create().transportString(), UUID.create().transportString())
 
         // TODO: We should replace this manual update with inserting a v3 asset as soon as we have sending support
+        let timer: NSNumber? = aConversation.messageDestructionTimeout > 0 ? NSNumber(value: aConversation.messageDestructionTimeout) : nil
         let uploaded = ZMGenericMessage.genericMessage(
             withUploadedOTRKey: otrKey,
             sha256: sha,
             messageID: message.nonce.transportString(),
-            expiresAfter: NSNumber(value: conversation.messageDestructionTimeout)
+            expiresAfter: timer
         )
 
         guard let uploadedWithId = uploaded.updatedUploaded(withAssetId: assetId, token: token) else {
             XCTFail("Failed to update asset")
             return nil
         }
-
+        
         message.add(uploadedWithId)
         configureForDownloading(message: message)
         XCTAssertEqual(message.version, 3)
@@ -78,83 +90,90 @@ class AssetV3DownloadRequestStrategyTests: MessagingTest {
         self.sut.contextChangeTrackers.forEach { tracker in
             tracker.objectsDidChange(Set(arrayLiteral: message))
         }
-
-        XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
     }
 
     func testThatItGeneratesARequestToTheV3EndpointIfTheProtobufContainsAnAssetID_V3() {
         // Given
-        guard let (message, assetId, token) = createFileMessageWithAssetId(in: createConversation()) else { return XCTFail("No message") }
-
-        guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No assetData found") }
-        XCTAssert(assetData.hasUploaded())
-        XCTAssertEqual(assetData.uploaded.assetId, assetId)
-        XCTAssertEqual(assetData.uploaded.assetToken, token)
-
-        // When
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-
-        // Then
-        XCTAssertEqual(request.method, .methodGET)
-        XCTAssertEqual(request.path, "/assets/v3/\(assetId)")
-        XCTAssert(request.needsAuthentication)
+        syncMOC.performGroupedBlockAndWait {
+            
+            guard let (message, assetId, token) = self.createFileMessageWithAssetId(in: self.createConversation()) else { return XCTFail("No message") }
+            
+            guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No assetData found") }
+            XCTAssert(assetData.hasUploaded())
+            XCTAssertEqual(assetData.uploaded.assetId, assetId)
+            XCTAssertEqual(assetData.uploaded.assetToken, token)
+            
+            // When
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
+            
+            // Then
+            XCTAssertEqual(request.method, .methodGET)
+            XCTAssertEqual(request.path, "/assets/v3/\(assetId)")
+            XCTAssert(request.needsAuthentication)
+        }
     }
 
     func testThatItGeneratesARequestToTheV3EndpointITheProtobufContainsAnAssetID_EphemeralConversation_V3() {
-        // Given
-        let conversation = createConversation()
-        conversation.messageDestructionTimeout = 5
-        guard let (message, assetId, token) = createFileMessageWithAssetId(in: conversation) else { return XCTFail("No message") }
-
-        guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No assetData found") }
-        XCTAssert(assetData.hasUploaded())
-        XCTAssertEqual(assetData.uploaded.assetId, assetId)
-        XCTAssertEqual(assetData.uploaded.assetToken, token)
-        XCTAssert(message.genericAssetMessage!.hasEphemeral())
-
-        // When
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-
-        // Then
-        XCTAssertEqual(request.method, .methodGET)
-        XCTAssertEqual(request.path, "/assets/v3/\(assetId)")
-        XCTAssert(request.needsAuthentication)
+        syncMOC.performGroupedBlockAndWait {
+            
+            // Given
+            self.conversation.messageDestructionTimeout = 5
+            guard let (message, assetId, token) = self.createFileMessageWithAssetId(in: self.conversation) else { return XCTFail("No message") }
+            guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No assetData found") }
+            XCTAssert(assetData.hasUploaded())
+            XCTAssertEqual(assetData.uploaded.assetId, assetId)
+            XCTAssertEqual(assetData.uploaded.assetToken, token)
+            XCTAssert(message.genericAssetMessage!.hasEphemeral())
+            
+            // When
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
+            
+            // Then
+            XCTAssertEqual(request.method, .methodGET)
+            XCTAssertEqual(request.path, "/assets/v3/\(assetId)")
+            XCTAssert(request.needsAuthentication)
+        }
     }
 
     func testThatItGeneratesARequestOnlyOnceForAssetMessages_V3() {
         // Given
-        guard let _ = createFileMessageWithAssetId(in: createConversation()) else { return XCTFail("No message") }
-
-        // When
-        guard let _ = sut.nextRequest() else { return XCTFail("No request generated") }
-
-        // Then
-        XCTAssertNil(sut.nextRequest())
+        syncMOC.performGroupedBlockAndWait {
+            guard let _ = self.createFileMessageWithAssetId(in: self.createConversation()) else { return XCTFail("No message") }
+            
+            // When
+            guard let _ = self.sut.nextRequest() else { return XCTFail("No request generated") }
+            
+            // Then
+            XCTAssertNil(self.sut.nextRequest())
+        }
     }
 
     func testThatItGeneratesNoRequestsIfNotAuthenticated_V3() {
-        // given
-        mockAppStateDelegate.mockAppState = .unauthenticated
-        _ = createFileMessageWithAssetId(in: conversation)! // V3
-
-        // then
-        XCTAssertNil(sut.nextRequest())
+//        mockAppStateDelegate.mockAppState = .unauthenticated TODO
+        syncMOC.performGroupedBlockAndWait {
+            // GIVEN
+            self.authStatus.mockClientIsReadyForRequests = false
+            _ = self.createFileMessageWithAssetId(in: self.conversation)! // V3
+            
+            // THEN
+            XCTAssertNil(self.sut.nextRequest())
+        }
     }
 
     func testThatItGeneratesNoRequestsIfMessageIsUploading_V3() {
-        // given
-        guard let (message , _, _) = createFileMessageWithAssetId(in: conversation) else { return XCTFail() } // V3
-        message.fileMessageData?.transferState = .uploaded
-        syncMOC.saveOrRollback()
-
-        sut.contextChangeTrackers.forEach { tracker in
-            tracker.objectsDidChange(Set(arrayLiteral: message))
+        self.syncMOC.performGroupedBlockAndWait {
+            // GIVEN
+            guard let (message , _, _) = self.createFileMessageWithAssetId(in: self.conversation) else { return XCTFail() } // V3
+            message.fileMessageData?.transferState = .uploaded
+            self.syncMOC.saveOrRollback()
+            
+            self.sut.contextChangeTrackers.forEach { tracker in
+                tracker.objectsDidChange(Set(arrayLiteral: message))
+            }
+            
+            // THEN
+            XCTAssertNil(self.sut.nextRequest())
         }
-
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then
-        XCTAssertNil(sut.nextRequest())
     }
 
 }
@@ -163,209 +182,264 @@ class AssetV3DownloadRequestStrategyTests: MessagingTest {
 extension AssetV3DownloadRequestStrategyTests {
 
     func testThatItMarksDownloadAsSuccessIfSuccessfulDownloadAndDecryption_V3() {
-        // given
-        let plainTextData = Data.secureRandomData(length: 500)
-        let key = Data.randomEncryptionKey()
-        let encryptedData = plainTextData.zmEncryptPrefixingPlainTextIV(key: key)
-        let sha = encryptedData.zmSHA256Digest()
-
-        let (message, _, _) = createFileMessageWithAssetId(in: conversation, otrKey: key, sha: sha)!
-
-        let request = sut.nextRequest()
-        let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
-
-        // when
-        request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then
-        XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.downloaded.rawValue)
+        var message: ZMMessage!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let plainTextData = Data.secureRandomData(length: 500)
+            let key = Data.randomEncryptionKey()
+            let encryptedData = plainTextData.zmEncryptPrefixingPlainTextIV(key: key)
+            let sha = encryptedData.zmSHA256Digest()
+            
+            let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation, otrKey: key, sha: sha)!
+            message = msg
+            
+            let request = self.sut.nextRequest()
+            let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
+            
+            // WHEN
+            request?.complete(with: response)
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.downloaded.rawValue)
+        }
     }
 
     func testThatItMarksDownloadAsFailedIfCannotDownload_PermanentError_V3() {
-        // given
-        let (message, _, _) = createFileMessageWithAssetId(in: conversation)!
-        let request = sut.nextRequest()
-        let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 404, transportSessionError: .none)
-
-        // when
-        request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then
-        XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+        
+        var message : ZMMessage!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation)!
+            message = msg
+            let request = self.sut.nextRequest()
+            let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 404, transportSessionError: .none)
+            
+            // WHEN
+            request?.complete(with: response)
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+        }
     }
 
     func testThatItMarksDownloadAsFailedIfCannotDownload_TemporaryError_V3() {
-        // given
-        let (message, _, _) = createFileMessageWithAssetId(in: conversation)!
-        let request = sut.nextRequest()
-        let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 500, transportSessionError: .none)
+        var message : ZMMessage!
+        self.syncMOC.performGroupedBlockAndWait {
 
-        // when
-        request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then
-        XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+            // GIVEN
+            let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation)!
+            message = msg
+            let request = self.sut.nextRequest()
+            let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 500, transportSessionError: .none)
+            
+            // WHEN
+            request?.complete(with: response)
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+        }
     }
 
     func testThatItMarksDownloadAsFailedIfCannotDownload_CannotDecrypt_V3() {
-        // given
-        let (message, _, _) = createFileMessageWithAssetId(in: conversation)!
-        let request = sut.nextRequest()
+        var message : ZMMessage!
+
+        self.syncMOC.performGroupedBlockAndWait {
+
+            // GIVEN
+            let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation)!
+            message = msg
+        }
+        
+        guard let request = self.sut.nextRequest() else {
+            return XCTFail("Did not create request")
+        }
         let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 200, transportSessionError: .none)
 
-        // when
-        performIgnoringZMLogError {
-            request?.complete(with: response)
-            XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        // WHEN
+        self.performIgnoringZMLogError {
+            request.complete(with: response)
+            XCTAssert(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         }
-
-        // then
+        
+        // THEN
         XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+        
     }
 
     func testThatItDoesNotMarkDownloadAsFailedWhenNotDownloading_V3() {
-        // given
-        let (message, _, _) = createFileMessageWithAssetId(in: conversation)!
-        let request = sut.nextRequest()
-        let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 500, transportSessionError: .none)
+        var message : ZMMessage!
 
-        // when
-        message.transferState = .uploaded
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation)!
+            let request = self.sut.nextRequest()
+            let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 500, transportSessionError: .none)
+            
+            // WHEN
+            msg.transferState = .uploaded
+            message = msg
+
+            request?.complete(with: response)
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
-        request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then
-        XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.uploaded.rawValue)
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.uploaded.rawValue)
+        }
     }
 
     func testThatItUpdatesFileDownloadProgress_V3() {
-        // given
+        var message : ZMMessage!
         let expectedProgress: Float = 0.5
-        let (message, _, _) = createFileMessageWithAssetId(in: conversation)!
-        let request = sut.nextRequest()
 
-        XCTAssertEqual(message.fileMessageData?.progress, 0)
-
-        // when
-        request?.updateProgress(expectedProgress)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then
-        XCTAssertEqual(message.fileMessageData?.progress, expectedProgress)
+        self.syncMOC.performGroupedBlockAndWait {
+            // GIVEN
+            let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation)!
+            message = msg
+            let request = self.sut.nextRequest()
+            
+            XCTAssertEqual(msg.fileMessageData?.progress, 0)
+            
+            // WHEN
+            request?.updateProgress(expectedProgress)
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertEqual(message.fileMessageData?.progress, expectedProgress)
+        }
     }
 
     func testThatItSendsTheNotificationIfSuccessfulDownloadAndDecryption_V3() {
-
-        // given
-        let plainTextData = Data.secureRandomData(length: 500)
-        let key = Data.randomEncryptionKey()
-        let encryptedData = plainTextData.zmEncryptPrefixingPlainTextIV(key: key)
-        let sha = encryptedData.zmSHA256Digest()
-
-        let _ = createFileMessageWithAssetId(in: conversation, otrKey: key, sha: sha)!
-
-        let notificationExpectation = self.expectation(description: "Notification fired")
-
-        let _ = NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName), object: nil, queue: .main) { notification in
-            XCTAssertNotNil(notification.userInfo![AssetDownloadRequestStrategyNotification.downloadStartTimestampKey])
-            notificationExpectation.fulfill()
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let plainTextData = Data.secureRandomData(length: 500)
+            let key = Data.randomEncryptionKey()
+            let encryptedData = plainTextData.zmEncryptPrefixingPlainTextIV(key: key)
+            let sha = encryptedData.zmSHA256Digest()
+            
+            let _ = self.createFileMessageWithAssetId(in: self.conversation, otrKey: key, sha: sha)!
+            
+            self.expectation(forNotification: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName, object:nil, handler: { (note) -> Bool in
+                return (note.userInfo![AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] != nil)
+            })
+            
+            guard let request = self.sut.nextRequest() else {
+                return XCTFail("Did not create expected request")
+            }
+            request.markStartOfUploadTimestamp()
+            let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
+            
+            // WHEN
+            request.complete(with: response)
         }
-
-        let request = sut.nextRequest()
-        request?.markStartOfUploadTimestamp()
-        let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
-
-        // when
-        request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then
-        XCTAssertTrue(waitForCustomExpectations(withTimeout: 0.5))
-
+        
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertTrue(self.waitForCustomExpectations(withTimeout: 0.5))
+        }
     }
     
     func testThatItRecategorizeMessageAfterDownloadingAssetContent() {
-        
-        // given
-        let plainTextData = self.verySmallJPEGData()
-        let key = Data.randomEncryptionKey()
-        let encryptedData = plainTextData.zmEncryptPrefixingPlainTextIV(key: key)
-        let sha = encryptedData.zmSHA256Digest()
-        let messageId = UUID.create()
-        
-        let selfClient = createSelfClient()
-        
-        let asset = ZMAssetBuilder()
-            .setOriginal(ZMAssetOriginalBuilder()
-                .setMimeType("image/jpeg")
-                .setSize(UInt64(plainTextData.count))
-                .setImage(ZMAssetImageMetaDataBuilder()
-                    .setWidth(100)
-                    .setHeight(100)
-                    .setTag("medium")))
-            .setUploaded(ZMAssetRemoteDataBuilder()
-                .setOtrKey(key)
-                .setSha256(sha)
-                .setAssetId("someId")
-                .setAssetToken("someToken"))
-            .build()
-        
-        let genericMessage = ZMGenericMessage.genericMessage(asset: asset!, messageID: messageId.transportString())
-        
-        let dict = ["recipient": selfClient.remoteIdentifier!, "sender": selfClient.remoteIdentifier!, "text": genericMessage.data().base64String()] as NSDictionary
-        let updateEvent = ZMUpdateEvent(fromEventStreamPayload: ([
-            "type": "conversation.otr-message-add",
-            "data":dict,
-            "conversation":conversation.remoteIdentifier!.transportString(),
-            "time":Date(timeIntervalSince1970: 555555).transportString()] as NSDictionary), uuid: nil)
-        
-        let message = ZMOTRMessage.messageUpdateResult(from: updateEvent, in: syncMOC, prefetchResult: nil).message as! ZMAssetClientMessage
-        message.visibleInConversation = conversation
-        message.transferState = .downloading
-        
-        XCTAssertEqual(message.category, [.image, .excludedFromCollection])
-        
-        sut.contextChangeTrackers.forEach { (tracker) in
-            tracker.objectsDidChange([message])
+        var message : ZMAssetClientMessage!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let plainTextData = self.verySmallJPEGData()
+            let key = Data.randomEncryptionKey()
+            let encryptedData = plainTextData.zmEncryptPrefixingPlainTextIV(key: key)
+            let sha = encryptedData.zmSHA256Digest()
+            let messageId = UUID.create()
+            
+            let asset = ZMAssetBuilder()
+                .setOriginal(ZMAssetOriginalBuilder()
+                    .setMimeType("image/jpeg")
+                    .setSize(UInt64(plainTextData.count))
+                    .setImage(ZMAssetImageMetaDataBuilder()
+                        .setWidth(100)
+                        .setHeight(100)
+                        .setTag("medium")))
+                .setUploaded(ZMAssetRemoteDataBuilder()
+                    .setOtrKey(key)
+                    .setSha256(sha)
+                    .setAssetId("someId")
+                    .setAssetToken("someToken"))
+                .build()
+            
+            let genericMessage = ZMGenericMessage.genericMessage(asset: asset!, messageID: messageId.transportString())
+            
+            let dict = ["recipient": self.selfClient.remoteIdentifier!,
+                        "sender": self.selfClient.remoteIdentifier!,
+                        "text": genericMessage.data().base64String()] as NSDictionary
+            let updateEvent = ZMUpdateEvent(fromEventStreamPayload: ([
+                "type": "conversation.otr-message-add",
+                "data":dict,
+                "conversation":self.conversation.remoteIdentifier!.transportString(),
+                "time":Date(timeIntervalSince1970: 555555).transportString()] as NSDictionary), uuid: nil)
+            
+            message = ZMOTRMessage.messageUpdateResult(from: updateEvent, in: self.syncMOC, prefetchResult: nil).message as! ZMAssetClientMessage
+            message.visibleInConversation = self.conversation
+            message.transferState = .downloading
+            
+            XCTAssertEqual(message.category, [.image, .excludedFromCollection])
+            
+            self.sut.contextChangeTrackers.forEach { (tracker) in
+                tracker.objectsDidChange([message])
+            }
+            
+            let request = self.sut.nextRequest()
+            request?.markStartOfUploadTimestamp()
+            let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
+            
+            // WHEN
+            request?.complete(with: response)
         }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout:0.5))
         
-        let request = sut.nextRequest()
-        request?.markStartOfUploadTimestamp()
-        let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
-        
-        // when
-        request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-        
-        // then
-        XCTAssertEqual(message.category, [.image])
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertEqual(message.category, [.image])
+        }
     }
 
     func testThatItSendsTheNotificationIfCannotDownload_V3() {
-        // given
-
-        let notificationExpectation = self.expectation(description: "Notification fired")
-
-        let _ = NotificationCenter.default.addObserver(forName: NSNotification.Name(rawValue: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName), object: nil, queue: .main) { notification in
-            XCTAssertNotNil(notification.userInfo![AssetDownloadRequestStrategyNotification.downloadStartTimestampKey])
-            notificationExpectation.fulfill()
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            self.expectation(forNotification: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName, object:nil, handler: { (note) -> Bool in
+                return (note.userInfo![AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] != nil)
+            })
+            
+            let _ = self.createFileMessageWithAssetId(in: self.conversation)!
+            guard let request = self.sut.nextRequest() else { return XCTFail("No message")}
+            
+            request.markStartOfUploadTimestamp()
+            let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 404, transportSessionError: .none)
+            
+            // WHEN
+            request.complete(with: response)
         }
-
-        let _ = createFileMessageWithAssetId(in: conversation)!
-        let request = sut.nextRequest()
-        request?.markStartOfUploadTimestamp()
-        let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 404, transportSessionError: .none)
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
-        // when
-        request?.complete(with: response)
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-        
-        // then
-        XCTAssertTrue(waitForCustomExpectations(withTimeout: 0.5))
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN
+            XCTAssertTrue(self.waitForCustomExpectations(withTimeout: 0.5))
+        }
     }
 }
 
@@ -374,30 +448,45 @@ extension AssetV3DownloadRequestStrategyTests {
 extension AssetV3DownloadRequestStrategyTests {
 
     func testThatItInformsTheTaskCancellationProviderToCancelARequestForAnAssetMessageWhenItReceivesTheNotification_V3() {
-        // given
-        let (message, _, _) = createFileMessageWithAssetId(in: conversation)!
-        XCTAssertNotNil(message.objectID)
+        var message : ZMAssetClientMessage!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation)!
+            message = msg
+            XCTAssertNotNil(message.objectID)
+            
+            // GIVEN the task has been created
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request created") }
+            
+            request.callTaskCreationHandlers(withIdentifier: 42, sessionIdentifier: self.name!)
+            XCTAssertTrue(self.syncMOC.saveOrRollback())
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout:0.5))
 
-        // given the task has been created
-        guard let request = sut.nextRequest() else { return XCTFail("No request created") }
-
-        request.callTaskCreationHandlers(withIdentifier: 42, sessionIdentifier: name!)
-        XCTAssertTrue(syncMOC.saveOrRollback())
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         let identifier = message.associatedTaskIdentifier
         XCTAssertNotNil(identifier)
 
-        // when the transfer is cancelled
-        message.fileMessageData?.cancelTransfer()
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // then the cancellation provider should be informed to cancel the request
-        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 1)
-        let cancelledIdentifier = mockAppStateDelegate.cancelledIdentifiers.first
-        XCTAssertEqual(cancelledIdentifier, identifier)
-
-        // It should nil-out the identifier as it has been cancelled
-        XCTAssertNil(message.associatedTaskIdentifier)
+//        // then the cancellation provider should be informed to cancel the request
+//        XCTAssertEqual(mockAppStateDelegate.cancelledIdentifiers.count, 1)
+//        let cancelledIdentifier = mockAppStateDelegate.cancelledIdentifiers.first
+//        XCTAssertEqual(cancelledIdentifier, identifier) TODO
+        // WHEN the transfer is cancelled
+        self.syncMOC.performGroupedBlockAndWait {
+            message.fileMessageData?.cancelTransfer()
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout:0.5))
+        
+        
+        self.syncMOC.performGroupedBlockAndWait {
+            // THEN the cancellation provider should be informed to cancel the request
+            XCTAssertEqual(self.cancellationProvider.cancelledIdentifiers.count, 1)
+            let cancelledIdentifier = self.cancellationProvider.cancelledIdentifiers.first
+            XCTAssertEqual(cancelledIdentifier, identifier)
+            
+            // It should nil-out the identifier as it has been cancelled
+            XCTAssertNil(message.associatedTaskIdentifier)
+        }
     }
     
 }
