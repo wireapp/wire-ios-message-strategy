@@ -30,6 +30,6 @@
 @property (nonatomic, readonly) ZMStrategyConfigurationOption configuration;
 @property (nonatomic, readonly) id<ZMApplicationStatus> applicationStatus;
 
-- (instancetype)initWithMangedObjectContext:(NSManagedObjectContext *)mangedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus;
+- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)managedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus;
 
 @end

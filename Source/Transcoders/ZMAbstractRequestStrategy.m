@@ -22,12 +22,12 @@
 
 @implementation ZMAbstractRequestStrategy
 
-- (instancetype)initWithMangedObjectContext:(NSManagedObjectContext *)mangedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus
+- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)managedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus
 {
     self = [super init];
     
     if (self != nil) {
-        _managedObjectContext = mangedObjectContext;
+        _managedObjectContext = managedObjectContext;
         _applicationStatus = applicationStatus;
     }
     
