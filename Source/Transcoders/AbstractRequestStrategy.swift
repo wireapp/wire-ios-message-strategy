@@ -26,7 +26,7 @@ open class AbstractRequestStrategy : NSObject, ZMRequestGenerator {
     let managedObjectContext : NSManagedObjectContext
     var configuration : ZMStrategyConfigurationOption = [.allowsRequestsDuringEventProcessing]
     
-    init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+    public init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         self.managedObjectContext = managedObjectContext
         self.applicationStatus = applicationStatus
         
@@ -48,7 +48,7 @@ open class AbstractRequestStrategy : NSObject, ZMRequestGenerator {
         return nil
     }
     
-    func prerequisites(forApplicationStatus applicationStatus: ApplicationStatus) -> ZMStrategyConfigurationOption {
+    fileprivate func prerequisites(forApplicationStatus applicationStatus: ApplicationStatus) -> ZMStrategyConfigurationOption {
         var prerequisites : ZMStrategyConfigurationOption = []
         
         if applicationStatus.synchronizationState == .unauthenticated {
