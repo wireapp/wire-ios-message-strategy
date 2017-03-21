@@ -17,11 +17,12 @@
 //
 
 @import Foundation;
+@import WireRequestStrategy;
 
-#import "WireMessageStrategy-Swift.h"
 #import "ZMStrategyConfigurationOption.h"
 
 @class NSManagedObjectContext;
+@protocol ZMApplicationStatus;
 
 @interface ZMAbstractRequestStrategy : NSObject <ZMRequestGenerator>
 

@@ -17,6 +17,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <WireMessageStrategy/WireMessageStrategy-Swift.h>
 #import "ZMAbstractRequestStrategy.h"
 
 @implementation ZMAbstractRequestStrategy
