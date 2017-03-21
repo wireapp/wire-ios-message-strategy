@@ -22,8 +22,9 @@ import WireRequestStrategy
 open class AbstractRequestStrategy : NSObject, ZMRequestGenerator {
     
     weak var applicationStatus : ApplicationStatus?
-    let managedObjectContext : NSManagedObjectContext
-    var configuration : ZMStrategyConfigurationOption = [.allowsRequestsDuringEventProcessing]
+    
+    public let managedObjectContext : NSManagedObjectContext
+    public var configuration : ZMStrategyConfigurationOption = [.allowsRequestsDuringEventProcessing]
     
     public init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         self.managedObjectContext = managedObjectContext
