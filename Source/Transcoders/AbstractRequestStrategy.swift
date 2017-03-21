@@ -19,7 +19,6 @@
 import Foundation
 import WireRequestStrategy
 
-@objc(ZMAbstractRequestStrategy)
 open class AbstractRequestStrategy : NSObject, ZMRequestGenerator {
     
     weak var applicationStatus : ApplicationStatus?
@@ -41,14 +40,14 @@ open class AbstractRequestStrategy : NSObject, ZMRequestGenerator {
     open func nextRequest() -> ZMTransportRequest? {
         guard let applicationStatus = self.applicationStatus else { return nil }
         
-        if prerequisites(forApplicationStatus: applicationStatus).isSubset(of: configuration) {
+        if AbstractRequestStrategy.prerequisites(forApplicationStatus: applicationStatus).isSubset(of: configuration) {
             return nextRequestIfAllowed()
         }
         
         return nil
     }
     
-    fileprivate func prerequisites(forApplicationStatus applicationStatus: ApplicationStatus) -> ZMStrategyConfigurationOption {
+    public class func prerequisites(forApplicationStatus applicationStatus: ApplicationStatus) -> ZMStrategyConfigurationOption {
         var prerequisites : ZMStrategyConfigurationOption = []
         
         if applicationStatus.synchronizationState == .unauthenticated {

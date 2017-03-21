@@ -16,14 +16,19 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
+@import Foundation;
 
-#import <UIKit/UIKit.h>
+#import "WireMessageStrategy-Swift.h"
+#import "ZMStrategyConfigurationOption.h"
 
-//! Project version number for DDModel.
-FOUNDATION_EXPORT double WireMessageStrategyVersionNumber;
+@class NSManagedObjectContext;
 
-//! Project version string for DDModel.
-FOUNDATION_EXPORT const unsigned char WireMessageStrategyVersionString[];
+@interface ZMAbstractRequestStrategy : NSObject <ZMRequestGenerator>
 
-#import <WireMessageStrategy/ZMStrategyConfigurationOption.h>
-#import <WireMessageStrategy/ZMAbstractRequestStrategy.h>
+@property (nonatomic, readonly) NSManagedObjectContext *managedObjectContext;
+@property (nonatomic, readonly) ZMStrategyConfigurationOption configuration;
+@property (nonatomic, readonly) id<ZMApplicationStatus> applicationStatus;
+
+- (instancetype)initWithMangedObjectContext:(NSManagedObjectContext *)mangedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus;
+
+@end
