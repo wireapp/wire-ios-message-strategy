@@ -22,7 +22,7 @@ import WireRequestStrategy
 @objc(ZMSynchronizationState)
 public enum SynchronizationState : UInt {
     case unauthenticated
-    case synchronising
+    case synchronizing
     case eventProcessing
 }
 
