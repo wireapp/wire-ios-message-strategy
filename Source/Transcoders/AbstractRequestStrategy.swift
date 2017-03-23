@@ -19,7 +19,7 @@
 import Foundation
 import WireRequestStrategy
 
-open class AbstractRequestStrategy : NSObject, ZMRequestGenerator {
+open class AbstractRequestStrategy : NSObject, RequestStrategy {
     
     weak var applicationStatus : ApplicationStatus?
     

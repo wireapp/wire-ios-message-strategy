@@ -51,7 +51,11 @@
 
 - (BOOL)configuration:(ZMStrategyConfigurationOption)configuration isSubsetOfPrerequisites:(ZMStrategyConfigurationOption)prerequisites
 {
-    for (ZMStrategyConfigurationOption option = 0; option <= ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing; option = option << 1) {
+    ZMStrategyConfigurationOption option = 0;
+    
+    for (NSUInteger index = 0; option <= ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing; index++) {
+        option = 1 << index;
+        
         if ((prerequisites & option) == option && (configuration & option) != option) {
             return NO;
         }

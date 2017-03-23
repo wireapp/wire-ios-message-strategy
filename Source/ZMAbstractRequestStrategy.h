@@ -21,15 +21,18 @@
 
 #import "ZMStrategyConfigurationOption.h"
 
+@class ZMTransportRequest;
 @class NSManagedObjectContext;
 @protocol ZMApplicationStatus;
 
-@interface ZMAbstractRequestStrategy : NSObject <ZMRequestGenerator>
+@interface ZMAbstractRequestStrategy : NSObject <RequestStrategy>
 
-@property (nonatomic, readonly) NSManagedObjectContext *managedObjectContext;
+@property (nonatomic, readonly, nonnull) NSManagedObjectContext *managedObjectContext;
 @property (nonatomic, readonly) ZMStrategyConfigurationOption configuration;
-@property (nonatomic, readonly) id<ZMApplicationStatus> applicationStatus;
+@property (nonatomic, readonly, nonnull) id<ZMApplicationStatus> applicationStatus;
 
-- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)managedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus;
+- (instancetype _Nonnull)initWithManagedObjectContext:(nonnull NSManagedObjectContext *)managedObjectContext applicationStatus:(nonnull id<ZMApplicationStatus>)applicationStatus;
+
+- (ZMTransportRequest * _Nullable)nextRequestIfAllowed;
 
 @end
