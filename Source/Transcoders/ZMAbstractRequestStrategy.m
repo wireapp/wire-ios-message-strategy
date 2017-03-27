@@ -20,6 +20,8 @@
 #import <WireMessageStrategy/WireMessageStrategy-Swift.h>
 #import "ZMAbstractRequestStrategy.h"
 
+static NSString* ZMLogTag ZM_UNUSED = @"Request Configuration";
+
 @implementation ZMAbstractRequestStrategy
 
 - (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)managedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus
@@ -57,6 +59,7 @@
         option = 1 << index;
         
         if ((prerequisites & option) == option && (configuration & option) != option) {
+            ZMLogDebug(@"Not performing requests since option: %lu is not configured for (%@)", (unsigned long)option, NSStringFromClass(self.class));
             return NO;
         }
     }
