@@ -19,6 +19,8 @@
 import Foundation
 import WireRequestStrategy
 
+private let zmLog = ZMSLog(tag: "Request Configuration")
+
 open class AbstractRequestStrategy : NSObject, RequestStrategy {
     
     weak var applicationStatus : ApplicationStatus?
@@ -41,8 +43,12 @@ open class AbstractRequestStrategy : NSObject, RequestStrategy {
     open func nextRequest() -> ZMTransportRequest? {
         guard let applicationStatus = self.applicationStatus else { return nil }
         
-        if AbstractRequestStrategy.prerequisites(forApplicationStatus: applicationStatus).isSubset(of: configuration) {
+        let prerequisites = AbstractRequestStrategy.prerequisites(forApplicationStatus: applicationStatus)
+        
+        if prerequisites.isSubset(of: configuration) {
             return nextRequestIfAllowed()
+        } else {
+            zmLog.debug("Not performing requests since option: \(prerequisites.subtracting(configuration)) is not configured for (\(String(describing: type(of: self))))")
         }
         
         return nil
