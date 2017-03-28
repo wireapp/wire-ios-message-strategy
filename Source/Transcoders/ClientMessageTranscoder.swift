@@ -39,7 +39,7 @@ public class ClientMessageTranscoder: AbstractRequestStrategy {
         
         super.init(withManagedObjectContext: moc, applicationStatus: applicationStatus)
         
-        self.configuration = [.allowsRequestsDuringEventProcessing]
+        self.configuration = [.allowsRequestsDuringEventProcessing, .allowsRequestsWhileInBackground]
         self.upstreamObjectSync = ZMUpstreamInsertedObjectSync(transcoder: self, entityName: ZMClientMessage.entityName(), managedObjectContext: moc)
         self.deleteOldEphemeralMessages()
     }
