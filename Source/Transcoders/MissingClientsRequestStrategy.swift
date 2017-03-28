@@ -52,7 +52,7 @@ public final class MissingClientsRequestStrategy: AbstractRequestStrategy, ZMUps
     public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
         
-        self.configuration =  [.allowsRequestsDuringEventProcessing]
+        self.configuration =  [.allowsRequestsDuringEventProcessing, .allowsRequestsWhileInBackground]
         self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: UserClient.entityName(), update: modifiedPredicate(), filter: nil, keysToSync: [ZMUserClientMissingKey], managedObjectContext: managedObjectContext)
     }
     
