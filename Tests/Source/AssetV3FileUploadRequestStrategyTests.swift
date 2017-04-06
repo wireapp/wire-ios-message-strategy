@@ -86,8 +86,61 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
         message.uploadState = .uploadingFullAsset
 
         ZMChangeTrackerBootstrap.bootStrapChangeTrackers(sut.contextChangeTrackers, on: syncMOC)
-
         XCTAssertNotNil(syncMOC.zm_fileAssetCache.assetData(message.nonce, fileName: message.fileMessageData!.filename, encrypted: true))
+    }
+
+// MARK: Preprocessing
+
+    func testThatItDoesPreprocessTheFileOnlyOnce() {
+        var message: ZMAssetClientMessage!
+        var otrKey: Data!
+        var sha256: Data!
+
+        syncMOC.performGroupedBlock {
+            // GIVEN
+            message = self.createFileMessage()
+            message.transferState = .uploading
+            message.uploadState = .uploadingFullAsset
+
+            do {
+                guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
+                XCTAssertFalse(assetData.uploaded.hasOtrKey())
+                XCTAssertFalse(assetData.uploaded.hasSha256())
+            }
+
+            // WHEN
+            ZMChangeTrackerBootstrap.bootStrapChangeTrackers(self.sut.contextChangeTrackers, on: self.syncMOC)
+
+            do {
+                // THEN
+                guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
+                XCTAssertTrue(assetData.uploaded.hasOtrKey())
+                XCTAssertTrue(assetData.uploaded.hasSha256())
+                otrKey = assetData.uploaded.otrKey
+                sha256 = assetData.uploaded.sha256
+            }
+
+            // WHEN
+            message.managedObjectContext?.zm_fileAssetCache.deleteAssetData(
+                message.nonce,
+                fileName: message.genericAssetMessage!.v3_fileCacheKey,
+                encrypted: true
+            )
+
+            // WHEN
+            ZMChangeTrackerBootstrap.bootStrapChangeTrackers(self.sut.contextChangeTrackers, on: self.syncMOC)
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+
+        // THEN
+        syncMOC.performGroupedBlock {
+            guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
+            XCTAssertEqual(assetData.uploaded.otrKey, otrKey)
+            XCTAssertEqual(assetData.uploaded.sha256, sha256)
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
     }
 
 // MARK: – Request Generation

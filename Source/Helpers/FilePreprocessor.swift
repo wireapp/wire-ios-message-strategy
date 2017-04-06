@@ -53,9 +53,7 @@ It creates an encrypted version from the plain text version
     }
     
     public func objectsDidChange(_ object: Set<NSManagedObject>) {
-        object.flatMap(fileAssetToPreprocess)
-            .filter { !self.objectsBeingProcessed.contains($0) }
-            .forEach { self.startProcessing($0) }
+        processObjects(object)
     }
     
     public func fetchRequestForTrackedObjects() -> NSFetchRequest<NSFetchRequestResult>? {
@@ -64,9 +62,13 @@ It creates an encrypted version from the plain text version
     }
     
     public func addTrackedObjects(_ objects: Set<NSManagedObject>) {
+        processObjects(objects)
+    }
+
+    private func processObjects(_ objects: Set<NSManagedObject>) {
         objects.flatMap(fileAssetToPreprocess)
-            .filter {!self.objectsBeingProcessed.contains($0)}
-            .forEach { self.startProcessing($0)}
+               .filter { !self.objectsBeingProcessed.contains($0) }
+               .forEach { self.startProcessing($0) }
     }
     
     /// Starts processing the asset client message
