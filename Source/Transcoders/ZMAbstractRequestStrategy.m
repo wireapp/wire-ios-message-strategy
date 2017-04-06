@@ -16,60 +16,55 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
+#import <Foundation/Foundation.h>
+#import <WireMessageStrategy/WireMessageStrategy-Swift.h>
 #import "ZMAbstractRequestStrategy.h"
 
-@interface ZMAbstractRequestStrategy()
-@property (nonatomic) NSManagedObjectContext *managedObjectContext;
-@property (nonatomic, weak) id<ZMAppStateDelegate> appStateDelegate;
-@end
+static NSString* ZMLogTag ZM_UNUSED = @"Request Configuration";
 
 @implementation ZMAbstractRequestStrategy
 
-- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext*)moc appStateDelegate:(id<ZMAppStateDelegate>)appStateDelegate
+- (instancetype)initWithManagedObjectContext:(NSManagedObjectContext *)managedObjectContext applicationStatus:(id<ZMApplicationStatus>)applicationStatus
 {
     self = [super init];
+    
     if (self != nil) {
-        self.appStateDelegate = appStateDelegate;
-        self.managedObjectContext = moc;
+        _managedObjectContext = managedObjectContext;
+        _applicationStatus = applicationStatus;
     }
+    
     return self;
 }
 
-- (ZMStrategyConfigurationOption)configuration
+/// Subclasses should override this method
+- (ZMTransportRequest *)nextRequestIfAllowed
 {
-    return ZMStrategyConfigurationOptionDoesNotAllowRequests;
+    return nil;
 }
 
 - (ZMTransportRequest *)nextRequest
 {
-    ZMAppState currentState = self.appStateDelegate.appState;
-    if (currentState == ZMAppStateUnauthenticated &&
-        (self.configuration & ZMStrategyConfigurationOptionAllowsRequestsWhileUnauthenticated) ==ZMStrategyConfigurationOptionAllowsRequestsWhileUnauthenticated)
-    {
+    if ([self configuration:self.configuration isSubsetOfPrerequisites:[AbstractRequestStrategy prerequisitesForApplicationStatus:self.applicationStatus]]) {
         return [self nextRequestIfAllowed];
     }
-    if (currentState == ZMAppStateSyncing &&
-        (self.configuration & ZMStrategyConfigurationOptionAllowsRequestsDuringSync) ==ZMStrategyConfigurationOptionAllowsRequestsDuringSync)
-    {
-        return [self nextRequestIfAllowed];
-    }
-    if (currentState == ZMAppStateEventProcessing &&
-        (self.configuration & ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing) ==ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing)
-    {
-        return [self nextRequestIfAllowed];
-    }
-    return nil;
- }
- 
-- (ZMTransportRequest *)nextRequestIfAllowed
-{
-    NSAssert(FALSE, @"Subclasses should override this method: [%@ %@]", NSStringFromClass([self class]), NSStringFromSelector(_cmd));
+    
     return nil;
 }
- 
-- (void)tearDown
+
+- (BOOL)configuration:(ZMStrategyConfigurationOption)configuration isSubsetOfPrerequisites:(ZMStrategyConfigurationOption)prerequisites
 {
-    // NO-OP
+    ZMStrategyConfigurationOption option = 0;
+    
+    for (NSUInteger index = 0; option <= ZMStrategyConfigurationOptionAllowsRequestsDuringEventProcessing; index++) {
+        option = 1 << index;
+        
+        if ((prerequisites & option) == option && (configuration & option) != option) {
+            ZMLogDebug(@"Not performing requests since option: %lu is not configured for (%@)", (unsigned long)option, NSStringFromClass(self.class));
+            return NO;
+        }
+    }
+    
+    return YES;
 }
 
 @end

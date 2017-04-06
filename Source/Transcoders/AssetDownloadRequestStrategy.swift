@@ -19,6 +19,7 @@
 
 import zimages
 import ZMTransport
+import WireRequestStrategy
 
 @objc public final class AssetDownloadRequestStrategyNotification: NSObject {
     public static let downloadFinishedNotificationName = "AssetDownloadRequestStrategyDownloadFinishedNotificationName"
@@ -26,15 +27,15 @@ import ZMTransport
     public static let downloadFailedNotificationName = "AssetDownloadRequestStrategyDownloadFailedNotificationName"
 }
 
-@objc public final class AssetDownloadRequestStrategy: ZMAbstractRequestStrategy, ZMDownstreamTranscoder, ZMContextChangeTrackerSource {
+@objc public final class AssetDownloadRequestStrategy: AbstractRequestStrategy, ZMDownstreamTranscoder, ZMContextChangeTrackerSource {
     
     fileprivate var assetDownstreamObjectSync: ZMDownstreamObjectSync!
-    override public var configuration: ZMStrategyConfigurationOption {
-        return [.allowsRequestsDuringEventProcessing]
-    }
     
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
+        
+        configuration = [.allowsRequestsDuringEventProcessing]
+        
         registerForCancellationNotification()
         
         let downstreamPredicate = NSPredicate(format: "transferState == %d AND visibleInConversation != nil AND version < 3", ZMFileTransferState.downloading.rawValue)
@@ -70,7 +71,7 @@ import ZMTransport
             guard let message = self.managedObjectContext.registeredObject(for: objectID) as? ZMAssetClientMessage else { return }
             guard message.version < 3 else { return }
             guard let identifier = message.associatedTaskIdentifier else { return }
-            self.appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
+            self.applicationStatus?.requestCancellation.cancelTask(with: identifier)
             message.associatedTaskIdentifier = nil
         }
     }

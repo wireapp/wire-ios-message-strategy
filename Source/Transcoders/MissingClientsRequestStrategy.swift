@@ -18,11 +18,7 @@
 
 
 import Foundation
-import ZMCSystem
-import ZMTransport
-import ZMUtilities
-import Cryptobox
-import ZMCDataModel
+import WireRequestStrategy
 
 private let zmLog = ZMSLog(tag: "Crypto")
 
@@ -48,15 +44,15 @@ public extension UserClient {
 
 // Register new client, update it with new keys, deletes clients.
 @objc
-public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMUpstreamTranscoder, ZMContextChangeTrackerSource, RequestStrategy {
+public final class MissingClientsRequestStrategy: AbstractRequestStrategy, ZMUpstreamTranscoder, ZMContextChangeTrackerSource {
     
-    override public var configuration : ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
     fileprivate(set) var modifiedSync: ZMUpstreamModifiedObjectSync! = nil
     public var requestsFactory = MissingClientsRequestFactory()
     
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
         
+        self.configuration =  [.allowsRequestsDuringEventProcessing, .allowsRequestsWhileInBackground]
         self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: UserClient.entityName(), update: modifiedPredicate(), filter: nil, keysToSync: [ZMUserClientMissingKey], managedObjectContext: managedObjectContext)
     }
     
@@ -111,7 +107,7 @@ public final class MissingClientsRequestStrategy: ZMAbstractRequestStrategy, ZMU
         else { fatal("no missing clients found") }
         
         let request = requestsFactory.fetchMissingClientKeysRequest(missing)
-        if let delegate = appStateDelegate?.confirmationDelegate, delegate.needsToSyncMessages {
+        if let delegate = applicationStatus?.deliveryConfirmation, delegate.needsToSyncMessages {
             request?.transportRequest.forceToVoipSession()
         }
         return request

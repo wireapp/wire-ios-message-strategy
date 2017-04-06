@@ -17,30 +17,12 @@
 // 
 
 
-#include "warnings.xcconfig"
-#include "project-common.xcconfig"
+CRYPTO_ROOT = $(PROJECT_DIR)/Carthage/Checkouts/cryptobox-ios/build
+CRYPTO_INCLUDE = $(CRYPTO_ROOT)/include
+CRYPTO_LIB = $(CRYPTO_ROOT)/lib
 
-// Build Options
-//
-DEBUG_INFORMATION_FORMAT = dwarf-with-dsym
-VALIDATE_PRODUCT = YES
-
-// Packaging
-//
-INFOPLIST_PREPROCESS = YES
-
-// Deployment
-//
-COPY_PHASE_STRIP = YES
+LIBRARY_SEARCH_PATHS = $(inherited)
+HEADER_SEARCH_PATHS = $(inherited) $(CRYPTO_INCLUDE)
 
 
-// LLVM - Preprocessing
-//
-GCC_PREPROCESSOR_DEFINITIONS = DEBUG=0 ZM_MAJOR_VERSION=$(MAJOR_VERSION) $(inherited) $(GCC_PREPROCESSOR_DEFINITIONS_shared)
-
-
-// Swift Compiler - Code Generation
-//
-// this causes a crash - must leave it commented for now
-// SWIFT_WHOLE_MODULE_OPTIMIZATION = YES
 

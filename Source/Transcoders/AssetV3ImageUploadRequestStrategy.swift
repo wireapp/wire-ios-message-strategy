@@ -96,15 +96,13 @@ extension ZMAssetClientMessage {
 /// user also downloaded a lot of files.
 /// After the image has been uploaded either the `Asset.Uploaded` generic message (in case of images), or the
 /// `Asset.Preview` generic message will be updated and the state of the message updated accordingly.
-public final class AssetV3ImageUploadRequestStrategy: ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
+public final class AssetV3ImageUploadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource {
 
     fileprivate let preprocessor: ZMImagePreprocessingTracker
     fileprivate let requestFactory = AssetRequestFactory()
     fileprivate var upstreamSync: ZMUpstreamModifiedObjectSync!
 
-    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
-    
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         preprocessor = ZMImagePreprocessingTracker(
             managedObjectContext: managedObjectContext,
             imageProcessingQueue: OperationQueue(),
@@ -113,7 +111,9 @@ public final class AssetV3ImageUploadRequestStrategy: ZMAbstractRequestStrategy,
             entityClass: ZMAssetClientMessage.self
         )
 
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
+        
+        configuration = [.allowsRequestsDuringEventProcessing]
 
         upstreamSync = ZMUpstreamModifiedObjectSync(
             transcoder: self,
@@ -138,7 +138,7 @@ extension AssetV3ImageUploadRequestStrategy: ZMContextChangeTracker {
 
     // we need to cancel the requests manually as the upstream modified object sync
     // will not pick up a change to keys which are already being synchronized (uploadState)
-    // when the user cancels a file upload
+    // WHEN the user cancels a file upload
     public func objectsDidChange(_ object: Set<NSManagedObject>) {
         let assetClientMessages = object.flatMap { object -> ZMAssetClientMessage? in
             guard let message = object as? ZMAssetClientMessage,
@@ -162,7 +162,7 @@ extension AssetV3ImageUploadRequestStrategy: ZMContextChangeTracker {
 
     fileprivate func cancelOutstandingUploadRequests(forMessage message: ZMAssetClientMessage) {
         guard let identifier = message.associatedTaskIdentifier else { return }
-        appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
+        applicationStatus?.requestCancellation.cancelTask(with: identifier)
     }
     
 }

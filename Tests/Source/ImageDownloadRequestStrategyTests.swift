@@ -18,26 +18,25 @@
 
 import Foundation
 @testable import WireMessageStrategy
+import XCTest
+import ZMCDataModel
 
-class ImageDownloadRequestStrategyTests: MessagingTest {
+class ImageDownloadRequestStrategyTests: MessagingTestBase {
     
-    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
+    fileprivate var mockApplicationStatus : MockApplicationStatus!
     fileprivate var sut : ImageDownloadRequestStrategy!
     
     override func setUp() {
         super.setUp()
         
-        self.mockAppStateDelegate = MockAppStateDelegate()
-        mockAppStateDelegate.mockAppState = .eventProcessing
-        self.sut = ImageDownloadRequestStrategy(managedObjectContext: self.syncMOC, appStateDelegate: self.mockAppStateDelegate)
-        
-        createSelfClient()
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
+        self.sut = ImageDownloadRequestStrategy(withManagedObjectContext: self.syncMOC, applicationStatus: mockApplicationStatus)
     }
     
     func createImageMessage(withAssetId assetId: UUID?) -> ZMAssetClientMessage {
         let conversation = ZMConversation.insertNewObject(in: syncMOC)
         conversation.remoteIdentifier = UUID.create()
-        
         let message = conversation.appendOTRMessage(withImageData: verySmallJPEGData(), nonce: UUID.create())
         
         let imageData = message.imageAssetStorage?.originalImageData()
@@ -92,7 +91,7 @@ class ImageDownloadRequestStrategyTests: MessagingTest {
     }
     
     func testRequestToDownloadAsset_whenAssetIdIsAvailable() {
-        // given
+        // GIVEN
         var assetId: UUID?
         var conversationId : UUID?
         
@@ -108,16 +107,16 @@ class ImageDownloadRequestStrategyTests: MessagingTest {
         
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
-        // when
+        // WHEN
         guard let request = self.sut.nextRequest() else { XCTFail(); return }
         
-        // then
+        // THEN
         XCTAssertNotNil(request)
         XCTAssertEqual(request.path, "/conversations/\(conversationId!.transportString())/otr/assets/\(assetId!.transportString())")
     }
     
     func testRequestToDownloadAssetIsNotCreated_whenAssetIdIsNotAvailable() {
-        // given
+        // GIVEN
         self.syncMOC.performGroupedBlock {
             let message = self.createImageMessage(withAssetId: nil)
             
@@ -128,25 +127,25 @@ class ImageDownloadRequestStrategyTests: MessagingTest {
         
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         
-        // when
+        // WHEN
         let request = self.sut.nextRequest()
         
-        // then
+        // THEN
         XCTAssertNil(request)
     }
     
     func testRequestToDownloadFileAssetIsNotCreated() {
         syncMOC.performGroupedBlock {
-            // given
+            // GIVEN
             let message = self.createFileMessage()
             message.transferState = .uploaded
             message.delivered = true
             message.assetId = UUID.create()
             
-            // when
+            // WHEN
             let request = self.sut.nextRequest()
             
-            // then
+            // THEN
             XCTAssertNil(request)
         }
         
@@ -155,17 +154,17 @@ class ImageDownloadRequestStrategyTests: MessagingTest {
     
     func testMessageImageDataIsUpdated_whenParsingAssetDownloadResponse() {
         self.syncMOC.performGroupedBlock {
-            // given
+            // GIVEN
             let imageData = self.verySmallJPEGData()
             let message = self.createImageMessage(withAssetId: UUID.create())
             message.isEncrypted = false
             let response = ZMTransportResponse(imageData: imageData, httpStatus: 200, transportSessionError: nil, headers: nil)
             
-            // when
+            // WHEN
             self.sut.update(message, with: response, downstreamSync: nil)
             let storedData = message.imageAssetStorage?.imageData(for: .medium, encrypted: false)
             
-            // then
+            // THEN
             XCTAssertEqual(storedData, imageData)
             
         }
@@ -175,13 +174,13 @@ class ImageDownloadRequestStrategyTests: MessagingTest {
     
     func testMessageIsDeleted_whenDownloadRequestFail() {
         self.syncMOC.performGroupedBlock { 
-            // given
+            // GIVEN
             let message = self.createImageMessage(withAssetId: UUID.create())
             
-            // when
+            // WHEN
             self.sut.delete(message, downstreamSync: nil)
             
-            // then
+            // THEN
             XCTAssertTrue(message.isDeleted)
         }
         

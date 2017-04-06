@@ -16,14 +16,28 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
-@import Foundation;
-@import ZMCDataModel;
+import Foundation
+import WireRequestStrategy
 
-@protocol ZMPushMessageHandler <NSObject>
+@objc(ZMSynchronizationState)
+public enum SynchronizationState : UInt {
+    case unauthenticated
+    case synchronizing
+    case eventProcessing
+}
 
-- (void)processGenericMessage:(ZMGenericMessage *)genericMessage;
-- (void)processMessage:(ZMMessage *)message;
-- (void)didFailToSentMessage:(ZMMessage *)message;
+@objc(ZMOperationState)
+public enum OperationState : UInt {
+    case background
+    case foreground
+}
 
-@end
-
+@objc(ZMApplicationStatus)
+public protocol ApplicationStatus : class {
+    var synchronizationState : SynchronizationState { get }
+    var operationState : OperationState { get }
+    
+    var clientRegistrationDelegate : ClientRegistrationDelegate { get }
+    var requestCancellation : ZMRequestCancellation { get }
+    var deliveryConfirmation : DeliveryConfirmationDelegate { get }
+}

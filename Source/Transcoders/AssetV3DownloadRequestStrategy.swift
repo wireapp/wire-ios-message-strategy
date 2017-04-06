@@ -19,20 +19,19 @@
 
 import zimages
 import ZMTransport
-
+import WireRequestStrategy
 
 fileprivate let zmLog = ZMSLog(tag: "Asset V3")
 
 
-@objc public final class AssetV3DownloadRequestStrategy: ZMAbstractRequestStrategy, ZMDownstreamTranscoder, ZMContextChangeTrackerSource {
+@objc public final class AssetV3DownloadRequestStrategy: AbstractRequestStrategy, ZMDownstreamTranscoder, ZMContextChangeTrackerSource {
 
     fileprivate var assetDownstreamObjectSync: ZMDownstreamObjectSync!
 
     private typealias DecryptionKeys = (otrKey: Data, sha256: Data)
-    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
     
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
 
         zmLog.debug("Asset V3 file download logging set up.")
         registerForCancellationNotification()
@@ -71,7 +70,7 @@ fileprivate let zmLog = ZMSLog(tag: "Asset V3")
             guard let message = self.managedObjectContext.registeredObject(for: objectID) as? ZMAssetClientMessage else { return }
             guard message.version == 3 else { return }
             guard let identifier = message.associatedTaskIdentifier else { return }
-            self.appStateDelegate?.taskCancellationDelegate.cancelTask(with: identifier)
+            self.applicationStatus?.requestCancellation.cancelTask(with: identifier)
             message.associatedTaskIdentifier = nil
         }
     }

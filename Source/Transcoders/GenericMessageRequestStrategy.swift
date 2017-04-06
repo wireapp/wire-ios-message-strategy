@@ -23,9 +23,10 @@ public class GenericMessageEntity : OTREntity {
     
     public var message : ZMGenericMessage
     public var conversation : ZMConversation?
-    public var completionHandler : (_ response: ZMTransportResponse) -> Void
+    public var completionHandler : ((_ response: ZMTransportResponse) -> Void)?
+    public var isExpired: Bool = false
     
-    init(conversation: ZMConversation, message: ZMGenericMessage, completionHandler: @escaping (_ response: ZMTransportResponse) -> Void) {
+    init(conversation: ZMConversation, message: ZMGenericMessage, completionHandler: ((_ response: ZMTransportResponse) -> Void)?) {
         self.conversation = conversation
         self.message = message
         self.completionHandler = completionHandler
@@ -37,6 +38,10 @@ public class GenericMessageEntity : OTREntity {
     
     public func missesRecipients(_ recipients: Set<UserClient>!) {
         // no-op
+    }
+    
+    public func expire() {
+        isExpired = true
     }
 }
 
@@ -52,6 +57,9 @@ extension GenericMessageEntity : EncryptedPayloadGenerator {
     
 }
 
+/// This should not be used as a standalone strategy but either subclassed or used within another
+/// strategy. Please have a look at `CallingRequestStrategy` and `GenericMessageNotificationRequestStrategy`
+/// before modifying the behaviour of this class.
 public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageEntity>, ZMRequestGenerator, ZMContextChangeTracker {
     
     private var sync : DependencyEntitySync<GenericMessageRequestStrategy>?
@@ -63,19 +71,28 @@ public class GenericMessageRequestStrategy : OTREntityTranscoder<GenericMessageE
         sync = DependencyEntitySync(transcoder: self, context: context)
     }
     
-    public func schedule(message: ZMGenericMessage, inConversation conversation: ZMConversation, completionHandler: @escaping (_ response: ZMTransportResponse) -> Void) {
+    public func schedule(message: ZMGenericMessage, inConversation conversation: ZMConversation, completionHandler: ((_ response: ZMTransportResponse) -> Void)?) {
         sync?.synchronize(entity: GenericMessageEntity(conversation: conversation, message: message, completionHandler: completionHandler))
         RequestAvailableNotification.notifyNewRequestsAvailable(nil)
+    }
+    
+    public func expireEntities(withDependency dependency: AnyObject) {
+        sync?.expireEntities(withDependency: dependency)
     }
     
     public override func request(forEntity entity: GenericMessageEntity) -> ZMTransportRequest? {
          return requestFactory.upstreamRequestForMessage(entity, forConversationWithId: entity.conversation!.remoteIdentifier!)
     }
     
+    public override func shouldTryToResend(entity: GenericMessageEntity, afterFailureWithResponse response: ZMTransportResponse) -> Bool {
+        entity.completionHandler?(response)
+        return super.shouldTryToResend(entity: entity, afterFailureWithResponse: response)
+    }
+    
     public override func request(forEntity entity: GenericMessageEntity, didCompleteWithResponse response: ZMTransportResponse) {
         super.request(forEntity: entity, didCompleteWithResponse: response)
         
-        entity.completionHandler(response)
+        entity.completionHandler?(response)
     }
     
     public func nextRequest() -> ZMTransportRequest? {

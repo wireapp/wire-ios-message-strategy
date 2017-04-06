@@ -19,11 +19,13 @@
 
 import Foundation
 @testable import WireMessageStrategy
+import WireRequestStrategy
+import XCTest
+import ZMCDataModel
 
+class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
 
-class AssetV3FileUploadRequestStrategyTests: MessagingTest {
-
-    fileprivate var mockAppStateDelegate : MockAppStateDelegate!
+    fileprivate var mockApplicationStatus : MockApplicationStatus!
     fileprivate var sut : AssetV3FileUploadRequestStrategy!
     fileprivate var conversation: ZMConversation!
     fileprivate var data: Data!
@@ -31,14 +33,13 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
 
     override func setUp() {
         super.setUp()
-        self.mockAppStateDelegate = MockAppStateDelegate()
-        mockAppStateDelegate.mockAppState = .eventProcessing
+        mockApplicationStatus = MockApplicationStatus()
+        mockApplicationStatus.mockSynchronizationState = .eventProcessing
 
-        sut = AssetV3FileUploadRequestStrategy(managedObjectContext: syncMOC, appStateDelegate: mockAppStateDelegate)
+        sut = AssetV3FileUploadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
         conversation = ZMConversation.insertNewObject(in: syncMOC)
         conversation.remoteIdentifier = UUID.create()
         testFileURL = testURLWithFilename("file.dat")
-        createSelfClient()
     }
 
     // MARK: - Helpers
@@ -91,73 +92,73 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
 // MARK: – Request Generation
 
     func testThatItDoesNotGenerateARequestIfTheUploadedStateIsWrong() {
-        // given
+        // GIVEN
         let message = createFileMessage()
         prepareUpload(of: message)
 
-        // when
+        // WHEN
         message.uploadState = .done
         syncMOC.saveOrRollback()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // then
+        // THEN
         XCTAssertNil(sut.nextRequest())
     }
 
     func testThatItDoesNotGenerateARequestIfTheTransferStateIsWrong() {
-        // given
+        // GIVEN
         let message = createFileMessage()
         prepareUpload(of: message)
 
-        // when
+        // WHEN
         message.transferState = .downloaded
         syncMOC.saveOrRollback()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // then
+        // THEN
         XCTAssertNil(sut.nextRequest())
     }
 
     func testThatItDoesNotGenerateARequestIfTheStatesAreCorrectButTheFileIsNotPreprocessed() {
-        // given
+        // GIVEN
         let message = createFileMessage()
 
-        // when
+        // WHEN
         message.transferState = .uploading
         message.uploadState = .uploadingFullAsset
 
         syncMOC.saveOrRollback()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // then
+        // THEN
         XCTAssertNil(sut.nextRequest())
     }
 
     func testThatItDoesGenerateARequestIfTheStatesAreCorrectAndTheFileIsPreprocessed() {
-        // given
+        // GIVEN
         let message = createFileMessage()
 
-        // when
+        // WHEN
         prepareUpload(of: message)
         syncMOC.saveOrRollback()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // then
+        // THEN
         guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
         XCTAssertEqual(request.path, "/assets/v3")
         XCTAssertEqual(request.method, .methodPOST)
     }
 
     func testThatItGeneratesARequestForAnEphemeralV3FileMessage() {
-        // given
+        // GIVEN
         let message = createFileMessage(ephemeral: true)
 
-        // when
+        // WHEN
         prepareUpload(of: message)
         syncMOC.saveOrRollback()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // then
+        // THEN
         guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
         XCTAssertEqual(request.path, "/assets/v3")
         XCTAssertEqual(request.method, .methodPOST)
@@ -182,7 +183,7 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
     }
 
     func assertThatItUpdatesTheAssetIdFromTheResponse(includeToken: Bool = false, ephemeral: Bool = false, line: UInt = #line) {
-        // given
+        // GIVEN
         let message = createFileMessage(ephemeral: ephemeral)
         let (assetKey, token) = (UUID.create().transportString(), UUID.create().transportString())
 
@@ -190,7 +191,7 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
         syncMOC.saveOrRollback()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // when
+        // WHEN
         guard let request = sut.nextRequest() else { return XCTFail("No request generated", line: line) }
         XCTAssertEqual(request.path, "/assets/v3", line: line)
         XCTAssertEqual(request.method, .methodPOST, line: line)
@@ -203,7 +204,7 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
         request.complete(with: response)
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // then
+        // THEN
         guard let uploaded = message.genericAssetMessage?.assetData?.uploaded else { return XCTFail("No uploaded message", line: line) }
         XCTAssertTrue(uploaded.hasOtrKey(), line: line)
         XCTAssertTrue(uploaded.hasSha256(), line: line)
@@ -216,13 +217,13 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
     }
 
     func testThatItSetsTheStateToUploadingFailedAndAddsAssetNotUploadedWhenTheRequestFails() {
-        // given
+        // GIVEN
         let message = createFileMessage()
         prepareUpload(of: message)
         syncMOC.saveOrRollback()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // when
+        // WHEN
         guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
         XCTAssertEqual(request.path, "/assets/v3")
         XCTAssertEqual(request.method, .methodPOST)
@@ -231,7 +232,7 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTest {
         request.complete(with: response)
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        // then
+        // THEN
         guard let asset = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
         XCTAssertTrue(asset.hasNotUploaded())
         XCTAssertFalse(asset.uploaded.hasAssetId())

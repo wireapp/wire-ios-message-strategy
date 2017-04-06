@@ -19,18 +19,18 @@
 
 import zimages
 import ZMTransport
+import WireRequestStrategy
 
 
 private let zmLog = ZMSLog(tag: "AssetPreviewDownloading")
 
 
-@objc public final class AssetV3PreviewDownloadRequestStrategy: ZMAbstractRequestStrategy, ZMContextChangeTrackerSource {
+@objc public final class AssetV3PreviewDownloadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource {
 
     fileprivate var downstreamSync: ZMDownstreamObjectSyncWithWhitelist!
-    override public var configuration: ZMStrategyConfigurationOption { return [.allowsRequestsDuringEventProcessing]}
-
-    public override init(managedObjectContext: NSManagedObjectContext, appStateDelegate: ZMAppStateDelegate) {
-        super.init(managedObjectContext: managedObjectContext, appStateDelegate: appStateDelegate)
+    
+    public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+        super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
 
         let filter = NSPredicate { object, _ in
             guard let message = object as? ZMAssetClientMessage, nil != message.fileMessageData else { return false }
