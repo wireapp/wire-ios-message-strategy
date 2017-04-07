@@ -39,7 +39,7 @@ class AssetV3PreviewDownloadRequestStrategyTests: MessagingTestBase {
         mockApplicationStatus = MockApplicationStatus()
         mockApplicationStatus.mockSynchronizationState = .eventProcessing
         self.syncMOC.performGroupedBlockAndWait {
-            self.sut = AssetV3PreviewDownloadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
+            self.sut = AssetV3PreviewDownloadRequestStrategy(withManagedObjectContext: self.syncMOC, applicationStatus: self.mockApplicationStatus)
             self.conversation = self.createConversation()
         }
     }
@@ -113,7 +113,7 @@ class AssetV3PreviewDownloadRequestStrategyTests: MessagingTestBase {
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
-            sefl.mockApplicationStatus.mockSynchronizationState = .unauthenticated
+            self.mockApplicationStatus.mockSynchronizationState = .unauthenticated
             let _ = self.createMessage(in: self.conversation)
             
             // THEN

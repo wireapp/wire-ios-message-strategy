@@ -46,8 +46,8 @@ class AssetDownloadRequestStrategyTests: MessagingTestBase {
         mockApplicationStatus = MockApplicationStatus()
         mockApplicationStatus.mockSynchronizationState = .eventProcessing
         self.syncMOC.performGroupedBlockAndWait {
-            sut = AssetDownloadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
-            conversation = createConversation()
+            self.sut = AssetDownloadRequestStrategy(withManagedObjectContext: self.syncMOC, applicationStatus: self.mockApplicationStatus)
+            self.conversation = self.createConversation()
 	}
     }
     
@@ -71,8 +71,6 @@ class AssetDownloadRequestStrategyTests: MessagingTestBase {
         sut.contextChangeTrackers.forEach { tracker in
             tracker.objectsDidChange(Set(arrayLiteral: message))
         }
-
-        XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
     }
 }
 
@@ -89,7 +87,7 @@ extension AssetDownloadRequestStrategyTests {
         self.syncMOC.performGroupedBlockAndWait {
 
             // GIVEN
-            self.authStatus.mockClientIsReadyForRequests = false
+            self.mockApplicationStatus.mockSynchronizationState = .unauthenticated
             let _ = self.createFileTransferMessage(self.conversation)
             
             // WHEN

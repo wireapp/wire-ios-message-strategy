@@ -37,8 +37,7 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
         mockApplicationStatus.mockSynchronizationState = .eventProcessing
 
         self.syncMOC.performGroupedBlockAndWait {
-            self.sut = AssetV3FileUploadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
-            self.sut = AssetV3FileUploadRequestStrategy(clientRegistrationStatus: self.registrationStatus, taskCancellationProvider: self.cancellationProvider, managedObjectContext: self.syncMOC)
+            self.sut = AssetV3FileUploadRequestStrategy(withManagedObjectContext: self.syncMOC, applicationStatus: self.mockApplicationStatus)
             self.conversation = ZMConversation.insertNewObject(in: self.syncMOC)
             self.conversation.remoteIdentifier = UUID.create()
         }

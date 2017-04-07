@@ -31,11 +31,7 @@ class MissingClientsRequestStrategyTests: MessagingTestBase {
     var validPrekey: String {
         return try! self.selfClient.keysStore.lastPreKey()
     }
-    
-    var validPrekey: String {
-        return try! self.selfClient.keysStore.lastPreKey()
-    }
-    
+        
     override func setUp() {
         super.setUp()
         
