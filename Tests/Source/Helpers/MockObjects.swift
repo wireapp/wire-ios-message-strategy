@@ -20,7 +20,7 @@
 import Foundation
 import WireRequestStrategy
 import WireMessageStrategy
-import ZMCDataModel
+import WireDataModel
 
 public class MockApplicationStatus : NSObject, ApplicationStatus {
     

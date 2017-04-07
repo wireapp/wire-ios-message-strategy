@@ -19,20 +19,18 @@
 import Foundation
 import XCTest
 import WireMessageStrategy
-import ZMCDataModel
+import WireDataModel
 
 extension ClientMessageTranscoderTests {
     
     func recreateSut() {
         self.sut  = ClientMessageTranscoder(in: self.syncMOC, localNotificationDispatcher: self.localNotificationDispatcher, applicationStatus: mockApplicationStatus)
-//        self.sut = ClientMessageTranscoder(in: self.syncMOC, localNotificationDispatcher: self.localNotificationDispatcher, clientRegistrationStatus: self.clientRegistrationStatus, apnsConfirmationStatus: self.confirmationStatus)
     }
     
     func testThatItDoesNotObfuscatesEphemeralMessagesOnStart_SenderSelfUser_TimeNotPassed() {
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
-//            self.sut.tearDown()
             self.sut = nil
             self.groupConversation.messageDestructionTimeout = 10
             let message = self.groupConversation.appendMessage(withText: "Foo")! as! ZMClientMessage
@@ -63,7 +61,6 @@ extension ClientMessageTranscoderTests {
         }
         
         // WHEN
-//        self.sut.tearDown()
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         self.recreateSut()
         XCTAssertTrue(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
@@ -89,7 +86,6 @@ extension ClientMessageTranscoderTests {
             let event = self.decryptedUpdateEventFromOtherClient(message: generic)
             self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
             self.syncMOC.saveOrRollback()
-//            self.sut.tearDown()
         }
         XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
     
@@ -104,10 +100,14 @@ extension ClientMessageTranscoderTests {
         
         // WHEN
         self.spinMainQueue(withTimeout: 8)
-        self.syncMOC.refreshAllObjects()
+        self.syncMOC.performGroupedBlockAndWait {
+            self.syncMOC.refreshAllObjects()
+        }
         self.recreateSut()
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-        self.syncMOC.saveOrRollback()
+        self.syncMOC.performGroupedBlockAndWait {
+            self.syncMOC.saveOrRollback()
+        }
         
         // THEN
         self.uiMOC.refreshAllObjects()
@@ -125,7 +125,6 @@ extension ClientMessageTranscoderTests {
             let event = self.decryptedUpdateEventFromOtherClient(message: generic)
             self.sut.processEvents([event], liveEvents: true, prefetchResult: nil)
             self.syncMOC.saveOrRollback()
-//            self.sut.tearDown()
         }
         XCTAssertTrue(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         

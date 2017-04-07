@@ -21,7 +21,7 @@ import Foundation
 @testable import WireMessageStrategy
 import WireRequestStrategy
 import XCTest
-import ZMCDataModel
+import WireDataModel
 
 class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
 
@@ -36,10 +36,13 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
         mockApplicationStatus = MockApplicationStatus()
         mockApplicationStatus.mockSynchronizationState = .eventProcessing
 
-        sut = AssetV3FileUploadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
-        conversation = ZMConversation.insertNewObject(in: syncMOC)
-        conversation.remoteIdentifier = UUID.create()
-        testFileURL = testURLWithFilename("file.dat")
+        self.syncMOC.performGroupedBlockAndWait {
+            self.sut = AssetV3FileUploadRequestStrategy(withManagedObjectContext: syncMOC, applicationStatus: mockApplicationStatus)
+            self.sut = AssetV3FileUploadRequestStrategy(clientRegistrationStatus: self.registrationStatus, taskCancellationProvider: self.cancellationProvider, managedObjectContext: self.syncMOC)
+            self.conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            self.conversation.remoteIdentifier = UUID.create()
+        }
+        self.testFileURL = self.testURLWithFilename("file.dat")
     }
 
     // MARK: - Helpers
@@ -84,84 +87,152 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
         message.uploadState = .uploadingFullAsset
 
         ZMChangeTrackerBootstrap.bootStrapChangeTrackers(sut.contextChangeTrackers, on: syncMOC)
+        XCTAssertNotNil(syncMOC.zm_fileAssetCache.assetData(message.nonce, fileName: message.fileMessageData!.filename, encrypted: true))
+    }
+
+// MARK: Preprocessing
+
+
+    // In very rare cases it happened that file messages (sent using the /assets/v3 endpoint) could not be decrypted on the receiving side,
+    // this only happened for file messages and not images (which are also files and sent using the same endpoint, but by a different RequestStrategy). 
+    // The odd thing to note here is was 100% reproducibly which specific files on specific devices, the sha256 did not match the file data. 
+    // The underlying bug was, that the FilePreprocessor, which encrypts the file, updates the generic message with the otrKey and sha256 had 
+    // a wrong predicate. The predicate did not check if there already were encryption keys in the generic message and would thus preprocess the file again.
+    // This means that in specific cases the file gets preprocessed and the encrypted binary data gets uploaded to /assets/v3/ while in the meantime the
+    // file preprocessor might encrypt the file again and update the generic message data with the new keys, which won't match the uploaded data. 
+    // The message sent to the receiving clients thus could contain encryption keys which would not match the data they would download from /assets/v3.
+    func testThatItDoesPreprocessTheFileOnlyOnce() {
+        var message: ZMAssetClientMessage!
+        var otrKey: Data!
+        var sha256: Data!
+
+        syncMOC.performGroupedBlock {
+            // GIVEN
+            message = self.createFileMessage()
+            message.transferState = .uploading
+            message.uploadState = .uploadingFullAsset
+
+            do {
+                guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
+                XCTAssertFalse(assetData.uploaded.hasOtrKey())
+                XCTAssertFalse(assetData.uploaded.hasSha256())
+            }
+
+            // WHEN
+            ZMChangeTrackerBootstrap.bootStrapChangeTrackers(self.sut.contextChangeTrackers, on: self.syncMOC)
+
+            do {
+                // THEN
+                guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
+                XCTAssertTrue(assetData.uploaded.hasOtrKey())
+                XCTAssertTrue(assetData.uploaded.hasSha256())
+                otrKey = assetData.uploaded.otrKey
+                sha256 = assetData.uploaded.sha256
+            }
+
+            // WHEN
+            // As soon as the upload to `/assets/v3` succeds, we delete the encrypted data.
+            // This previously triggered the preprocessor again.
+            message.managedObjectContext?.zm_fileAssetCache.deleteAssetData(
+                message.nonce,
+                fileName: message.genericAssetMessage!.v3_fileCacheKey,
+                encrypted: true
+            )
+
+            // WHEN
+            ZMChangeTrackerBootstrap.bootStrapChangeTrackers(self.sut.contextChangeTrackers, on: self.syncMOC)
+        }
+
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
 
-        XCTAssertNotNil(syncMOC.zm_fileAssetCache.assetData(message.nonce, fileName: message.fileMessageData!.filename, encrypted: true))
+        // THEN
+        syncMOC.performGroupedBlock {
+            guard let assetData = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
+            XCTAssertEqual(assetData.uploaded.otrKey, otrKey)
+            XCTAssertEqual(assetData.uploaded.sha256, sha256)
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
     }
 
 // MARK: – Request Generation
 
     func testThatItDoesNotGenerateARequestIfTheUploadedStateIsWrong() {
-        // GIVEN
-        let message = createFileMessage()
-        prepareUpload(of: message)
-
-        // WHEN
-        message.uploadState = .done
-        syncMOC.saveOrRollback()
-        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // THEN
-        XCTAssertNil(sut.nextRequest())
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let message = self.createFileMessage()
+            self.prepareUpload(of: message)
+            
+            // WHEN
+            message.uploadState = .done
+            self.syncMOC.saveOrRollback()
+            
+            // THEN
+            XCTAssertNil(self.sut.nextRequest())
+        }
     }
 
     func testThatItDoesNotGenerateARequestIfTheTransferStateIsWrong() {
-        // GIVEN
-        let message = createFileMessage()
-        prepareUpload(of: message)
-
-        // WHEN
-        message.transferState = .downloaded
-        syncMOC.saveOrRollback()
-        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // THEN
-        XCTAssertNil(sut.nextRequest())
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let message = self.createFileMessage()
+            self.prepareUpload(of: message)
+            
+            // WHEN
+            message.transferState = .downloaded
+            
+            // THEN
+            XCTAssertNil(self.sut.nextRequest())
+        }
     }
 
     func testThatItDoesNotGenerateARequestIfTheStatesAreCorrectButTheFileIsNotPreprocessed() {
-        // GIVEN
-        let message = createFileMessage()
-
-        // WHEN
-        message.transferState = .uploading
-        message.uploadState = .uploadingFullAsset
-
-        syncMOC.saveOrRollback()
-        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // THEN
-        XCTAssertNil(sut.nextRequest())
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let message = self.createFileMessage()
+            
+            // WHEN
+            message.transferState = .uploading
+            message.uploadState = .uploadingFullAsset
+            
+            // THEN
+            XCTAssertNil(self.sut.nextRequest())
+        }
     }
 
     func testThatItDoesGenerateARequestIfTheStatesAreCorrectAndTheFileIsPreprocessed() {
-        // GIVEN
-        let message = createFileMessage()
-
-        // WHEN
-        prepareUpload(of: message)
-        syncMOC.saveOrRollback()
-        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // THEN
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-        XCTAssertEqual(request.path, "/assets/v3")
-        XCTAssertEqual(request.method, .methodPOST)
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let message = self.createFileMessage()
+            
+            // WHEN
+            self.prepareUpload(of: message)
+            
+            // THEN
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
+            XCTAssertEqual(request.path, "/assets/v3")
+            XCTAssertEqual(request.method, .methodPOST)
+        }
     }
 
     func testThatItGeneratesARequestForAnEphemeralV3FileMessage() {
-        // GIVEN
-        let message = createFileMessage(ephemeral: true)
-
-        // WHEN
-        prepareUpload(of: message)
-        syncMOC.saveOrRollback()
-        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // THEN
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-        XCTAssertEqual(request.path, "/assets/v3")
-        XCTAssertEqual(request.method, .methodPOST)
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            // GIVEN
+            let message = self.createFileMessage(ephemeral: true)
+            
+            // WHEN
+            self.prepareUpload(of: message)
+            
+            // THEN
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
+            XCTAssertEqual(request.path, "/assets/v3")
+            XCTAssertEqual(request.method, .methodPOST)
+        }
     }
 
     // MARK: Response Parsing
@@ -184,59 +255,76 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
 
     func assertThatItUpdatesTheAssetIdFromTheResponse(includeToken: Bool = false, ephemeral: Bool = false, line: UInt = #line) {
         // GIVEN
-        let message = createFileMessage(ephemeral: ephemeral)
+        var message: ZMAssetClientMessage!
         let (assetKey, token) = (UUID.create().transportString(), UUID.create().transportString())
-
-        prepareUpload(of: message)
-        syncMOC.saveOrRollback()
-        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
-        // WHEN
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated", line: line) }
-        XCTAssertEqual(request.path, "/assets/v3", line: line)
-        XCTAssertEqual(request.method, .methodPOST, line: line)
-
-        var payload = ["key": assetKey]
-        if includeToken {
-            payload["token"] = token
+        self.syncMOC.performGroupedBlockAndWait {
+            message = self.createFileMessage(ephemeral: ephemeral)
+            self.prepareUpload(of: message)
+            self.syncMOC.saveOrRollback()
         }
-        let response = ZMTransportResponse(payload: payload as ZMTransportData, httpStatus: 201, transportSessionError: nil)
-        request.complete(with: response)
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
+        
+        // WHEN
+        self.syncMOC.performGroupedBlockAndWait {
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated", line: line) }
+            XCTAssertEqual(request.path, "/assets/v3", line: line)
+            XCTAssertEqual(request.method, .methodPOST, line: line)
+            
+            var payload = ["key": assetKey]
+            if includeToken {
+                payload["token"] = token
+            }
+            let response = ZMTransportResponse(payload: payload as ZMTransportData, httpStatus: 201, transportSessionError: nil)
+            request.complete(with: response)
+        }
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
+        
         // THEN
-        guard let uploaded = message.genericAssetMessage?.assetData?.uploaded else { return XCTFail("No uploaded message", line: line) }
-        XCTAssertTrue(uploaded.hasOtrKey(), line: line)
-        XCTAssertTrue(uploaded.hasSha256(), line: line)
-        XCTAssertTrue(uploaded.hasAssetId(), line: line)
-        XCTAssertEqual(uploaded.hasAssetToken(), includeToken, line: line)
-        XCTAssertEqual(uploaded.assetId, assetKey, line: line)
-        if includeToken {
-            XCTAssertEqual(uploaded.assetToken, token, line: line)
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            guard let uploaded = message.genericAssetMessage?.assetData?.uploaded else { return XCTFail("No uploaded message", line: line) }
+            XCTAssertTrue(uploaded.hasOtrKey(), line: line)
+            XCTAssertTrue(uploaded.hasSha256(), line: line)
+            XCTAssertTrue(uploaded.hasAssetId(), line: line)
+            XCTAssertEqual(uploaded.hasAssetToken(), includeToken, line: line)
+            XCTAssertEqual(uploaded.assetId, assetKey, line: line)
+            if includeToken {
+                XCTAssertEqual(uploaded.assetToken, token, line: line)
+            }
         }
     }
 
     func testThatItSetsTheStateToUploadingFailedAndAddsAssetNotUploadedWhenTheRequestFails() {
         // GIVEN
-        let message = createFileMessage()
-        prepareUpload(of: message)
-        syncMOC.saveOrRollback()
+        var message: ZMAssetClientMessage!
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            message = self.createFileMessage()
+            self.prepareUpload(of: message)
+            self.syncMOC.saveOrRollback()
+        }
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
+        
         // WHEN
-        guard let request = sut.nextRequest() else { return XCTFail("No request generated") }
-        XCTAssertEqual(request.path, "/assets/v3")
-        XCTAssertEqual(request.method, .methodPOST)
-
-        let response = ZMTransportResponse(payload: nil, httpStatus: 400, transportSessionError: nil)
-        request.complete(with: response)
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
+            XCTAssertEqual(request.path, "/assets/v3")
+            XCTAssertEqual(request.method, .methodPOST)
+            
+            let response = ZMTransportResponse(payload: nil, httpStatus: 400, transportSessionError: nil)
+            request.complete(with: response)
+        }
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5))
-
+        
         // THEN
-        guard let asset = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
-        XCTAssertTrue(asset.hasNotUploaded())
-        XCTAssertFalse(asset.uploaded.hasAssetId())
-        XCTAssertEqual(message.uploadState, .uploadingFailed)
+        self.syncMOC.performGroupedBlockAndWait {
+            
+            guard let asset = message.genericAssetMessage?.assetData else { return XCTFail("No asset data") }
+            XCTAssertTrue(asset.hasNotUploaded())
+            XCTAssertFalse(asset.uploaded.hasAssetId())
+            XCTAssertEqual(message.uploadState, .uploadingFailed)
+        }
     }
 
 }

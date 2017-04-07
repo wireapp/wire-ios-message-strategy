@@ -20,7 +20,7 @@
 import Foundation
 @testable import WireMessageStrategy
 import XCTest
-import ZMCDataModel
+import WireDataModel
 
 private let testDataURL = Bundle(for: AssetV3DownloadRequestStrategyTests.self).url(forResource: "Lorem Ipsum", withExtension: "txt")!
 
@@ -246,28 +246,30 @@ extension AssetV3DownloadRequestStrategyTests {
 
     func testThatItMarksDownloadAsFailedIfCannotDownload_CannotDecrypt_V3() {
         var message : ZMMessage!
-
+        var request: ZMTransportRequest?
         self.syncMOC.performGroupedBlockAndWait {
-
+            
             // GIVEN
             let (msg, _, _) = self.createFileMessageWithAssetId(in: self.conversation)!
             message = msg
+            
+            request = self.sut.nextRequest()
         }
         
-        guard let request = self.sut.nextRequest() else {
-            return XCTFail("Did not create request")
-        }
-        let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 200, transportSessionError: .none)
-
+            
         // WHEN
         self.performIgnoringZMLogError {
-            request.complete(with: response)
+            self.syncMOC.performGroupedBlockAndWait {
+                let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 200, transportSessionError: .none)
+                request?.complete(with: response)
+            }
             XCTAssert(self.waitForAllGroupsToBeEmpty(withTimeout: 0.5))
         }
         
-        // THEN
-        XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
-        
+            // THEN
+        self.syncMOC.performGroupedBlockAndWait {
+            XCTAssertEqual(message.fileMessageData?.transferState.rawValue, ZMFileTransferState.failedDownload.rawValue)
+        }
     }
 
     func testThatItDoesNotMarkDownloadAsFailedWhenNotDownloading_V3() {
@@ -442,6 +444,7 @@ extension AssetV3DownloadRequestStrategyTests {
 
     func testThatItInformsTheTaskCancellationProviderToCancelARequestForAnAssetMessageWhenItReceivesTheNotification_V3() {
         var message : ZMAssetClientMessage!
+        var identifier: ZMTaskIdentifier?
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
@@ -457,7 +460,9 @@ extension AssetV3DownloadRequestStrategyTests {
         }
         XCTAssert(waitForAllGroupsToBeEmpty(withTimeout:0.5))
 
-        let identifier = message.associatedTaskIdentifier
+        self.syncMOC.performGroupedBlockAndWait {
+            identifier = message.associatedTaskIdentifier
+        }
         XCTAssertNotNil(identifier)
 
         // WHEN the transfer is cancelled

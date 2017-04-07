@@ -38,8 +38,6 @@ class ClientMessageTranscoderTests: MessagingTestBase {
     override func tearDown() {
         self.localNotificationDispatcher = nil
         self.mockApplicationStatus = nil
-        
-//        self.sut.tearDown()
         self.sut = nil
         
         super.tearDown()

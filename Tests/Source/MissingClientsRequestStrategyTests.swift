@@ -18,15 +18,19 @@
 
 import XCTest
 @testable import WireMessageStrategy
-import ZMUtilities
-import ZMTesting
-import ZMCDataModel
+import WireUtilities
+import WireTesting
+import WireDataModel
 import WireRequestStrategy
 
 class MissingClientsRequestStrategyTests: MessagingTestBase {
 
     var sut: MissingClientsRequestStrategy!
     var mockApplicationStatus : MockApplicationStatus!
+    
+    var validPrekey: String {
+        return try! self.selfClient.keysStore.lastPreKey()
+    }
     
     var validPrekey: String {
         return try! self.selfClient.keysStore.lastPreKey()

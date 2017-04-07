@@ -16,7 +16,7 @@
 // along with this program. If not, see http://www.gnu.org/licenses/.
 //
 
-import ZMCDataModel
+import WireDataModel
 @testable import WireMessageStrategy
 import XCTest
 
@@ -36,12 +36,19 @@ class MockOTREntity : OTREntity {
     var isMissingClients = false
     var didCallHandleClientUpdates = false
     
-    var dependentObjectNeedingUpdateBeforeProcessing: AnyObject?
+    var dependentObjectNeedingUpdateBeforeProcessing: AnyHashable?
     
     init(conversation: ZMConversation) {
         self.conversation = conversation
     }
     
+    var hashValue: Int {
+        return self.conversation!.hashValue
+    }
+}
+
+func ==(lhs: MockOTREntity, rhs: MockOTREntity) -> Bool {
+    return lhs === rhs
 }
 
 class OTREntityTranscoderTests : MessagingTestBase {

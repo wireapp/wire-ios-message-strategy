@@ -18,15 +18,17 @@
 
 
 import Foundation
-import ZMCDataModel
+import WireDataModel
+
+private let zmLog = ZMSLog(tag: "Dependencies")
 
 // MARK: - Dependent objects
 extension ZMOTRMessage: OTREntity {
 
     /// Which object this message depends on when sending
-    override public var dependentObjectNeedingUpdateBeforeProcessing: AnyObject? {
-        return self.dependentObjectNeedingUpdateBeforeProcessingOTREntity()
-            ?? super.dependentObjectNeedingUpdateBeforeProcessing
+    override public var dependentObjectNeedingUpdateBeforeProcessing: AnyHashable? {
+        let dependent: AnyHashable? = self.dependentObjectNeedingUpdateBeforeProcessingOTREntity()
+        return dependent ?? super.dependentObjectNeedingUpdateBeforeProcessing
     }
 }
 
@@ -40,13 +42,15 @@ private protocol BlockingMessage {
 extension ZMMessage {
     
     /// Which object this message depends on when sending
-    public var dependentObjectNeedingUpdateBeforeProcessing: AnyObject? {
+    public var dependentObjectNeedingUpdateBeforeProcessing: AnyHashable? {
         
         // conversation not created yet on the BE?
         guard let conversation = self.conversation else { return nil }
         
         if conversation.remoteIdentifier == nil {
+            zmLog.debug("conversation has no remote identifier")
             return conversation
+
         }
         
         // Messages should time out within 1 minute. But image messages never time out. In case there is a bug

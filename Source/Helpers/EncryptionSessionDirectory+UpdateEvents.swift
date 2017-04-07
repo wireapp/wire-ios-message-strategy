@@ -17,8 +17,8 @@
 //
 
 import Foundation
-import ZMCSystem
-import Cryptobox
+import WireSystem
+import WireCryptobox
 import WireRequestStrategy
 
 private let zmLog = ZMSLog(tag: "cryptobox")
@@ -51,14 +51,22 @@ extension EncryptionSessionsDirectory {
         // decrypt
         let createdNewSession : Bool
         let decryptedEvent : ZMUpdateEvent
+        
+        func fail(error: CBoxResult? = nil) {
+            if senderClient.isInserted {
+                selfUser.selfClient()?.addNewClientToIgnored(senderClient)
+            }
+            self.appendFailedToDecryptMessage(after: error, for: event, sender: senderClient, in: moc)
+        }
+        
         do {
             guard let result = try self.decryptedUpdateEvent(for: event, sender: senderClient) else {
-                self.appendFailedToDecryptMessage(after: nil, for: event, sender: senderClient, in: moc)
+                fail()
                 return nil
             }
             (createdNewSession, decryptedEvent) = result
         } catch let error as CBoxResult {
-            self.appendFailedToDecryptMessage(after: error, for: event, sender: senderClient, in: moc)
+            fail(error: error)
             return nil
         } catch {
             fatalError("Unknown error in decrypting payload, \(error)")
@@ -78,7 +86,7 @@ extension EncryptionSessionsDirectory {
     
     /// Appends a system message for a failed decryption
     fileprivate func appendFailedToDecryptMessage(after error: CBoxResult?, for event: ZMUpdateEvent, sender: UserClient, in moc: NSManagedObjectContext) {
-        zmLog.error("Failed to decrypt message with error: \(error), client id \(sender.remoteIdentifier!), event debug: \(event.debugInformation ?? "")")
+        zmLog.error("Failed to decrypt message with error: \(String(describing: error)), client id \(sender.remoteIdentifier!), event debug: \(event.debugInformation ?? "")")
         if error == CBOX_OUTDATED_MESSAGE || error == CBOX_DUPLICATE_MESSAGE {
             return // do not notify the user if the error is just "duplicated"
         }

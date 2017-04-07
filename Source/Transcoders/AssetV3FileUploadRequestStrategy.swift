@@ -42,12 +42,22 @@ extension ZMAssetClientMessage {
     var v3_isReadyToUploadFile: Bool {
         let assetData = genericAssetMessage?.assetData
         return fileMessageData != nil
-            && [.uploading, .failedUpload, .cancelledUpload].contains(transferState)
             && uploadState == .uploadingFullAsset
             && transferState == .uploading
             && assetData?.hasUploaded() == true && assetData?.uploaded.hasAssetId() == false
             && (assetData?.uploaded.otrKey.count ?? 0) > 0
             && assetData?.original.hasImage() == false
+    }
+
+    /// We want to preprocess (encrypt) files when they are version 3, have the correct uploadState
+    /// and have not yet been preprocessed before (don't have an otrKey in their asset data yet).
+    static var v3_needsPreprocessingFilter: NSPredicate {
+        return NSPredicate { (obj, _) in
+            guard let message = obj as? ZMAssetClientMessage else { return false }
+            return message.version == 3
+                && message.uploadState == .uploadingFullAsset
+                && message.genericAssetMessage?.assetData?.uploaded.hasOtrKey() == false
+        }
     }
 
 }
@@ -58,12 +68,10 @@ public final class AssetV3FileUploadRequestStrategy: AbstractRequestStrategy, ZM
     fileprivate let requestFactory = AssetRequestFactory()
     fileprivate var upstreamSync: ZMUpstreamModifiedObjectSync!
     fileprivate var filePreprocessor : FilePreprocessor
-
     fileprivate var assetAnalytics: AssetAnalytics
-    
+
     public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
-        let filter = NSPredicate(format: "version == 3 && uploadState == %d", ZMAssetUploadState.uploadingFullAsset.rawValue)
-        filePreprocessor = FilePreprocessor(managedObjectContext: managedObjectContext, filter: filter)
+        filePreprocessor = FilePreprocessor(managedObjectContext: managedObjectContext, filter: ZMAssetClientMessage.v3_needsPreprocessingFilter)
         assetAnalytics = AssetAnalytics(managedObjectContext: managedObjectContext)
 
         super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
@@ -179,7 +187,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
         guard keysToParse.contains(ZMAssetClientMessageUploadedStateKey), response.result == .success else { return false }
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         guard let payload = response.payload?.asDictionary(), let assetId = payload["key"] as? String else {
-            fatal("No asset ID present in payload: \(response.payload)")
+            fatal("No asset ID present in payload: \(String(describing: response.payload))")
         }
 
         if let delegate = applicationStatus?.clientRegistrationDelegate {
