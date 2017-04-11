@@ -34,6 +34,7 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
+        ZMConversation.setUseVersion3Assets(true)
         self.registrationStatus = MockClientRegistrationStatus()
         self.cancellationProvider = MockTaskCancellationProvider()
         self.syncMOC.performGroupedBlockAndWait {
@@ -42,6 +43,11 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
             self.conversation.remoteIdentifier = UUID.create()
         }
         self.testFileURL = self.testURLWithFilename("file.dat")
+    }
+
+    override func tearDown() {
+        ZMConversation.setUseVersion3Assets(false)
+        super.tearDown()
     }
 
     // MARK: - Helpers
@@ -74,7 +80,7 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
     func createFileMessage(ephemeral: Bool = false) -> ZMAssetClientMessage {
         conversation.messageDestructionTimeout = ephemeral ? 10 : 0
         let metadata = addFile()
-        let message = conversation.appendMessage(with: metadata, version3: true) as! ZMAssetClientMessage
+        let message = conversation.appendMessage(with: metadata) as! ZMAssetClientMessage
         syncMOC.saveOrRollback()
 
         XCTAssert(message.genericAssetMessage?.assetData?.hasUploaded() == false)

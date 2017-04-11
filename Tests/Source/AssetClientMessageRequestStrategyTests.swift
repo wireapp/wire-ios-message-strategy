@@ -60,10 +60,16 @@ class AssetClientMessageRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
+        ZMConversation.setUseVersion3Assets(true)
         clientRegistrationStatus = MockClientRegistrationStatus()
         self.syncMOC.performGroupedBlockAndWait {
             self.sut = AssetClientMessageRequestStrategy(clientRegistrationStatus: self.clientRegistrationStatus, managedObjectContext: self.syncMOC)
         }
+    }
+
+    override func tearDown() {
+        ZMConversation.setUseVersion3Assets(false)
+        super.tearDown()
     }
 
     // MARK: Helper
@@ -80,10 +86,10 @@ class AssetClientMessageRequestStrategyTests: MessagingTestBase {
 
         let message: ZMAssetClientMessage!
         if isImage {
-            message = self.groupConversation.appendMessage(withImageData: imageData, version3: true) as! ZMAssetClientMessage
+            message = self.groupConversation.appendMessage(withImageData: imageData) as! ZMAssetClientMessage
         } else {
             let url = Bundle(for: AssetClientMessageRequestStrategyTests.self).url(forResource: "Lorem Ipsum", withExtension: "txt")!
-            message = self.groupConversation.appendMessage(with: ZMFileMetadata(fileURL: url, thumbnail: nil), version3: true) as! ZMAssetClientMessage
+            message = self.groupConversation.appendMessage(with: ZMFileMetadata(fileURL: url, thumbnail: nil)) as! ZMAssetClientMessage
         }
 
         if isImage {

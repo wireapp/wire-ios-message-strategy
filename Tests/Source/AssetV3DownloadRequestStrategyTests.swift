@@ -33,6 +33,7 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
+        ZMConversation.setUseVersion3Assets(true)
         authStatus = MockClientRegistrationStatus()
         cancellationProvider = MockTaskCancellationProvider()
         sut = AssetV3DownloadRequestStrategy(
@@ -43,6 +44,11 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
         self.syncMOC.performGroupedBlockAndWait {
             self.conversation = self.createConversation()
         }
+    }
+
+    override func tearDown() {
+        ZMConversation.setUseVersion3Assets(false)
+        super.tearDown()
     }
 
     fileprivate func createConversation() -> ZMConversation {
@@ -57,7 +63,7 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
         sha: Data  = Data.randomEncryptionKey()
         ) -> (message: ZMAssetClientMessage, assetId: String, assetToken: String)? {
 
-        let message = aConversation.appendMessage(with: ZMFileMetadata(fileURL: testDataURL), version3: true) as! ZMAssetClientMessage
+        let message = aConversation.appendMessage(with: ZMFileMetadata(fileURL: testDataURL)) as! ZMAssetClientMessage
         let (assetId, token) = (UUID.create().transportString(), UUID.create().transportString())
 
         // TODO: We should replace this manual update with inserting a v3 asset as soon as we have sending support
