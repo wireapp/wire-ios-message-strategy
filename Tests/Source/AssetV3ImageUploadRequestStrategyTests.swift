@@ -34,7 +34,6 @@ class AssetV3ImageUploadRequestStrategyTests: MessagingTestBase {
     
     override func setUp() {
         super.setUp()
-        ZMConversation.setUseVersion3Assets(true)
         registrationStatus = MockClientRegistrationStatus()
         mockCancellationProvider = MockTaskCancellationProvider()
         sut = AssetV3ImageUploadRequestStrategy(clientRegistrationStatus: registrationStatus, taskCancellationProvider: mockCancellationProvider, managedObjectContext: syncMOC)
@@ -42,11 +41,6 @@ class AssetV3ImageUploadRequestStrategyTests: MessagingTestBase {
             self.conversation = ZMConversation.insertNewObject(in: self.syncMOC)
             self.conversation.remoteIdentifier = UUID.create()
         }
-    }
-
-    override func tearDown() {
-        ZMConversation.setUseVersion3Assets(false)
-        super.tearDown()
     }
     
     // MARK: - Helpers
@@ -77,22 +71,6 @@ class AssetV3ImageUploadRequestStrategyTests: MessagingTestBase {
         return message
     }
     
-    func createPreprocessedV2ImageMessage() -> ZMAssetClientMessage {
-        var message: ZMAssetClientMessage!
-        ZMConversation.setUseVersion3Assets(false)
-        syncMOC.performGroupedBlockAndWait {
-            message = self.conversation.appendOTRMessage(withImageData: self.verySmallJPEGData(), nonce: .create())
-            let properties = ZMIImageProperties(size: message.imageAssetStorage!.originalImageSize(), length: 1000, mimeType: "image/jpg")
-            message.imageAssetStorage?.setImageData(message.imageAssetStorage?.originalImageData(), for: .medium, properties: properties)
-            message.imageAssetStorage?.setImageData(message.imageAssetStorage?.originalImageData(), for: .preview, properties: properties)
-            self.syncMOC.saveOrRollback()
-        }
-
-        XCTAssertLessThan(message.version, 3)
-        ZMConversation.setUseVersion3Assets(true)
-        return message
-    }
-    
     func simulatePreprocessing(of message: ZMAssetClientMessage, preview: Bool = false) {
         let size = CGSize(width: 368, height: 520)
         let properties = ZMIImageProperties(size: size, length: 1024, mimeType: "image/jpg")
@@ -112,24 +90,6 @@ class AssetV3ImageUploadRequestStrategyTests: MessagingTestBase {
     
     func testThatItDoesNotGenerateARequestWhenTheImageIsNotProcessed() {
         XCTAssertNil(sut.nextRequest())
-    }
-    
-    func testThatItDoesNotGenerateARequestIfTheImageIsProcessedButTheMessageIsNotV3() {
-        self.syncMOC.performGroupedBlockAndWait {
-            
-            // GIVEN
-            let message = self.createPreprocessedV2ImageMessage()
-            
-            // THEN
-            self.prepareUpload(of: message)
-            XCTAssertNil(self.sut.nextRequest())
-            
-            // WHEN
-            message.uploadState = .uploadingFullAsset
-            
-            // THEN
-            XCTAssertNil(self.sut.nextRequest())
-        }
     }
     
     func testThatItGeneratesARequestIfTheImageIsProcessed() {

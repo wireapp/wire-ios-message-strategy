@@ -60,16 +60,10 @@ class AssetClientMessageRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
-        ZMConversation.setUseVersion3Assets(true)
         clientRegistrationStatus = MockClientRegistrationStatus()
         self.syncMOC.performGroupedBlockAndWait {
             self.sut = AssetClientMessageRequestStrategy(clientRegistrationStatus: self.clientRegistrationStatus, managedObjectContext: self.syncMOC)
         }
-    }
-
-    override func tearDown() {
-        ZMConversation.setUseVersion3Assets(false)
-        super.tearDown()
     }
 
     // MARK: Helper

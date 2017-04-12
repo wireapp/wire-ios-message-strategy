@@ -36,7 +36,6 @@ class AssetV3PreviewDownloadRequestStrategyTests: MessagingTestBase {
     
     override func setUp() {
         super.setUp()
-        ZMConversation.setUseVersion3Assets(true)
         authStatus = MockClientRegistrationStatus()
         self.syncMOC.performGroupedBlockAndWait {
             self.sut = AssetV3PreviewDownloadRequestStrategy(
@@ -45,10 +44,6 @@ class AssetV3PreviewDownloadRequestStrategyTests: MessagingTestBase {
             )
             self.conversation = self.createConversation()
         }
-    }
-    override func tearDown() {
-        ZMConversation.setUseVersion3Assets(false)
-        super.tearDown()
     }
     
     fileprivate func createConversation() -> ZMConversation {

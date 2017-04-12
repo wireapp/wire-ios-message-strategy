@@ -22,7 +22,23 @@ import Foundation
 import XCTest
 import WireDataModel
 
+
 private let testDataURL = Bundle(for: AssetV3DownloadRequestStrategyTests.self).url(forResource: "Lorem Ipsum", withExtension: "txt")!
+
+
+public class MockTaskCancellationProvider: NSObject, ZMRequestCancellation {
+
+    var cancelledIdentifiers = [ZMTaskIdentifier]()
+
+    public func cancelTask(with identifier: ZMTaskIdentifier) {
+        cancelledIdentifiers.append(identifier)
+    }
+
+    deinit {
+        cancelledIdentifiers.removeAll()
+    }
+}
+
 
 class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
 
@@ -33,7 +49,6 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
-        ZMConversation.setUseVersion3Assets(true)
         authStatus = MockClientRegistrationStatus()
         cancellationProvider = MockTaskCancellationProvider()
         sut = AssetV3DownloadRequestStrategy(
@@ -44,11 +59,6 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
         self.syncMOC.performGroupedBlockAndWait {
             self.conversation = self.createConversation()
         }
-    }
-
-    override func tearDown() {
-        ZMConversation.setUseVersion3Assets(false)
-        super.tearDown()
     }
 
     fileprivate func createConversation() -> ZMConversation {

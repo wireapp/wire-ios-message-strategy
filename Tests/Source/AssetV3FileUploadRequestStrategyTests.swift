@@ -34,7 +34,6 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
 
     override func setUp() {
         super.setUp()
-        ZMConversation.setUseVersion3Assets(true)
         self.registrationStatus = MockClientRegistrationStatus()
         self.cancellationProvider = MockTaskCancellationProvider()
         self.syncMOC.performGroupedBlockAndWait {
@@ -43,11 +42,6 @@ class AssetV3FileUploadRequestStrategyTests: MessagingTestBase {
             self.conversation.remoteIdentifier = UUID.create()
         }
         self.testFileURL = self.testURLWithFilename("file.dat")
-    }
-
-    override func tearDown() {
-        ZMConversation.setUseVersion3Assets(false)
-        super.tearDown()
     }
 
     // MARK: - Helpers
