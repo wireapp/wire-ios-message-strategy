@@ -39,6 +39,7 @@ static NSString* ZMLogTag ZM_UNUSED = @"Request Configuration";
 /// Subclasses should override this method
 - (ZMTransportRequest *)nextRequestIfAllowed
 {
+    [NSException raise:NSInvalidArgumentException format:@"You must subclass nextRequestIfAllowed"];
     return nil;
 }
 

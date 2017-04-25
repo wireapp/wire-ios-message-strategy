@@ -37,7 +37,7 @@ open class AbstractRequestStrategy : NSObject, RequestStrategy {
     
     /// Subclasses should override this method. 
     open func nextRequestIfAllowed() -> ZMTransportRequest? {
-        return nil
+        fatal("you must override this method")
     }
     
     open func nextRequest() -> ZMTransportRequest? {
