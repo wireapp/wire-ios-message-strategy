@@ -143,7 +143,6 @@ extension AssetV3ImageUploadRequestStrategy: ZMContextChangeTracker {
         let assetClientMessages = object.flatMap { object -> ZMAssetClientMessage? in
             guard let message = object as? ZMAssetClientMessage,
                 message.version == 3,
-                message.genericAssetMessage?.assetData?.hasPreview() == true,
                 nil != message.fileMessageData && message.transferState == .cancelledUpload
                 else { return nil }
             return message
