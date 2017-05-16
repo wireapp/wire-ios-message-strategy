@@ -38,14 +38,19 @@ fileprivate extension Team {
 }
 
 
-final private class TeamDownloadRequestFactory {
+final class TeamDownloadRequestFactory {
 
     static var teamPath: String {
         return "/teams"
     }
 
-    static func getRequest(for identifier: UUID) -> ZMTransportRequest {
-        return ZMTransportRequest(getFromPath: teamPath + "/\(identifier.transportString())")
+    static func getRequest(for identifiers: UUID...) -> ZMTransportRequest {
+        let ids = identifiers.map { $0.transportString() }.joined(separator: ",")
+        return ZMTransportRequest(getFromPath: teamPath + "/" + ids)
+    }
+
+    static var getTeamsRequest: ZMTransportRequest {
+        return ZMTransportRequest(getFromPath: teamPath)
     }
 
 }
@@ -86,7 +91,7 @@ extension TeamDownloadRequestStrategy: ZMDownstreamTranscoder {
 
     public func request(forFetching object: ZMManagedObject!, downstreamSync: ZMObjectSync!) -> ZMTransportRequest! {
         guard downstreamSync as? ZMDownstreamObjectSync == self.downstreamSync, let team = object as? Team else { return nil }
-        return team.remoteIdentifier.map(TeamDownloadRequestFactory.getRequest)
+        return team.remoteIdentifier.map { TeamDownloadRequestFactory.getRequest(for: $0) }
     }
 
     public func update(_ object: ZMManagedObject!, with response: ZMTransportResponse!, downstreamSync: ZMObjectSync!) {

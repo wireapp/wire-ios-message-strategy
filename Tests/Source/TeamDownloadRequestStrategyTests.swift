@@ -130,7 +130,7 @@ class TeamDownloadRequestStrategyTests: MessagingTestBase {
             // then
             XCTAssertFalse(team.needsToBeUpdatedFromBackend)
 
-            let users = team.allUsers()
+            let users = team.members.flatMap { $0.user }
             XCTAssertEqual(users.count, 2)
             users.forEach {
                 if $0.remoteIdentifier == member1UserId {
