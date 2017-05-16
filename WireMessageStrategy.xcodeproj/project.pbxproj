@@ -52,6 +52,7 @@
 		BF260C551DCA28C1009C97D9 /* AssetV3PreviewDownloadRequestStrategyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF260C531DCA2435009C97D9 /* AssetV3PreviewDownloadRequestStrategyTests.swift */; };
 		BF34940E1EC5BE5200B0C314 /* TeamDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF34940D1EC5BE5200B0C314 /* TeamDownloadRequestStrategy.swift */; };
 		BF3494101EC5BE6800B0C314 /* TeamDownloadRequestStrategyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF34940F1EC5BE6800B0C314 /* TeamDownloadRequestStrategyTests.swift */; };
+		BF3494121EC5F4DA00B0C314 /* TeamSyncRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF3494111EC5F4DA00B0C314 /* TeamSyncRequestStrategy.swift */; };
 		BF3A460C1DD46FD500F5B16A /* AssetV3FileUploadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF3A460B1DD46FD500F5B16A /* AssetV3FileUploadRequestStrategy.swift */; };
 		BF420D431DD3241F003582F2 /* AssetClientMessageRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF420D421DD3241F003582F2 /* AssetClientMessageRequestStrategy.swift */; };
 		BF420D461DD35643003582F2 /* AssetClientMessageRequestStrategyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF420D451DD35643003582F2 /* AssetClientMessageRequestStrategyTests.swift */; };
@@ -204,6 +205,7 @@
 		BF260C531DCA2435009C97D9 /* AssetV3PreviewDownloadRequestStrategyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = AssetV3PreviewDownloadRequestStrategyTests.swift; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		BF34940D1EC5BE5200B0C314 /* TeamDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TeamDownloadRequestStrategy.swift; sourceTree = "<group>"; };
 		BF34940F1EC5BE6800B0C314 /* TeamDownloadRequestStrategyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TeamDownloadRequestStrategyTests.swift; sourceTree = "<group>"; };
+		BF3494111EC5F4DA00B0C314 /* TeamSyncRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TeamSyncRequestStrategy.swift; sourceTree = "<group>"; };
 		BF3A460B1DD46FD500F5B16A /* AssetV3FileUploadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetV3FileUploadRequestStrategy.swift; sourceTree = "<group>"; };
 		BF420D421DD3241F003582F2 /* AssetClientMessageRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetClientMessageRequestStrategy.swift; sourceTree = "<group>"; };
 		BF420D451DD35643003582F2 /* AssetClientMessageRequestStrategyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetClientMessageRequestStrategyTests.swift; sourceTree = "<group>"; };
@@ -408,6 +410,7 @@
 				BFC32F8B1DD1D37F00EDD540 /* AssetV3ImageUploadRequestStrategy.swift */,
 				BF3A460B1DD46FD500F5B16A /* AssetV3FileUploadRequestStrategy.swift */,
 				BF34940D1EC5BE5200B0C314 /* TeamDownloadRequestStrategy.swift */,
+				BF3494111EC5F4DA00B0C314 /* TeamSyncRequestStrategy.swift */,
 				BF420D421DD3241F003582F2 /* AssetClientMessageRequestStrategy.swift */,
 				BF260C4F1DCA1FD9009C97D9 /* AssetV3PreviewDownloadStrategy.swift */,
 				F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */,
@@ -753,6 +756,7 @@
 			files = (
 				F963E9361D958BBE00098AD3 /* MissingClientsRequestStrategy.swift in Sources */,
 				BFE85DED1DD9F47C00BCD68B /* AssetAnalytics.swift in Sources */,
+				BF3494121EC5F4DA00B0C314 /* TeamSyncRequestStrategy.swift in Sources */,
 				F9F057E51D95384500FA1AAD /* FilePreprocessor.swift in Sources */,
 				BF34940E1EC5BE5200B0C314 /* TeamDownloadRequestStrategy.swift in Sources */,
 				54327FE81E54636400B08FFC /* MessageExpirationTimer.swift in Sources */,
