@@ -19,14 +19,21 @@
 
 fileprivate extension Team {
 
-    static var predicateForObjectsNeedingToBeUpdated: NSPredicate = {
-        NSPredicate(format: "%K == YES AND %K != NULL", #keyPath(Team.needsToBeUpdatedFromBackend), #keyPath(Team.remoteIdentifier))
+    static var predicateForObjectsNeedingToDownloadMembers: NSPredicate = {
+        NSPredicate(format: "%K == YES AND %K != NULL", #keyPath(Team.needsToRedownloadMembers), #keyPath(Team.remoteIdentifier))
     }()
+
+    func updateMembers(with response: ZMTransportResponse) {
+        guard let membersPayload = response.payload?.asDictionary()?["members"] as? [[String: Any]] else { return }
+        membersPayload.forEach {
+            Member.createOrUpdate(with: $0, in: self, context: managedObjectContext!)
+        }
+    }
 
 }
 
 
-public final class TeamDownloadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource, ZMRequestGeneratorSource {
+public final class MemberDownloadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource, ZMRequestGeneratorSource {
 
     fileprivate var downstreamSync: ZMDownstreamObjectSync!
 
@@ -36,7 +43,7 @@ public final class TeamDownloadRequestStrategy: AbstractRequestStrategy, ZMConte
         downstreamSync = ZMDownstreamObjectSync(
             transcoder: self,
             entityName: Team.entityName(),
-            predicateForObjectsToDownload: Team.predicateForObjectsNeedingToBeUpdated,
+            predicateForObjectsToDownload: Team.predicateForObjectsNeedingToDownloadMembers,
             filter: nil,
             managedObjectContext: managedObjectContext
         )
@@ -57,21 +64,17 @@ public final class TeamDownloadRequestStrategy: AbstractRequestStrategy, ZMConte
 }
 
 
-extension TeamDownloadRequestStrategy: ZMDownstreamTranscoder {
+extension MemberDownloadRequestStrategy: ZMDownstreamTranscoder {
 
     public func request(forFetching object: ZMManagedObject!, downstreamSync: ZMObjectSync!) -> ZMTransportRequest! {
         guard downstreamSync as? ZMDownstreamObjectSync == self.downstreamSync, let team = object as? Team else { return nil }
-        return team.remoteIdentifier.map { TeamDownloadRequestFactory.getRequest(for: $0) }
+        return team.remoteIdentifier.map(TeamDownloadRequestFactory.getMembersRequest)
     }
 
     public func update(_ object: ZMManagedObject!, with response: ZMTransportResponse!, downstreamSync: ZMObjectSync!) {
-        guard downstreamSync as? ZMDownstreamObjectSync == self.downstreamSync,
-            let team = object as? Team,
-            let payload = response.payload?.asDictionary() as? [String: Any] else { return }
-
-        team.needsToBeUpdatedFromBackend = false
-        team.needsToRedownloadMembers = true
-        team.update(with: payload)
+        guard downstreamSync as? ZMDownstreamObjectSync == self.downstreamSync, let team = object as? Team else { return }
+        team.needsToRedownloadMembers = false
+        team.updateMembers(with: response)
     }
 
     public func delete(_ object: ZMManagedObject!, downstreamSync: ZMObjectSync!) {
