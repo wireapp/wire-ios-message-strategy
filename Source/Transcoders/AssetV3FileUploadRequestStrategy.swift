@@ -167,7 +167,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
         guard let name = message.fileMessageData?.filename else { fatal("Message file data does not contain filename") }
         guard let data = managedObjectContext.zm_fileAssetCache.assetData(message.nonce, fileName: name, encrypted: true) else { fatal("Could not find file in cache")  }
         
-        guard let request = requestFactory.backgroundUpstreamRequestForAsset(message: message, withData: data, shareable: false, retention: .persistent) else { fatal("Could not create asset request with data \(data)") }
+        guard let request = requestFactory.backgroundUpstreamRequestForAsset(message: message, withData: data, shareable: false, retention: .persistent) else { fatal("Could not create asset request") }
 
         request.add(ZMTaskCreatedHandler(on: managedObjectContext) { identifier in
             message.associatedTaskIdentifier = identifier
