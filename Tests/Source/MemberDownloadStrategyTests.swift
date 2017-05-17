@@ -160,6 +160,35 @@ class MemberDownloadRequestStrategyTests: MessagingTestBase {
         }
     }
 
+    func testThatItDeletesALocalTeamWhenReceivingA404() {
+        let teamId = UUID.create()
+
+        syncMOC.performGroupedBlock {
+            // given
+            let team = Team.insertNewObject(in: self.syncMOC)
+            self.mockApplicationStatus.mockSynchronizationState = .eventProcessing
+            team.remoteIdentifier = teamId
+
+
+            team.needsToBeUpdatedFromBackend = false
+            team.needsToRedownloadMembers = true
+            self.boostrapChangeTrackers(with: team)
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
+
+            // when
+            let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 404, transportSessionError: nil)
+
+            // when
+            request.complete(with: response)
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.2))
+
+        syncMOC.performGroupedBlockAndWait {
+            // then
+            XCTAssertNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+        }
+    }
     
     // MARK: - Helper
     
