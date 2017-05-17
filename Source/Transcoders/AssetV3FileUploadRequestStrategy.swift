@@ -157,7 +157,7 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
         if message.uploadState == .uploadingFullAsset {
             return requestToUploadFullAsset(for: message)
         } else {
-            fatal("Wrong message upload state: \(message.uploadState))")
+            fatal("Wrong message upload state: \(message.uploadState.rawValue))")
         }
 
         return nil
