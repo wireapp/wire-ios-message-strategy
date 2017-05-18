@@ -17,22 +17,22 @@
 //
 
 
-final class TeamDownloadRequestFactory {
+final public class TeamDownloadRequestFactory {
 
-    static var teamPath: String {
+    public static var teamPath: String {
         return "/teams"
     }
 
-    static func getRequest(for identifiers: UUID...) -> ZMTransportRequest {
+    public static func getRequest(for identifiers: UUID...) -> ZMTransportRequest {
         let ids = identifiers.map { $0.transportString() }.joined(separator: ",")
         return ZMTransportRequest(getFromPath: teamPath + "/" + ids)
     }
 
-    static var getTeamsRequest: ZMTransportRequest {
+    public static var getTeamsRequest: ZMTransportRequest {
         return ZMTransportRequest(getFromPath: teamPath)
     }
 
-    static func getMembersRequest(in teamIdentifier: UUID) -> ZMTransportRequest {
+    public static func getMembersRequest(in teamIdentifier: UUID) -> ZMTransportRequest {
         let path = teamPath + "/" + teamIdentifier.transportString() + "/members"
         return ZMTransportRequest(getFromPath: path)
     }
