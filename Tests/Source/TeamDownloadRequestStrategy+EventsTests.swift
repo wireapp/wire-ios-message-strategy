@@ -233,14 +233,12 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let teamId = UUID.create()
         let userId = UUID.create()
 
-        do {
-            let user = ZMUser.insertNewObject(in: uiMOC)
+        syncMOC.performGroupedBlockAndWait {
+            let user = ZMUser.insertNewObject(in: self.syncMOC)
             user.remoteIdentifier = userId
-            let team = Team.insertNewObject(in: uiMOC)
+            let team = Team.insertNewObject(in: self.syncMOC)
             team.remoteIdentifier = teamId
-
-            XCTAssert(uiMOC.saveOrRollback())
-            XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.1))
+            XCTAssert(self.syncMOC.saveOrRollback())
         }
 
         let payload: [String: Any] = [
@@ -254,13 +252,15 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         processEvent(fromPayload: payload)
 
         // then
-        guard let user = ZMUser.fetch(withRemoteIdentifier: userId, in: uiMOC) else { return XCTFail("No user") }
-        guard let team = Team.fetch(withRemoteIdentifier: teamId, in: uiMOC) else { return XCTFail("No team") }
-        guard let member = user.membership(in: team) else { return XCTFail("No member") }
+        syncMOC.performGroupedBlockAndWait {
+            guard let user = ZMUser.fetch(withRemoteIdentifier: userId, in: self.syncMOC) else { return XCTFail("No user") }
+            guard let team = Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC) else { return XCTFail("No team") }
+            guard let member = user.membership(in: team) else { return XCTFail("No member") }
 
-        XCTAssertTrue(user.needsToBeUpdatedFromBackend)
-        XCTAssertFalse(team.needsToBeUpdatedFromBackend) // TODO: Double check if we want to update it
-        XCTAssertEqual(member.team, team)
+            XCTAssertTrue(user.needsToBeUpdatedFromBackend)
+            XCTAssertFalse(team.needsToBeUpdatedFromBackend) // TODO: Double check if we want to update it
+            XCTAssertEqual(member.team, team)
+        }
     }
 
     func testThatItCreatesATeamWhenReceivingAMemberJoinEventForTheSelfUserWithoutExistingTeam() {
@@ -279,13 +279,15 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         processEvent(fromPayload: payload)
 
         // then
-        guard let user = ZMUser.fetch(withRemoteIdentifier: userId, in: uiMOC) else { return XCTFail("No user") }
-        guard let team = Team.fetch(withRemoteIdentifier: teamId, in: uiMOC) else { return XCTFail("No team") }
-        guard let member = user.membership(in: team) else { return XCTFail("No member") }
+        syncMOC.performGroupedBlockAndWait {
+            guard let user = ZMUser.fetch(withRemoteIdentifier: userId, in: self.syncMOC) else { return XCTFail("No user") }
+            guard let team = Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC) else { return XCTFail("No team") }
+            guard let member = user.membership(in: team) else { return XCTFail("No member") }
 
-        XCTAssertTrue(user.needsToBeUpdatedFromBackend)
-        XCTAssertTrue(team.needsToBeUpdatedFromBackend)
-        XCTAssertEqual(member.team, team)
+            XCTAssertTrue(user.needsToBeUpdatedFromBackend)
+            XCTAssertTrue(team.needsToBeUpdatedFromBackend)
+            XCTAssertEqual(member.team, team)
+        }
     }
 
     // MARK: - Team Member-Leave
