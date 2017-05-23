@@ -37,6 +37,10 @@ fileprivate extension ZMUpdateEvent {
 }
 
 
+private let log = ZMSLog(tag: "Teams")
+
+
+
 extension TeamDownloadRequestStrategy: ZMEventConsumer {
 
     public func processEvents(_ events: [ZMUpdateEvent], liveEvents: Bool, prefetchResult: ZMFetchRequestBatchResult?) {
@@ -52,11 +56,12 @@ extension TeamDownloadRequestStrategy: ZMEventConsumer {
         case .teamMemberLeave: processRemovedMember(with: event)
         case .teamConversationCreate: createTeamConversation(with: event)
         case .teamConversationDelete: deleteTeamConversation(with: event)
+        // Note: "conversation-delete" is not handled yet, 
+        // cf. disabled_testThatItDeletesALocalTeamConversationInWhichSelfIsAGuest in TeamDownloadRequestStrategy_EventsTests
         default: break
         }
     }
 
-    // TODO: Add error logging
     private func createTeam(with event: ZMUpdateEvent) {
         guard let identifier = event.teamId else { return }
         guard let team = Team.fetchOrCreate(with: identifier, create: true, in: managedObjectContext, created: nil) else { return }
@@ -77,10 +82,19 @@ extension TeamDownloadRequestStrategy: ZMEventConsumer {
 
     private func processAddedMember(with event: ZMUpdateEvent) {
         guard let identifier = event.teamId, let data = event.dataPayload else { return }
-        guard let team = Team.fetchOrCreate(with: identifier, create: true, in: managedObjectContext, created: nil) else { return }
+        var created = false
+        let fetchedTeam = withUnsafeMutablePointer(to: &created) {
+             Team.fetchOrCreate(with: identifier, create: true, in: managedObjectContext, created: $0)
+        }
+        guard let team = fetchedTeam else { return }
+        // In case we just created this team locally, we want to ensure that we refetch all of its
+        // metadata, as well as all member permissions.
+        team.needsToBeUpdatedFromBackend = created
         guard let addedUserId = (data[TeamEventPayloadKey.user.rawValue] as? String).flatMap(UUID.init) else { return }
         guard let user = ZMUser(remoteID: addedUserId, createIfNeeded: true, in: managedObjectContext) else { return }
         user.needsToBeUpdatedFromBackend = true
+        // TODO: The event payload does not contain permissions (so far),
+        // should we always refetch the team to ensure we refetch the members with their permissions?
         _ = Member.getOrCreateMember(for: user, in: team, context: managedObjectContext)
     }
 
@@ -88,8 +102,12 @@ extension TeamDownloadRequestStrategy: ZMEventConsumer {
         guard let identifier = event.teamId, let data = event.dataPayload else { return }
         guard let team = Team.fetchOrCreate(with: identifier, create: false, in: managedObjectContext, created: nil) else { return }
         guard let removedUserId = (data[TeamEventPayloadKey.user.rawValue] as? String).flatMap(UUID.init) else { return }
-        let user = ZMUser(remoteID: removedUserId, createIfNeeded: false, in: managedObjectContext)
-        user?.membership(in: team).map(managedObjectContext.delete)
+        guard let user = ZMUser(remoteID: removedUserId, createIfNeeded: false, in: managedObjectContext) else { return }
+        if let member = user.membership(in: team) {
+            managedObjectContext.delete(member)
+        } else {
+            log.error("Trying to delete non existent membership of \(user) in \(team)")
+        }
     }
 
     private func createTeamConversation(with event: ZMUpdateEvent) {
@@ -106,8 +124,11 @@ extension TeamDownloadRequestStrategy: ZMEventConsumer {
         guard let team = Team.fetchOrCreate(with: identifier, create: false, in: managedObjectContext, created: nil) else { return }
         guard let conversationId = (data[TeamEventPayloadKey.conversation.rawValue] as? String).flatMap(UUID.init) else { return }
         guard let conversation = ZMConversation(remoteID: conversationId, createIfNeeded: false, in: managedObjectContext) else { return }
-        guard conversation.team == team else { return }
-        managedObjectContext.delete(conversation)
+        if conversation.team == team {
+            managedObjectContext.delete(conversation)
+        } else {
+            log.error("Specified conversation \(conversation) to delete not in specified team \(team)")
+        }
     }
     
 }

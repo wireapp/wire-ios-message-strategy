@@ -224,47 +224,238 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         guard let member = user.membership(in: team) else { return XCTFail("No member") }
 
         XCTAssertTrue(user.needsToBeUpdatedFromBackend)
+        XCTAssertFalse(team.needsToBeUpdatedFromBackend)
         XCTAssertEqual(member.team, team)
     }
 
     func testThatItAddsANewTeamMemberToAnExistingUserWhenReceivingATeamMemberJoinUpdateEventExistingTeam() {
-        XCTFail()
+        // given
+        let teamId = UUID.create()
+        let userId = UUID.create()
+
+        do {
+            let user = ZMUser.insertNewObject(in: uiMOC)
+            user.remoteIdentifier = userId
+            let team = Team.insertNewObject(in: uiMOC)
+            team.remoteIdentifier = teamId
+
+            XCTAssert(uiMOC.saveOrRollback())
+            XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.1))
+        }
+
+        let payload: [String: Any] = [
+            "type": "team.member-join",
+            "team": teamId.transportString(),
+            "time": "",
+            "data": ["user" : userId.transportString()]
+        ]
+
+        // when
+        processEvent(fromPayload: payload)
+
+        // then
+        guard let user = ZMUser.fetch(withRemoteIdentifier: userId, in: uiMOC) else { return XCTFail("No user") }
+        guard let team = Team.fetch(withRemoteIdentifier: teamId, in: uiMOC) else { return XCTFail("No team") }
+        guard let member = user.membership(in: team) else { return XCTFail("No member") }
+
+        XCTAssertTrue(user.needsToBeUpdatedFromBackend)
+        XCTAssertFalse(team.needsToBeUpdatedFromBackend) // TODO: Double check if we want to update it
+        XCTAssertEqual(member.team, team)
     }
 
     func testThatItCreatesATeamWhenReceivingAMemberJoinEventForTheSelfUserWithoutExistingTeam() {
-        XCTFail()
-    }
+        // given
+        let teamId = UUID.create()
+        let userId = UUID.create()
 
-    func testThatItSetsNeedsTobeUpdatedFromBackendOnCreatedUserAfterReceivingmemberJoinEvent() {
-        XCTFail()
+        let payload: [String: Any] = [
+            "type": "team.member-join",
+            "team": teamId.transportString(),
+            "time": "",
+            "data": ["user" : userId.transportString()]
+        ]
+
+        // when
+        processEvent(fromPayload: payload)
+
+        // then
+        guard let user = ZMUser.fetch(withRemoteIdentifier: userId, in: uiMOC) else { return XCTFail("No user") }
+        guard let team = Team.fetch(withRemoteIdentifier: teamId, in: uiMOC) else { return XCTFail("No team") }
+        guard let member = user.membership(in: team) else { return XCTFail("No member") }
+
+        XCTAssertTrue(user.needsToBeUpdatedFromBackend)
+        XCTAssertTrue(team.needsToBeUpdatedFromBackend)
+        XCTAssertEqual(member.team, team)
     }
 
     // MARK: - Team Member-Leave
 
     func testThatItDeletesAMemberWhenReceivingATeamMemberLeaveUpdateEventForAnotherUser() {
-        XCTFail()
+        // given
+        let teamId = UUID.create()
+        let userId = UUID.create()
+
+        syncMOC.performGroupedBlock {
+            let user = ZMUser.insertNewObject(in: self.syncMOC)
+            user.remoteIdentifier = userId
+            let team = Team.insertNewObject(in: self.syncMOC)
+            team.remoteIdentifier = teamId
+            let member = Member.getOrCreateMember(for: user, in: team, context: self.syncMOC)
+            XCTAssertNotNil(member)
+            XCTAssertEqual(user.membership(in: team), member)
+            XCTAssert(self.syncMOC.saveOrRollback())
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.1))
+
+        let payload: [String: Any] = [
+            "type": "team.member-leave",
+            "team": teamId.transportString(),
+            "time": "",
+            "data": ["user" : userId.transportString()]
+        ]
+
+        // when
+        processEvent(fromPayload: payload)
+
+        // then
+        syncMOC.performGroupedBlockAndWait {
+            XCTAssertNotNil(ZMUser.fetch(withRemoteIdentifier: userId, in: self.syncMOC))
+
+            // users won't be deleted as we might be in other (non-team) conversations with them
+            guard let team = Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC) else { return XCTFail("No team") }
+            XCTAssertEqual(team.members, [])
+        }
     }
 
     func testThatItDeletesTheSelfMemberWhenReceivingATeamMemberLeaveUpdateEventForSelfUser() {
-        XCTFail()
+        let teamId = UUID.create()
+        var userId: UUID!
+
+        syncMOC.performGroupedBlockAndWait {
+            // given
+            let user = ZMUser.selfUser(in: self.syncMOC)
+            userId = user.remoteIdentifier!
+            let team = Team.insertNewObject(in: self.syncMOC)
+            team.remoteIdentifier = teamId
+            let member = Member.getOrCreateMember(for: user, in: team, context: self.syncMOC)
+            XCTAssertNotNil(member)
+            XCTAssertEqual(user.membership(in: team), member)
+        }
+
+        // when
+        let payload: [String: Any] = [
+            "type": "team.member-leave",
+            "team": teamId.transportString(),
+            "time": "",
+            "data": ["user" : userId.transportString()]
+        ]
+        processEvent(fromPayload: payload)
+
+        // then
+        syncMOC.performGroupedBlockAndWait {
+            XCTAssertNotNil(ZMUser.fetch(withRemoteIdentifier: userId, in: self.syncMOC))
+
+            // users won't be deleted as we might be in other (non-team) conversations with them
+            guard let team = Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC) else { return XCTFail("No team") }
+            XCTAssertEqual(team.members, [])
+            XCTAssertNil(ZMUser.selfUser(in: self.syncMOC).membership(in: team))
+        }
+    }
+
+    func testThatItOnlyDeletesTheMembershipInTheTeamSpecifiedIfTheMemberIsPartOfMultipleTeams() {
+        // given
+        let team1Id = UUID.create()
+        let team2Id = UUID.create()
+        let userId = UUID.create()
+
+        syncMOC.performGroupedBlock {
+            let user = ZMUser.insertNewObject(in: self.syncMOC)
+            user.remoteIdentifier = userId
+            let team1 = Team.insertNewObject(in: self.syncMOC)
+            team1.remoteIdentifier = team1Id
+            let team2 = Team.insertNewObject(in: self.syncMOC)
+            team2.remoteIdentifier = team2Id
+            let member1 = Member.getOrCreateMember(for: user, in: team1, context: self.syncMOC)
+            let member2 = Member.getOrCreateMember(for: user, in: team2, context: self.syncMOC)
+            XCTAssertEqual(user.membership(in: team1), member1)
+            XCTAssertEqual(user.membership(in: team2), member2)
+            XCTAssert(self.syncMOC.saveOrRollback())
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.1))
+
+        let payload: [String: Any] = [
+            "type": "team.member-leave",
+            "team": team1Id.transportString(),
+            "time": "",
+            "data": ["user" : userId.transportString()]
+        ]
+
+        // when
+        processEvent(fromPayload: payload)
+
+        // then
+        syncMOC.performGroupedBlockAndWait {
+            guard let user = ZMUser.fetch(withRemoteIdentifier: userId, in: self.syncMOC) else { return XCTFail("No User") }
+            XCTAssertEqual(user.memberships.map { $0.team!.remoteIdentifier! }, [team2Id])
+            guard let team = Team.fetch(withRemoteIdentifier: team1Id, in: self.syncMOC) else { return XCTFail("No team") }
+            XCTAssertEqual(team.members, [])
+        }
     }
 
     // MARK: - Team Conversation-Create
 
     func testThatItCreatesANewTeamConversationWhenReceivingATeamConversationCreateUpdateEvent() {
-        XCTFail()
-        // TODO: Check assigned team
+        // given
+        let conversationId = UUID.create()
+        let teamId = UUID.create()
+
+        syncMOC.performGroupedBlockAndWait {
+            _ = Team.fetchOrCreate(with: teamId, create: true, in: self.syncMOC, created: nil)
+        }
+
+        let payload: [String: Any] = [
+            "type": "team.conversation-create",
+            "team": teamId.transportString(),
+            "time": "",
+            "data": ["conv": conversationId.transportString()]
+        ]
+
+        // when
+        processEvent(fromPayload: payload)
+
+        // then
+        syncMOC.performGroupedBlockAndWait {
+            guard let conversation = ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC) else { return XCTFail("No conversation") }
+            XCTAssertNotNil(conversation.team)
+            XCTAssertEqual(conversation.team?.remoteIdentifier, teamId)
+            XCTAssertTrue(conversation.needsToBeUpdatedFromBackend)
+        }
     }
 
     // FIXME: Is this the desired behaviour or should we just create the team?
     // In theory, this should never happen as we should receive a team.create or team.member-join event first.
     func testThatItDoesNotCreateANewTeamConversationWhenReceivingATeamConversationCreateEventWithoutLocalTeam() {
-        // TODO: No local team
-        XCTFail()
-    }
+        // given
+        let conversationId = UUID.create()
+        let teamId = UUID.create()
 
-    func testThatItSetsNeedsTobeUpdatedFromBackendOnCreatedConversationAfterReceivingConversationCreateEvent() {
-        XCTFail()
+        let payload: [String: Any] = [
+            "type": "team.conversation-create",
+            "team": teamId.transportString(),
+            "time": "",
+            "data": ["conv": conversationId.transportString()]
+        ]
+
+        // when
+        processEvent(fromPayload: payload)
+
+        // then
+        syncMOC.performGroupedBlockAndWait {
+            XCTAssertNil(ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC))
+            XCTAssertNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+        }
     }
 
     // MARK: - Team Conversation-Delete (Member)
@@ -273,6 +464,18 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         // given
         let conversationId = UUID.create()
         let teamId = UUID.create()
+
+        syncMOC.performGroupedBlockAndWait {
+            let team = Team.fetchOrCreate(with: teamId, create: true, in: self.syncMOC, created: nil)
+            let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            conversation.remoteIdentifier = conversationId
+            conversation.conversationType = .group
+            conversation.team = team
+
+            XCTAssertNotNil(ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC))
+            XCTAssertNotNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+        }
+
         let payload: [String: Any] = [
             "type": "team.conversation-delete",
             "team": teamId.transportString(),
@@ -280,17 +483,57 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
             "data": ["conv": conversationId.transportString()]
         ]
 
+        // when
+        processEvent(fromPayload: payload)
+
         // then
-        XCTFail()
+        syncMOC.performGroupedBlockAndWait {
+            XCTAssertNil(ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC))
+            XCTAssertNotNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+        }
     }
 
     func testThatItDoesNotDeleteALocalConversationIfTheTeamDoesNotMatchTheTeamInTheEventPayload() {
-        XCTFail()
+        // given
+        let conversationId = UUID.create()
+        let teamId = UUID.create()
+        let otherTeamId = UUID.create()
+
+        syncMOC.performGroupedBlockAndWait {
+            let team = Team.fetchOrCreate(with: teamId, create: true, in: self.syncMOC, created: nil)
+            _ = Team.fetchOrCreate(with: otherTeamId, create: true, in: self.syncMOC, created: nil)
+            let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            conversation.remoteIdentifier = conversationId
+            conversation.conversationType = .group
+            conversation.team = team
+
+            XCTAssertNotNil(ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC))
+            XCTAssertNotNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+        }
+
+        let payload: [String: Any] = [
+            "type": "team.conversation-delete",
+            "team": otherTeamId.transportString(),
+            "time": "",
+            "data": ["conv": conversationId.transportString()]
+        ]
+
+        // when
+        performIgnoringZMLogError {
+            self.processEvent(fromPayload: payload)
+        }
+
+        // then
+        syncMOC.performGroupedBlockAndWait {
+            guard let conversation = ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC) else { return XCTFail("No conversation") }
+            XCTAssertEqual(conversation.team?.remoteIdentifier, teamId)
+            XCTAssertNotNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+        }
     }
 
     // MARK: - Conversation-Delete (Guest)
 
-    func testThatItDeletesALocalTeamConversationInWhichSelfIsAGuest() {
+    func disabled_testThatItDeletesALocalTeamConversationInWhichSelfIsAGuest() {
         // given
         let conversationId = UUID.create()
         let payload: [String: Any] = [
@@ -299,7 +542,16 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
             "data": ["conv": conversationId.transportString()]
         ]
 
-        // TODO: when & then
+        syncMOC.performGroupedBlockAndWait {
+            let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            conversation.remoteIdentifier = conversationId
+            conversation.conversationType = .group
+            XCTAssertNotNil(ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC))
+        }
+
+        // when
+        processEvent(fromPayload: payload)
+
         XCTFail("Implement and test behaviour when self is a guest in a team conversation which gets deleted.")
     }
 
@@ -316,9 +568,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
             XCTAssert(self.syncMOC.saveOrRollback(), file: file, line: line)
         }
 
-        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.1), file: file, line: line)
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.5), file: file, line: line)
     }
 
-    
 }
-
