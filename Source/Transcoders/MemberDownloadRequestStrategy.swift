@@ -77,7 +77,7 @@ extension MemberDownloadRequestStrategy: ZMDownstreamTranscoder {
         team.updateMembers(with: response)
     }
 
-    public func delete(_ object: ZMManagedObject!, downstreamSync: ZMObjectSync!) {
+    public func delete(_ object: ZMManagedObject!, with response: ZMTransportResponse!, downstreamSync: ZMObjectSync!) {
         guard downstreamSync as? ZMDownstreamObjectSync == self.downstreamSync, let team = object as? Team else { return }
         managedObjectContext.delete(team)
     }

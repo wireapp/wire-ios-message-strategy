@@ -166,12 +166,17 @@ class TeamDownloadRequestStrategyTests: MessagingTestBase {
 
     func testThatItDeletesALocalTeamWhenReceivingA404() {
         let teamId = UUID.create()
+        let conversationId = UUID.create()
 
         syncMOC.performGroupedBlock {
             // given
             let team = Team.insertNewObject(in: self.syncMOC)
             self.mockApplicationStatus.mockSynchronizationState = .eventProcessing
             team.remoteIdentifier = teamId
+            let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            conversation.remoteIdentifier = conversationId
+            conversation.team = team
+            conversation.teamRemoteIdentifier = teamId
 
 
             team.needsToBeUpdatedFromBackend = true
@@ -194,6 +199,48 @@ class TeamDownloadRequestStrategyTests: MessagingTestBase {
         syncMOC.performGroupedBlockAndWait {
             // then
             XCTAssertNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+            XCTAssertNil(ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC))
+        }
+    }
+
+    func testThatItDeletesALocalTeamButNotItsConversationsWhenReceivingA403_Guest() {
+        let teamId = UUID.create()
+        let conversationId = UUID.create()
+
+        syncMOC.performGroupedBlock {
+            // given
+            let team = Team.insertNewObject(in: self.syncMOC)
+            self.mockApplicationStatus.mockSynchronizationState = .eventProcessing
+            team.remoteIdentifier = teamId
+            let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            conversation.remoteIdentifier = conversationId
+            conversation.team = team
+            conversation.teamRemoteIdentifier = teamId
+
+            team.needsToBeUpdatedFromBackend = true
+            self.boostrapChangeTrackers(with: team)
+            guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
+
+            // when
+            let response = ZMTransportResponse(
+                payload: ["label": "no-team-member"] as ZMTransportData,
+                httpStatus: 403,
+                transportSessionError: nil
+            )
+
+            // when
+            request.complete(with: response)
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.2))
+
+        syncMOC.performGroupedBlockAndWait {
+            // then
+            XCTAssertNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
+
+            guard let conversation = ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC) else { return XCTFail("No conversation") }
+            XCTAssertEqual(conversation.teamRemoteIdentifier, teamId)
+            XCTAssert(ZMUser.selfUser(in: self.syncMOC).isGuest(in: conversation))
         }
     }
 
