@@ -105,6 +105,7 @@ extension TeamDownloadRequestStrategy: ZMEventConsumer {
         guard let user = ZMUser(remoteID: removedUserId, createIfNeeded: false, in: managedObjectContext) else { return }
         if let member = user.membership(in: team) {
             managedObjectContext.delete(member)
+            // TODO: Delete the team in case the member.user was the self user
         } else {
             log.error("Trying to delete non existent membership of \(user) in \(team)")
         }
