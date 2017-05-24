@@ -179,7 +179,11 @@ class TeamDownloadRequestStrategyTests: MessagingTestBase {
             guard let request = self.sut.nextRequest() else { return XCTFail("No request generated") }
 
             // when
-            let response = ZMTransportResponse(payload: [] as ZMTransportData, httpStatus: 404, transportSessionError: nil)
+            let response = ZMTransportResponse(
+                payload: ["label": "no-team"] as ZMTransportData,
+                httpStatus: 404,
+                transportSessionError: nil
+            )
 
             // when
             request.complete(with: response)
