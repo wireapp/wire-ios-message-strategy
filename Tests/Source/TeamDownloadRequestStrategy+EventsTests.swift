@@ -360,11 +360,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         // then
         syncMOC.performGroupedBlockAndWait {
             XCTAssertNotNil(ZMUser.fetch(withRemoteIdentifier: userId, in: self.syncMOC))
-
-            // users won't be deleted as we might be in other (non-team) conversations with them
-            guard let team = Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC) else { return XCTFail("No team") }
-            XCTAssertEqual(team.members, [])
-            XCTAssertNil(ZMUser.selfUser(in: self.syncMOC).membership(in: team))
+            XCTAssertNil(Team.fetch(withRemoteIdentifier: teamId, in: self.syncMOC))
         }
     }
 
