@@ -47,7 +47,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.create",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": NSNull()
         ]
 
@@ -71,7 +71,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.create",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": NSNull()
         ]
 
@@ -100,7 +100,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.delete",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": NSNull()
         ]
 
@@ -130,7 +130,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.delete",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": NSNull()
         ]
 
@@ -205,7 +205,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.update",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": dataPayload ?? NSNull()
         ]
 
@@ -242,7 +242,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.member-join",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["user" : userId.transportString()]
         ]
 
@@ -276,7 +276,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.member-join",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["user" : userId.transportString()]
         ]
 
@@ -304,7 +304,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.member-join",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["user" : userId.transportString()]
         ]
 
@@ -347,7 +347,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.member-leave",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["user" : userId.transportString()]
         ]
 
@@ -383,7 +383,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.member-leave",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["user" : userId.transportString()]
         ]
         processEvent(fromPayload: payload)
@@ -420,7 +420,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.member-leave",
             "team": team1Id.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["user" : userId.transportString()]
         ]
 
@@ -450,7 +450,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.conversation-create",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["conv": conversationId.transportString()]
         ]
 
@@ -476,7 +476,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.conversation-create",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["conv": conversationId.transportString()]
         ]
 
@@ -511,7 +511,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.conversation-delete",
             "team": teamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["conv": conversationId.transportString()]
         ]
 
@@ -546,7 +546,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let payload: [String: Any] = [
             "type": "team.conversation-delete",
             "team": otherTeamId.transportString(),
-            "time": "",
+            "time": Date().transportString(),
             "data": ["conv": conversationId.transportString()]
         ]
 
@@ -570,7 +570,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         let conversationId = UUID.create()
         let payload: [String: Any] = [
             "type": "conversation-delete",
-            "time": "",
+            "time": Date().transportString(),
             "data": ["conv": conversationId.transportString()]
         ]
 
