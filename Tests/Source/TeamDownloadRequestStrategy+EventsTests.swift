@@ -225,6 +225,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
 
         XCTAssertTrue(user.needsToBeUpdatedFromBackend)
         XCTAssertFalse(team.needsToBeUpdatedFromBackend)
+        XCTAssertTrue(team.needsToRedownloadMembers)
         XCTAssertEqual(member.team, team)
     }
 
@@ -258,7 +259,8 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
             guard let member = user.membership(in: team) else { return XCTFail("No member") }
 
             XCTAssertTrue(user.needsToBeUpdatedFromBackend)
-            XCTAssertFalse(team.needsToBeUpdatedFromBackend) // TODO: Double check if we want to update it
+            XCTAssertFalse(team.needsToBeUpdatedFromBackend)
+            XCTAssertTrue(team.needsToRedownloadMembers)
             XCTAssertEqual(member.team, team)
         }
     }
@@ -286,6 +288,7 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
 
             XCTAssertTrue(user.needsToBeUpdatedFromBackend)
             XCTAssertTrue(team.needsToBeUpdatedFromBackend)
+            XCTAssertFalse(team.needsToRedownloadMembers)
             XCTAssertEqual(member.team, team)
         }
     }
