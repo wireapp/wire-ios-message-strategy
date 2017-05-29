@@ -111,6 +111,37 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
         XCTAssertNil(Team.fetch(withRemoteIdentifier: teamId, in: uiMOC))
     }
 
+    func testThatItDeltesATeamsConversationsWhenReceivingATeamDeleteUpdateEvent() {
+        // given
+        let conversationId = UUID.create()
+        let teamId = UUID.create()
+
+        syncMOC.performGroupedBlock {
+            let team = Team.fetchOrCreate(with: teamId, create: true, in: self.syncMOC, created: nil)
+            let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            conversation.remoteIdentifier = conversationId
+            conversation.team = team
+            XCTAssert(self.syncMOC.saveOrRollback())
+        }
+
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.1))
+        XCTAssertNotNil(Team.fetch(withRemoteIdentifier: teamId, in: uiMOC))
+
+        let payload: [String: Any] = [
+            "type": "team.delete",
+            "team": teamId.transportString(),
+            "time": "",
+            "data": NSNull()
+        ]
+
+        // when
+        processEvent(fromPayload: payload)
+
+        // then
+        XCTAssertNil(Team.fetch(withRemoteIdentifier: teamId, in: uiMOC))
+        XCTAssertNil(ZMConversation.fetch(withRemoteIdentifier: conversationId, in: uiMOC))
+    }
+
     // MARK: - Team Update
 
     func testThatItUpdatesATeamsNameWhenReceivingATeamUpdateUpdateEvent() {
