@@ -113,7 +113,12 @@ extension TeamDownloadRequestStrategy: ZMEventConsumer {
                 deleteTeamAndConversations(team)
             } else {
                 // Remove member from all team conversations he was a participant of
-                team.conversations.filter { $0.otherActiveParticipants.contains(user) }.forEach { $0.removeParticipant(user) }
+                team.conversations.filter {
+                    $0.otherActiveParticipants.contains(user)
+                }.forEach {
+                    $0.removeParticipant(user)
+                    $0.synchronizeRemovedUser(user)
+                }
             }
         } else {
             log.error("Trying to delete non existent membership of \(user) in \(team)")
