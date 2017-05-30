@@ -478,7 +478,6 @@ class TeamDownloadRequestStrategy_EventsTests: MessagingTestBase {
             guard let teamConversation = ZMConversation.fetch(withRemoteIdentifier: teamConversationId, in: self.syncMOC) else { return XCTFail("No Team Conversation") }
             guard let conversation = ZMConversation.fetch(withRemoteIdentifier: conversationId, in: self.syncMOC) else { return XCTFail("No Conversation") }
             XCTAssertFalse(teamConversation.otherActiveParticipants.contains(user))
-            print(conversation.otherActiveParticipants)
             XCTAssert(conversation.otherActiveParticipants.contains(user))
         }
     }
