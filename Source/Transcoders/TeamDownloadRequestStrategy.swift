@@ -20,7 +20,7 @@
 fileprivate extension Team {
 
     static var predicateForObjectsNeedingToBeUpdated: NSPredicate = {
-        NSPredicate(format: "%K == YES AND %K != NULL", #keyPath(Team.needsToBeUpdatedFromBackend), #keyPath(Team.remoteIdentifier))
+        NSPredicate(format: "%K == YES AND %K != NULL", #keyPath(Team.needsToBeUpdatedFromBackend), "remoteIdentifier_data")
     }()
 
 }
