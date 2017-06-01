@@ -20,7 +20,7 @@
 fileprivate extension Team {
 
     static var predicateForObjectsNeedingToDownloadMembers: NSPredicate = {
-        NSPredicate(format: "%K == YES AND %K != NULL", #keyPath(Team.needsToRedownloadMembers), "remoteIdentifier_data")
+        NSPredicate(format: "%K == YES AND %K != NULL", #keyPath(Team.needsToRedownloadMembers), Team.remoteIdentifierDataKey()!)
     }()
 
     func updateMembers(with response: ZMTransportResponse) {
