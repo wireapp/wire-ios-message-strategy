@@ -35,7 +35,7 @@ fileprivate extension Team {
 
 public final class MemberDownloadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource, ZMRequestGeneratorSource {
 
-    fileprivate var downstreamSync: ZMDownstreamObjectSync!
+    private (set) var downstreamSync: ZMDownstreamObjectSync!
 
     public override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
