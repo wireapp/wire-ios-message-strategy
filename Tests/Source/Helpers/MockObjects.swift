@@ -35,7 +35,12 @@ public class MockApplicationStatus : NSObject, ApplicationStatus {
     public var clientRegistrationDelegate : ClientRegistrationDelegate {
         return self.mockClientRegistrationStatus
     }
-    
+
+    public var notificationFetchStatus: BackgroundNotificationFetchStatusProvider {
+        return mockNotificationFetchStatus
+    }
+
+    public let mockNotificationFetchStatus = MockNotificationFetchStatusProvider()
     public let mockConfirmationStatus = MockConfirmationStatus()
     public let mockTaskCancellationDelegate = MockTaskCancellationDelegate()
     public var mockClientRegistrationStatus = MockClientRegistrationStatus()
@@ -77,6 +82,12 @@ public class MockTaskCancellationDelegate: NSObject, ZMRequestCancellation {
     public func cancelTask(with identifier: ZMTaskIdentifier) {
         cancelledIdentifiers.append(identifier)
     }
+}
+
+public final class MockNotificationFetchStatusProvider: BackgroundNotificationFetchStatusProvider {
+
+    public var status: BackgroundNotificationFetchStatus = .done
+
 }
 
 
