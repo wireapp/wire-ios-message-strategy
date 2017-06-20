@@ -49,10 +49,6 @@ public class ClientMessageTranscoder: AbstractRequestStrategy {
     }
     
     public override func nextRequestIfAllowed() -> ZMTransportRequest? {
-        // Don't create requests while we are still fetching the notification stream in the background.
-        // Otherwise we risk already sending out delivery receipts for received messages when we have to fetch
-        // multiple pages of the stream (in case we have been offline for a while).
-        guard applicationStatus?.notificationFetchStatus == .done else { return nil }
         return self.upstreamObjectSync.nextRequest()
     }
 }

@@ -74,6 +74,9 @@ open class AbstractRequestStrategy : NSObject, RequestStrategy {
         }
 
         if applicationStatus.notificationFetchStatus == .inProgress {
+            // Don't create requests while we are still fetching the notification stream in the background.
+            // Otherwise we risk already sending out OTR messages when we have to fetch
+            // multiple pages of the stream (in case we have been offline for a while).
             prerequisites.insert(.allowsRequestsDuringNotificationStreamFetch)
         }
 
