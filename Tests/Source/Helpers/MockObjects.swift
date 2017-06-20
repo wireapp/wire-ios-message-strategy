@@ -23,6 +23,7 @@ import WireMessageStrategy
 import WireDataModel
 
 public class MockApplicationStatus : NSObject, ApplicationStatus {
+
     
     public var deliveryConfirmation: DeliveryConfirmationDelegate {
         return self.mockConfirmationStatus
@@ -36,11 +37,8 @@ public class MockApplicationStatus : NSObject, ApplicationStatus {
         return self.mockClientRegistrationStatus
     }
 
-    public var notificationFetchStatus: BackgroundNotificationFetchStatusProvider {
-        return mockNotificationFetchStatus
-    }
+    public var notificationFetchStatus = BackgroundNotificationFetchStatus.done
 
-    public let mockNotificationFetchStatus = MockNotificationFetchStatusProvider()
     public let mockConfirmationStatus = MockConfirmationStatus()
     public let mockTaskCancellationDelegate = MockTaskCancellationDelegate()
     public var mockClientRegistrationStatus = MockClientRegistrationStatus()
@@ -82,12 +80,6 @@ public class MockTaskCancellationDelegate: NSObject, ZMRequestCancellation {
     public func cancelTask(with identifier: ZMTaskIdentifier) {
         cancelledIdentifiers.append(identifier)
     }
-}
-
-public final class MockNotificationFetchStatusProvider: BackgroundNotificationFetchStatusProvider {
-
-    public var status: BackgroundNotificationFetchStatus = .done
-
 }
 
 

@@ -26,7 +26,7 @@ open class AbstractRequestStrategy : NSObject, RequestStrategy {
     weak var applicationStatus : ApplicationStatus?
     
     public let managedObjectContext : NSManagedObjectContext
-    public var configuration : ZMStrategyConfigurationOption = [.allowsRequestsDuringEventProcessing]
+    public var configuration : ZMStrategyConfigurationOption = [.allowsRequestsDuringEventProcessing, .allowsRequestsDuringNotificationStreamFetch]
     
     public init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         self.managedObjectContext = managedObjectContext
@@ -72,7 +72,11 @@ open class AbstractRequestStrategy : NSObject, RequestStrategy {
         if applicationStatus.operationState == .background {
             prerequisites.insert(.allowsRequestsWhileInBackground)
         }
-        
+
+        if applicationStatus.notificationFetchStatus == .inProgress {
+            prerequisites.insert(.allowsRequestsDuringNotificationStreamFetch)
+        }
+
         return prerequisites
     }
 
