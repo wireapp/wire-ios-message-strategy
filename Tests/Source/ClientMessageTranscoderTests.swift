@@ -136,6 +136,32 @@ extension ClientMessageTranscoderTests {
         }
     }
     
+    func testThatItDoesNotGenerateARequestToSendAClientMessageIfNoRecepientsGiven() {
+        self.syncMOC.performGroupedBlockAndWait {
+            // GIVEN
+            let conversation = ZMConversation.insertNewObject(in: self.syncMOC)
+            conversation.conversationType = .group
+            conversation.remoteIdentifier = UUID.create()
+            self.syncMOC.saveOrRollback()
+            
+            conversation.updateMessageDestructionTimeout(timeout: ZMConversationMessageDestructionTimeout.fifteenSeconds)
+            let message = conversation.appendMessage(withText: "Hello world") as! ZMClientMessage
+            self.syncMOC.saveOrRollback()
+            
+            // WHEN
+            self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([message])) }
+            self.performIgnoringZMLogError {
+                if let _ = self.sut.nextRequest() {
+                    XCTFail()
+                    return
+                }
+            }
+            
+            // THEN
+            XCTAssertTrue(message.isExpired)
+        }
+    }
+    
     func testThatItGeneratesARequestToSendAClientMessageExternalWithExternalBlob() {
         self.syncMOC.performGroupedBlockAndWait {
             
