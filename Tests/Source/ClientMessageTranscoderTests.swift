@@ -151,10 +151,7 @@ extension ClientMessageTranscoderTests {
             // WHEN
             self.sut.contextChangeTrackers.forEach { $0.objectsDidChange(Set([message])) }
             self.performIgnoringZMLogError {
-                if let _ = self.sut.nextRequest() {
-                    XCTFail()
-                    return
-                }
+                XCTAssertNil(self.sut.nextRequest())
             }
             
             // THEN
