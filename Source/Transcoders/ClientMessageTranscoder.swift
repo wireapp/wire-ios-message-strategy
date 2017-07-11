@@ -73,7 +73,11 @@ extension ClientMessageTranscoder: ZMUpstreamTranscoder {
     public func request(forInserting managedObject: ZMManagedObject, forKeys keys: Set<String>?) -> ZMUpstreamRequest? {
         guard let message = managedObject as? ZMClientMessage,
             !message.isExpired else { return nil }
-        let request = self.requestFactory.upstreamRequestForMessage(message, forConversationWithId: message.conversation!.remoteIdentifier!)!
+        guard let request = self.requestFactory.upstreamRequestForMessage(message, forConversationWithId: message.conversation!.remoteIdentifier!) else {
+            message.expire()
+            localNotificationDispatcher.didFailToSend(message)
+            return nil
+        }
         if message.genericMessage?.hasConfirmation() == true && self.applicationStatus!.deliveryConfirmation.needsToSyncMessages {
             request.forceToVoipSession()
         }
