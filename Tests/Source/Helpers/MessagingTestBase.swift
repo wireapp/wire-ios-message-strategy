@@ -31,12 +31,16 @@ class MessagingTestBase: ZMTBaseTest {
     fileprivate(set) var otherUser: ZMUser!
     fileprivate(set) var otherClient: UserClient!
     fileprivate(set) var otherEncryptionContext: EncryptionContext!
+    fileprivate(set) var containerURL: URL!
+    fileprivate(set) var accountId: UUID!
     
     override func setUp() {
         super.setUp()
         
         self.deleteAllOtherEncryptionContexts()
         self.deleteAllFilesInCache()
+        self.containerURL = try! FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        self.accountId = UUID()
         self.setupManagedObjectContexes()
         
         self.syncMOC.performGroupedBlockAndWait {
@@ -290,14 +294,13 @@ extension MessagingTestBase {
     
     fileprivate func setupManagedObjectContexes() {
         
-        let storeURL = PersistentStoreRelocator.storeURL(in: .cachesDirectory)!
         NSManagedObjectContext.setUseInMemoryStore(true)
-        self.uiMOC = NSManagedObjectContext.createUserInterfaceContextWithStore(at: storeURL)
+        self.uiMOC = NSManagedObjectContext.createUserInterfaceContextForAccount(withIdentifier: accountId, inSharedContainerAt: containerURL)
         let imageAssetCache = ImageAssetCache(MBLimit: 100)
         let fileAssetCache = FileAssetCache(location: nil)
         self.uiMOC.userInfo["TestName"] = self.name
         
-        self.syncMOC = NSManagedObjectContext.createSyncContextWithStore(at: storeURL, keyStore: storeURL.deletingLastPathComponent())
+        self.syncMOC = NSManagedObjectContext.createSyncContextForAccount(withIdentifier: accountId, inSharedContainerAt: containerURL)
         self.syncMOC.performGroupedBlockAndWait {
             self.syncMOC.userInfo["TestName"] = self.name
             self.syncMOC.saveOrRollback()
