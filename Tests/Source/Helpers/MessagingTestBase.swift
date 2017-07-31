@@ -82,6 +82,7 @@ class MessagingTestBase: ZMTBaseTest {
         contents?.forEach{ try! FileManager.default.removeItem(at: $0)}
         accountIdentifier = nil
         sharedContainerURL = nil
+        contextDirectory = nil
 
         super.tearDown()
     }
