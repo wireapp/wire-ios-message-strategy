@@ -320,6 +320,8 @@ extension MessagingTestBase {
             completionHandler: { self.contextDirectory = $0 }
         )
 
+        XCTAssert(waitForAllGroupsToBeEmpty(withTimeout: 0.1))
+
         let imageAssetCache = ImageAssetCache(MBLimit: 100)
         let fileAssetCache = FileAssetCache(location: nil)
         self.uiMOC.userInfo["TestName"] = self.name
