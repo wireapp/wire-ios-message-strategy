@@ -78,8 +78,10 @@ class MessagingTestBase: ZMTBaseTest {
         StorageStack.reset()
         _ = self.waitForAllGroupsToBeEmpty(withTimeout: 10)
 
-        let contents = try? FileManager.default.contentsOfDirectory(at: self.sharedContainerURL, includingPropertiesForKeys: nil, options: [])
-        contents?.forEach{ try! FileManager.default.removeItem(at: $0)}
+        try? FileManager.default.contentsOfDirectory(at: sharedContainerURL, includingPropertiesForKeys: nil, options: .skipsHiddenFiles).forEach {
+            try? FileManager.default.removeItem(at: $0)
+        }
+
         accountIdentifier = nil
         sharedContainerURL = nil
         contextDirectory = nil
@@ -306,16 +308,18 @@ extension MessagingTestBase {
 
 // MARK: - Contexts
 extension MessagingTestBase {
-    
-    
-    
-    fileprivate func setupManagedObjectContexes() {
 
+    fileprivate func setupManagedObjectContexes() {
         StorageStack.reset()
         StorageStack.shared.createStorageAsInMemory = true
-        StorageStack.shared.createManagedObjectContextDirectory(forAccountWith:self.accountIdentifier, inContainerAt: self.sharedContainerURL, startedMigrationCallback:nil){
-            self.contextDirectory = $0
-        }
+
+        StorageStack.shared.createManagedObjectContextDirectory(
+            accountIdentifier: accountIdentifier,
+            applicationContainer: sharedContainerURL,
+            dispatchGroup: dispatchGroup,
+            completionHandler: { self.contextDirectory = $0 }
+        )
+
         let imageAssetCache = ImageAssetCache(MBLimit: 100)
         let fileAssetCache = FileAssetCache(location: nil)
         self.uiMOC.userInfo["TestName"] = self.name
