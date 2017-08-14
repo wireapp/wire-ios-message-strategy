@@ -59,18 +59,24 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
     }
 
     fileprivate func createConversation() -> ZMConversation {
-        let conv = ZMConversation.insertNewObject(in: syncMOC)
-        conv.remoteIdentifier = UUID.create()
-        return conv
+        let user3 = createUser(alsoCreateClient: true)
+        let conversation = ZMConversation.insertGroupConversation(into: syncMOC, withParticipants: [otherUser, user3])!
+        conversation.remoteIdentifier = .create()
+        return conversation
     }
     
     fileprivate func createFileMessageWithAssetId(
         in aConversation: ZMConversation,
         otrKey: Data = Data.randomEncryptionKey(),
-        sha: Data  = Data.randomEncryptionKey()
+        sha: Data  = Data.randomEncryptionKey(),
+        file: StaticString = #file,
+        line: UInt = #line
         ) -> (message: ZMAssetClientMessage, assetId: String, assetToken: String)? {
 
-        let message = aConversation.appendMessage(with: ZMFileMetadata(fileURL: testDataURL)) as! ZMAssetClientMessage
+        guard let message = aConversation.appendMessage(with: ZMFileMetadata(fileURL: testDataURL)) as? ZMAssetClientMessage else {
+            XCTFail("Failed to append message", file: file, line: line)
+            return nil
+        }
         let (assetId, token) = (UUID.create().transportString(), UUID.create().transportString())
 
         // TODO: We should replace this manual update with inserting a v3 asset as soon as we have sending support
@@ -83,7 +89,7 @@ class AssetV3DownloadRequestStrategyTests: MessagingTestBase {
         )
 
         guard let uploadedWithId = uploaded.updatedUploaded(withAssetId: assetId, token: token) else {
-            XCTFail("Failed to update asset")
+            XCTFail("Failed to update asset", file: file, line: line)
             return nil
         }
         

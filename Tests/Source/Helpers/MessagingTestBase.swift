@@ -293,14 +293,20 @@ extension MessagingTestBase {
 extension MessagingTestBase {
     
     fileprivate func setupManagedObjectContexes() {
-        
-        NSManagedObjectContext.setUseInMemoryStore(true)
-        self.uiMOC = NSManagedObjectContext.createUserInterfaceContextForAccount(withIdentifier: accountId, inSharedContainerAt: containerURL)
+        StorageStack.shared.createStorageAsInMemory = true
+
+        let contextExpectation = expectation(description: "Should create NSManagedObjectContexts")
+        StorageStack.shared.createManagedObjectContextDirectory(accountIdentifier: accountId, applicationContainer: containerURL, dispatchGroup: dispatchGroup) { [unowned self] directory in
+            (self.uiMOC, self.syncMOC) = (directory.uiContext, directory.syncContext)
+            contextExpectation.fulfill()
+        }
+
+        XCTAssert(waitForCustomExpectations(withTimeout: 0.1))
+
         let imageAssetCache = ImageAssetCache(MBLimit: 100)
         let fileAssetCache = FileAssetCache(location: nil)
         self.uiMOC.userInfo["TestName"] = self.name
-        
-        self.syncMOC = NSManagedObjectContext.createSyncContextForAccount(withIdentifier: accountId, inSharedContainerAt: containerURL)
+
         self.syncMOC.performGroupedBlockAndWait {
             self.syncMOC.userInfo["TestName"] = self.name
             self.syncMOC.saveOrRollback()
@@ -336,9 +342,8 @@ extension MessagingTestBase {
             // wait for any operation to complete
             refUI?.userInfo.removeAllObjects()
         }
-        
-        NSManagedObjectContext.resetUserInterfaceContext()
-        NSManagedObjectContext.resetSharedPersistentStoreCoordinator()
+
+        StorageStack.reset()
     }
     
     override var allDispatchGroups: [ZMSDispatchGroup] {

@@ -187,7 +187,6 @@ extension AssetV3FileUploadRequestStrategy: ZMUpstreamTranscoder {
     }
 
     public func updateUpdatedObject(_ managedObject: ZMManagedObject, requestUserInfo: [AnyHashable : Any]? = nil, response: ZMTransportResponse, keysToParse: Set<String>) -> Bool {
-
         guard keysToParse.contains(ZMAssetClientMessageUploadedStateKey), response.result == .success else { return false }
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
         guard let payload = response.payload?.asDictionary(), let assetId = payload["key"] as? String else {
