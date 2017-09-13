@@ -350,9 +350,14 @@ extension AssetV3DownloadRequestStrategyTests {
             
             let _ = self.createFileMessageWithAssetId(in: self.conversation, otrKey: key, sha: sha)!
             
-            self.expectation(forNotification: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName, object:nil, handler: { (note) -> Bool in
-                return (note.userInfo![AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] != nil)
-            })
+            let expectation = self.expectation(description: "Notification fired")
+            let token = NotificationInContext.addObserver(name: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName,
+                                                          context: self.uiMOC,
+                                                          object: nil)
+            { note in
+                XCTAssertNotNil(note.userInfo[AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] as? Date)
+                expectation.fulfill()
+            }
             
             guard let request = self.sut.nextRequest() else {
                 return XCTFail("Did not create expected request")
@@ -361,7 +366,9 @@ extension AssetV3DownloadRequestStrategyTests {
             let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
             
             // WHEN
-            request.complete(with: response)
+            withExtendedLifetime(token) { () -> () in
+                request.complete(with: response)
+            }
         }
         
         self.syncMOC.performGroupedBlockAndWait {
@@ -433,12 +440,18 @@ extension AssetV3DownloadRequestStrategyTests {
     }
 
     func testThatItSendsTheNotificationIfCannotDownload_V3() {
+        var token: Any? = nil
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
-            self.expectation(forNotification: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName, object:nil, handler: { (note) -> Bool in
-                return (note.userInfo![AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] != nil)
-            })
+            let expectation = self.expectation(description: "Notification fired")
+            token = NotificationInContext.addObserver(name: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName,
+                                                          context: self.uiMOC,
+                                                          object: nil)
+            { note in
+                XCTAssertNotNil(note.userInfo[AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] as? Date)
+                expectation.fulfill()
+            }
             
             let _ = self.createFileMessageWithAssetId(in: self.conversation)!
             guard let request = self.sut.nextRequest() else { return XCTFail("No message")}
@@ -453,7 +466,9 @@ extension AssetV3DownloadRequestStrategyTests {
         
         self.syncMOC.performGroupedBlockAndWait {
             // THEN
-            XCTAssertTrue(self.waitForCustomExpectations(withTimeout: 0.5))
+            withExtendedLifetime(token) { () -> () in
+                XCTAssertTrue(self.waitForCustomExpectations(withTimeout: 0.5))
+            }
         }
     }
 }
