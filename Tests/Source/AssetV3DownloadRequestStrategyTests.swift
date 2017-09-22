@@ -340,6 +340,8 @@ extension AssetV3DownloadRequestStrategyTests {
     }
 
     func testThatItSendsTheNotificationIfSuccessfulDownloadAndDecryption_V3() {
+        
+        var token: Any? = nil
         self.syncMOC.performGroupedBlockAndWait {
             
             // GIVEN
@@ -351,8 +353,8 @@ extension AssetV3DownloadRequestStrategyTests {
             let _ = self.createFileMessageWithAssetId(in: self.conversation, otrKey: key, sha: sha)!
             
             let expectation = self.expectation(description: "Notification fired")
-            let token = NotificationInContext.addObserver(name: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName,
-                                                          context: self.uiMOC,
+            token = NotificationInContext.addObserver(name: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName,
+                                                          context: self.uiMOC.notificationContext,
                                                           object: nil)
             { note in
                 XCTAssertNotNil(note.userInfo[AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] as? Date)
@@ -366,12 +368,10 @@ extension AssetV3DownloadRequestStrategyTests {
             let response = ZMTransportResponse(imageData: encryptedData, httpStatus: 200, transportSessionError: .none, headers: [:])
             
             // WHEN
-            withExtendedLifetime(token) { () -> () in
-                request.complete(with: response)
-            }
+            request.complete(with: response)
         }
         
-        self.syncMOC.performGroupedBlockAndWait {
+        withExtendedLifetime(token) { () -> () in
             // THEN
             XCTAssertTrue(self.waitForCustomExpectations(withTimeout: 0.5))
         }
@@ -446,7 +446,7 @@ extension AssetV3DownloadRequestStrategyTests {
             // GIVEN
             let expectation = self.expectation(description: "Notification fired")
             token = NotificationInContext.addObserver(name: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName,
-                                                          context: self.uiMOC,
+                                                          context: self.uiMOC.notificationContext,
                                                           object: nil)
             { note in
                 XCTAssertNotNil(note.userInfo[AssetDownloadRequestStrategyNotification.downloadStartTimestampKey] as? Date)

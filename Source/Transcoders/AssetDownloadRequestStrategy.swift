@@ -59,7 +59,7 @@ public struct AssetDownloadRequestStrategyNotification {
     func registerForCancellationNotification() {
         
         self.token = NotificationInContext.addObserver(name: ZMAssetClientMessage.didCancelFileDownloadNotificationName,
-                                          context: self.managedObjectContext.zm_userInterface,
+                                          context: self.managedObjectContext.notificationContext,
                                           object: nil)
         { [weak self] note in
             guard let objectID = note.object as? NSManagedObjectID else { return }
@@ -126,10 +126,16 @@ public struct AssetDownloadRequestStrategyNotification {
             
             let userInfo: [String: Any] = [AssetDownloadRequestStrategyNotification.downloadStartTimestampKey: response.startOfUploadTimestamp ?? Date()]
             if uiMessage?.transferState == .downloaded {
-                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName, context: self.managedObjectContext.zm_userInterface, object: uiMessage, userInfo: userInfo).post()
+                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName,
+                                      context: self.managedObjectContext.notificationContext,
+                                      object: uiMessage,
+                                      userInfo: userInfo).post()
             }
             else {
-                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName, context: self.managedObjectContext.zm_userInterface, object: uiMessage, userInfo: userInfo).post()
+                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName,
+                                      context: self.managedObjectContext.notificationContext,
+                                      object: uiMessage,
+                                      userInfo: userInfo).post()
             }
         })
     }

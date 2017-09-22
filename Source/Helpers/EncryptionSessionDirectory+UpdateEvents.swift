@@ -103,7 +103,7 @@ extension EncryptionSessionsDirectory {
         ]
         
         NotificationInContext(name: ZMConversation.failedToDecryptMessageNotificationName,
-                              context: sender.managedObjectContext!.zm_userInterface,
+                              context: sender.managedObjectContext!.notificationContext,
                               object: conversation,
                               userInfo: userInfo).post()
     }

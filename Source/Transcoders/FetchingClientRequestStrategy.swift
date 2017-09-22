@@ -32,7 +32,7 @@ public extension ZMUser {
     
     func fetchUserClients() {
         NotificationInContext(name: FetchingClientRequestStrategy.needsToUpdateUserClientsNotificationName,
-                              context: self.managedObjectContext!.zm_userInterface,
+                              context: self.managedObjectContext!.notificationContext,
                               object: self.objectID).post()
     }
 }
@@ -63,7 +63,7 @@ public final class FetchingClientRequestStrategy : AbstractRequestStrategy, ZMEv
         self.userClientsSync = ZMRemoteIdentifierObjectSync(transcoder: self, managedObjectContext: self.managedObjectContext)
         
         self.userClientsObserverToken = NotificationInContext.addObserver(name: FetchingClientRequestStrategy.needsToUpdateUserClientsNotificationName,
-                                                                       context: self.managedObjectContext.zm_userInterface,
+                                                                       context: self.managedObjectContext.notificationContext,
                                                                        object: nil)
             {
                 [weak self] note in

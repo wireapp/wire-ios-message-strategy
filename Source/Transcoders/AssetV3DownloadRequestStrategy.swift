@@ -59,7 +59,7 @@ fileprivate let zmLog = ZMSLog(tag: "Asset V3")
 
     func registerForCancellationNotification() {
         self.notificationToken = NotificationInContext.addObserver(name: ZMAssetClientMessage.didCancelFileDownloadNotificationName,
-                                                                   context: self.managedObjectContext.zm_userInterface,
+                                                                   context: self.managedObjectContext.notificationContext,
                                                                    object: nil)
         {
             [weak self] note in
@@ -112,10 +112,16 @@ fileprivate let zmLog = ZMSLog(tag: "Asset V3")
 
             let userInfo: [String: Any] = [AssetDownloadRequestStrategyNotification.downloadStartTimestampKey: response.startOfUploadTimestamp ?? Date()]
             if downloadSuccess {
-                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName, context: self.managedObjectContext.zm_userInterface, object: uiMessage, userInfo: userInfo).post()
+                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFinishedNotificationName,
+                                      context: self.managedObjectContext.notificationContext,
+                                      object: uiMessage,
+                                      userInfo: userInfo).post()
             }
             else {
-                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName, context: self.managedObjectContext.zm_userInterface, object: uiMessage, userInfo: userInfo).post()
+                NotificationInContext(name: AssetDownloadRequestStrategyNotification.downloadFailedNotificationName,
+                                      context: self.managedObjectContext.notificationContext,
+                                      object: uiMessage,
+                                      userInfo: userInfo).post()
             }
         })
     }

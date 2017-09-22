@@ -49,7 +49,7 @@ import WireRequestStrategy
     
     func registerForWhitelistingNotification() {
         self.notificationToken = NotificationInContext.addObserver(name: ZMClientMessage.linkPreviewImageDownloadNotification,
-                                                                   context: self.managedObjectContext.zm_userInterface,
+                                                                   context: self.managedObjectContext.notificationContext,
                                                                    object: nil)
         { [weak self] note in
             guard let objectID = note.object as? NSManagedObjectID else { return }

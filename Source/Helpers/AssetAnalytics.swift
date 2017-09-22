@@ -41,7 +41,7 @@ final public class AssetAnalytics {
         uiMoc.performGroupedBlock {
             let userInfo: [String: Any] = [FileUploadRequestStrategyNotification.requestStartTimestampKey: response.startOfUploadTimestamp ?? Date()]
             NotificationInContext(name: FileUploadRequestStrategyNotification.uploadFinishedNotificationName,
-                                  context: self.moc.zm_userInterface,
+                                  context: self.moc.notificationContext,
                                   object: try? uiMoc.existingObject(with: messageObjectId),
                                   userInfo: userInfo).post()
         }
@@ -54,7 +54,7 @@ final public class AssetAnalytics {
         uiMoc.performGroupedBlock {
             let userInfo: [String: Any] = [FileUploadRequestStrategyNotification.requestStartTimestampKey: request?.startOfUploadTimestamp ?? Date()]
             NotificationInContext(name: FileUploadRequestStrategyNotification.uploadFailedNotificationName,
-                                  context: self.moc.zm_userInterface,
+                                  context: self.moc.notificationContext,
                                   object: try? uiMoc.existingObject(with: messageObjectId),
                                   userInfo: userInfo).post()
         }
