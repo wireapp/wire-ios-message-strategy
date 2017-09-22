@@ -102,7 +102,7 @@ extension EncryptionSessionsDirectory {
             "deviceClass" : sender.deviceClass ?? ""
         ]
         
-        NotificationInContext(name: Notification.Name(rawValue: ZMConversationFailedToDecryptMessageNotificationName),
+        NotificationInContext(name: ZMConversation.failedToDecryptMessageNotificationName,
                               context: sender.managedObjectContext!.zm_userInterface,
                               object: conversation,
                               userInfo: userInfo).post()
