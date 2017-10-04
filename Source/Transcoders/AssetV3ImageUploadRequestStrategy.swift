@@ -241,6 +241,12 @@ extension AssetV3ImageUploadRequestStrategy: ZMUpstreamTranscoder {
 
     public func shouldCreateRequest(toSyncObject managedObject: ZMManagedObject, forKeys keys: Set<String>, withSync sync: Any) -> Bool {
         guard let message = managedObject as? ZMAssetClientMessage else { return false }
+        guard managedObjectContext.zm_imageAssetCache.hasAssetData(message.nonce, format: .medium, encrypted: true) else {
+            // if the asset data is missing, we should delete the message
+            managedObjectContext.delete(message)
+            managedObjectContext.enqueueDelayedSave()
+            return false
+        }
         
         let imageAssetStorage = message.imageAssetStorage
         if imageAssetStorage.shouldReprocess(for: .medium) && true == message.fileMessageData?.v3_isImage {
