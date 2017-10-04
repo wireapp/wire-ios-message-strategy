@@ -98,6 +98,8 @@ extension ZMAssetClientMessage {
 /// `Asset.Preview` generic message will be updated and the state of the message updated accordingly.
 public final class AssetV3ImageUploadRequestStrategy: AbstractRequestStrategy, ZMContextChangeTrackerSource {
 
+    fileprivate let zmLog = ZMSLog(tag: "Asset V3")
+    
     fileprivate let preprocessor: ZMImagePreprocessingTracker
     fileprivate let requestFactory = AssetRequestFactory()
     fileprivate var upstreamSync: ZMUpstreamModifiedObjectSync!
@@ -245,6 +247,7 @@ extension AssetV3ImageUploadRequestStrategy: ZMUpstreamTranscoder {
             // if the asset data is missing, we should delete the message
             managedObjectContext.delete(message)
             managedObjectContext.enqueueDelayedSave()
+            zmLog.warn("Asset data is missing from image cache. Message nonce: \(message.nonce)")
             return false
         }
         
