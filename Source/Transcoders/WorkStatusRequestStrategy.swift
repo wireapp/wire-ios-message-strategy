@@ -18,31 +18,31 @@
 
 import Foundation
 
-class WorkStatusRequestStrategy : AbstractRequestStrategy {
+class AvailabilityRequestStrategy : AbstractRequestStrategy {
     
     var modifiedSync : ZMUpstreamModifiedObjectSync!
     
     override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         
         super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
-        self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: ZMUser.entityName(), keysToSync: [WorkStatusKey], managedObjectContext: managedObjectContext)
+        self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: ZMUser.entityName(), keysToSync: [AvailabilityKey], managedObjectContext: managedObjectContext)
     }
     
 }
 
-extension WorkStatusRequestStrategy : ZMUpstreamTranscoder {
+extension AvailabilityRequestStrategy : ZMUpstreamTranscoder {
 
     func request(forUpdating managedObject: ZMManagedObject, forKeys keys: Set<String>) -> ZMUpstreamRequest? {
         // needs to have a session with all connections
         
         guard let selfUser = managedObject as? ZMUser else { return nil }
         
-        let activityStatusBuilder = ZMActivityStatus.builder()
-        _ = activityStatusBuilder?.setType(.REMOTE)
-        let activityStatus = activityStatusBuilder?.build()
+        let availabilityBuilder = ZMAvailability.builder()
+        _ = availabilityBuilder?.setType(.REMOTE)
+        let availability = availabilityBuilder?.build()
         
         let messageBuilder = ZMGenericMessage.builder()
-        _ = messageBuilder?.setActivityStatus(activityStatus)
+        _ = messageBuilder?.setAvailability(availability)
         let message = messageBuilder?.build()
         
         let originalPath = "/broadcast/otr/messages"
@@ -94,7 +94,7 @@ extension WorkStatusRequestStrategy : ZMUpstreamTranscoder {
     
 }
 
-extension WorkStatusRequestStrategy : OTREntity {
+extension AvailabilityRequestStrategy : OTREntity {
     
     var context: NSManagedObjectContext {
         return managedObjectContext

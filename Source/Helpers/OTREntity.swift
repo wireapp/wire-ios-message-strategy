@@ -24,8 +24,6 @@ private let zmLog = ZMSLog(tag: "Dependencies")
 
 public protocol OTREntity:  DependencyEntity, Hashable {
     
-//    var conversation: ZMConversation? { get }
-    
     var context : NSManagedObjectContext { get }
     
     /// Add clients as missing recipients for this entity. If we want to resend
