@@ -33,10 +33,13 @@ public protocol OTREntity:  DependencyEntity, Hashable {
     /// or sending the entity will fail again.
     func missesRecipients(_ recipients: Set<WireDataModel.UserClient>!)
     
-    /// TODO
+    /// if the BE tells us that these users are not in the
+    /// conversation anymore, it means that we are out of sync
+    /// with the list of participants
     func detectedRedundantClients()
     
-    /// TODO
+    /// This method is called when BE doesn't find clients
+    /// in the uploaded payload.
     func detectedMissingClient(for user: ZMUser)
 }
 
@@ -85,20 +88,20 @@ extension OTREntity {
         }
     
         let activeParticipants = conversation.activeParticipants.set as! Set<ZMUser>
-        return dependentObjectNeedingUpdateBeforeProcessingOTREntity(recipents: activeParticipants)
+        return dependentObjectNeedingUpdateBeforeProcessingOTREntity(recipients: activeParticipants)
     }
     
     /// Which objects this message depends on when sending it to a list recipients
-    public func dependentObjectNeedingUpdateBeforeProcessingOTREntity(recipents : Set<ZMUser>) -> ZMManagedObject? {
+    public func dependentObjectNeedingUpdateBeforeProcessingOTREntity(recipients : Set<ZMUser>) -> ZMManagedObject? {
         // If we are missing clients, we need to refetch the clients before retrying
         if let selfClient = ZMUser.selfUser(in: context).selfClient(),
            let missingClients = selfClient.missingClients , missingClients.count > 0
         {
-            let recipentClients = recipents.flatMap {
+            let recipientClients = recipients.flatMap {
                 return Array($0.clients)
             }
             // Don't block sending of messages if they that are not affected by the missing clients
-            if !missingClients.intersection(recipentClients).isEmpty {
+            if !missingClients.intersection(recipientClients).isEmpty {
                 // make sure that we fetch those clients, even if we somehow gave up on fetching them
                 selfClient.setLocallyModifiedKeys(Set(arrayLiteral: ZMUserClientMissingKey))
                 return selfClient

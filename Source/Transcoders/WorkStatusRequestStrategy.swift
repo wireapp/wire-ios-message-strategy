@@ -1,6 +1,6 @@
 //
 // Wire
-// Copyright (C) 2016 Wire Swiss GmbH
+// Copyright (C) 2017 Wire Swiss GmbH
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,9 +24,7 @@ class WorkStatusRequestStrategy : AbstractRequestStrategy {
     
     override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         
-        
         super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
-        
         self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: ZMUser.entityName(), keysToSync: [WorkStatusKey], managedObjectContext: managedObjectContext)
     }
     
@@ -101,7 +99,7 @@ extension WorkStatusRequestStrategy : OTREntity {
     var context: NSManagedObjectContext {
         return managedObjectContext
     }
-
+    
     func missesRecipients(_ recipients: Set<UserClient>!) {
         // TODO check what to do
     }
@@ -115,7 +113,7 @@ extension WorkStatusRequestStrategy : OTREntity {
     }
     
     var dependentObjectNeedingUpdateBeforeProcessing: AnyHashable? {
-        return self.dependentObjectNeedingUpdateBeforeProcessingOTREntity(recipents: ZMUser.connectionsAndTeamMembers(in: managedObjectContext))
+        return self.dependentObjectNeedingUpdateBeforeProcessingOTREntity(recipients: ZMUser.connectionsAndTeamMembers(in: managedObjectContext))
     }
     
     var isExpired: Bool {
