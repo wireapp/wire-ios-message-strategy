@@ -18,31 +18,32 @@
 
 import Foundation
 
-class AvailabilityRequestStrategy : AbstractRequestStrategy {
+public class AvailabilityRequestStrategy : AbstractRequestStrategy {
     
     var modifiedSync : ZMUpstreamModifiedObjectSync!
     
-    override init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
+    override public init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         
         super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
         self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: ZMUser.entityName(), keysToSync: [AvailabilityKey], managedObjectContext: managedObjectContext)
     }
     
+    public override func nextRequestIfAllowed() -> ZMTransportRequest? {
+        return modifiedSync.nextRequest()
+    }
+    
 }
 
 extension AvailabilityRequestStrategy : ZMUpstreamTranscoder {
-
-    func request(forUpdating managedObject: ZMManagedObject, forKeys keys: Set<String>) -> ZMUpstreamRequest? {
+    
+    public func request(forUpdating managedObject: ZMManagedObject, forKeys keys: Set<String>) -> ZMUpstreamRequest? {
         // needs to have a session with all connections
         
         guard let selfUser = managedObject as? ZMUser else { return nil }
         
-        let availabilityBuilder = ZMAvailability.builder()
-        _ = availabilityBuilder?.setType(.REMOTE)
-        let availability = availabilityBuilder?.build()
-        
         let messageBuilder = ZMGenericMessage.builder()
-        _ = messageBuilder?.setAvailability(availability)
+        _ = messageBuilder?.setAvailability(ZMAvailability.availability(selfUser.availability))
+        _ = messageBuilder?.setMessageId(UUID().transportString())
         let message = messageBuilder?.build()
         
         let originalPath = "/broadcast/otr/messages"
@@ -58,11 +59,11 @@ extension AvailabilityRequestStrategy : ZMUpstreamTranscoder {
         return ZMUpstreamRequest(keys: keys, transportRequest: request)
     }
     
-    func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> Any? {
+    public func dependentObjectNeedingUpdate(beforeProcessingObject dependant: ZMManagedObject) -> Any? {
         return dependentObjectNeedingUpdateBeforeProcessing
     }
     
-    func updateUpdatedObject(_ managedObject: ZMManagedObject, requestUserInfo: [AnyHashable : Any]? = nil, response: ZMTransportResponse, keysToParse: Set<String>) -> Bool {
+    public func updateUpdatedObject(_ managedObject: ZMManagedObject, requestUserInfo: [AnyHashable : Any]? = nil, response: ZMTransportResponse, keysToParse: Set<String>) -> Bool {
         guard let clientRegistrationDelegate = applicationStatus?.clientRegistrationDelegate else { return false }
         
         _ = parseUploadResponse(response, clientRegistrationDelegate: clientRegistrationDelegate)
@@ -70,25 +71,25 @@ extension AvailabilityRequestStrategy : ZMUpstreamTranscoder {
         return false
     }
     
-    func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
+    public func shouldRetryToSyncAfterFailed(toUpdate managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse, keysToParse keys: Set<String>) -> Bool {
         guard let clientRegistrationDelegate = applicationStatus?.clientRegistrationDelegate else { return false }
         
         return parseUploadResponse(response, clientRegistrationDelegate: clientRegistrationDelegate)
     }
     
-    func shouldProcessUpdatesBeforeInserts() -> Bool {
+    public func shouldProcessUpdatesBeforeInserts() -> Bool {
         return false
     }
     
-    func request(forInserting managedObject: ZMManagedObject, forKeys keys: Set<String>?) -> ZMUpstreamRequest? {
+    public func request(forInserting managedObject: ZMManagedObject, forKeys keys: Set<String>?) -> ZMUpstreamRequest? {
         return nil // we will never insert objects
     }
     
-    func updateInsertedObject(_ managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse) {
+    public func updateInsertedObject(_ managedObject: ZMManagedObject, request upstreamRequest: ZMUpstreamRequest, response: ZMTransportResponse) {
         // we will never insert objects
     }
     
-    func objectToRefetchForFailedUpdate(of managedObject: ZMManagedObject) -> ZMManagedObject? {
+    public func objectToRefetchForFailedUpdate(of managedObject: ZMManagedObject) -> ZMManagedObject? {
         return nil
     }
     
@@ -96,33 +97,48 @@ extension AvailabilityRequestStrategy : ZMUpstreamTranscoder {
 
 extension AvailabilityRequestStrategy : OTREntity {
     
-    var context: NSManagedObjectContext {
+    public var context: NSManagedObjectContext {
         return managedObjectContext
     }
     
-    func missesRecipients(_ recipients: Set<UserClient>!) {
+    public func missesRecipients(_ recipients: Set<UserClient>!) {
         // TODO check what to do
     }
     
-    func detectedRedundantClients() {
+    public func detectedRedundantClients() {
         // TODO check what to do
     }
     
-    func detectedMissingClient(for user: ZMUser) {
+    public func detectedMissingClient(for user: ZMUser) {
         // TODO check what to do
     }
     
-    var dependentObjectNeedingUpdateBeforeProcessing: AnyHashable? {
+    public var dependentObjectNeedingUpdateBeforeProcessing: AnyHashable? {
         return self.dependentObjectNeedingUpdateBeforeProcessingOTREntity(recipients: ZMUser.connectionsAndTeamMembers(in: managedObjectContext))
     }
     
-    var isExpired: Bool {
+    public var isExpired: Bool {
         return false
     }
     
-    func expire() {
+    public func expire() {
         // nop
     }
     
+}
+
+extension AvailabilityRequestStrategy : ZMContextChangeTracker {
+    
+    public func objectsDidChange(_ objects: Set<NSManagedObject>) {
+        modifiedSync.objectsDidChange(objects)
+    }
+    
+    public func fetchRequestForTrackedObjects() -> NSFetchRequest<NSFetchRequestResult>? {
+        return modifiedSync.fetchRequestForTrackedObjects()
+    }
+    
+    public func addTrackedObjects(_ objects: Set<NSManagedObject>) {
+        modifiedSync.addTrackedObjects(objects)
+    }
     
 }
