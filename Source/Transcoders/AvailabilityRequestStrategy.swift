@@ -39,14 +39,10 @@ extension AvailabilityRequestStrategy : ZMUpstreamTranscoder {
     public func request(forUpdating managedObject: ZMManagedObject, forKeys keys: Set<String>) -> ZMUpstreamRequest? {
         guard let selfUser = managedObject as? ZMUser else { return nil }
         
-        let messageBuilder = ZMGenericMessage.builder()
-        _ = messageBuilder?.setAvailability(ZMAvailability.availability(selfUser.availability))
-        _ = messageBuilder?.setMessageId(UUID().transportString())
-        let message = messageBuilder?.build()
-        
         let originalPath = "/broadcast/otr/messages"
+        let message = ZMGenericMessage.genericMessage(withAvailability: selfUser.availability)
         
-        guard let dataAndMissingClientStrategy = message?.encryptedMessagePayloadDataForBroadcast(context: managedObjectContext) else {
+        guard let dataAndMissingClientStrategy = message.encryptedMessagePayloadDataForBroadcast(context: managedObjectContext) else {
             return nil
         }
         
