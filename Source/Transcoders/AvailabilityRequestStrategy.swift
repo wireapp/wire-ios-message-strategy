@@ -37,8 +37,6 @@ public class AvailabilityRequestStrategy : AbstractRequestStrategy {
 extension AvailabilityRequestStrategy : ZMUpstreamTranscoder {
     
     public func request(forUpdating managedObject: ZMManagedObject, forKeys keys: Set<String>) -> ZMUpstreamRequest? {
-        // needs to have a session with all connections
-        
         guard let selfUser = managedObject as? ZMUser else { return nil }
         
         let messageBuilder = ZMGenericMessage.builder()
@@ -131,6 +129,24 @@ extension AvailabilityRequestStrategy : ZMContextChangeTrackerSource {
     
     public var contextChangeTrackers: [ZMContextChangeTracker] {
         return [modifiedSync]
+    }
+    
+}
+
+extension AvailabilityRequestStrategy : ZMEventConsumer {
+    
+    public func processEvents(_ events: [ZMUpdateEvent], liveEvents: Bool, prefetchResult: ZMFetchRequestBatchResult?) {
+        for event in events {
+            guard
+                let senderUUID = event.senderUUID(), event.isGenericMessageEvent,
+                let message = ZMGenericMessage(from: event), message.hasAvailability()
+            else {
+                continue
+            }
+            
+            let user = ZMUser(remoteID: senderUUID, createIfNeeded: false, in: managedObjectContext)
+            user?.updateAvailability(from: message)
+        }
     }
     
 }

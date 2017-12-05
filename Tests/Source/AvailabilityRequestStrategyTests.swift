@@ -57,4 +57,34 @@ class AvailabilityRequestStrategyTests: MessagingTestBase {
         XCTAssertNotNil(request)
     }
     
+    func testThatItUpdatesAvailabilityFromUpdateEvent() {
+        
+        // given
+        let selfUser = ZMUser.selfUser(in: syncMOC)
+        _ = ZMConversation(remoteID: selfUser.remoteIdentifier!, createIfNeeded: true, in: syncMOC) // create self conversation
+        
+        let messageBuilder = ZMGenericMessage.builder()
+        _ = messageBuilder?.setAvailability(ZMAvailability.availability(.away))
+        _ = messageBuilder?.setMessageId(UUID().transportString())
+        let message = messageBuilder?.build()
+        
+        let dict = ["recipient": self.selfClient.remoteIdentifier!,
+                    "sender": self.selfClient.remoteIdentifier!,
+                    "text": message!.data().base64String()] as NSDictionary
+        
+        let updateEvent = ZMUpdateEvent(fromEventStreamPayload: ([
+            "type": "conversation.otr-message-add",
+            "data":dict,
+            "from" : selfUser.remoteIdentifier!,
+            "conversation":ZMConversation.selfConversation(in: syncMOC).remoteIdentifier!.transportString(),
+            "time":Date(timeIntervalSince1970: 555555).transportString()] as NSDictionary), uuid: nil)!
+        
+        // when
+        sut.processEvents([updateEvent], liveEvents: true, prefetchResult: nil)
+        
+        // then
+        XCTAssertEqual(selfUser.availability, .away)
+        
+    }
+    
 }
