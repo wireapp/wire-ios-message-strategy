@@ -127,18 +127,10 @@ extension AvailabilityRequestStrategy : OTREntity {
     
 }
 
-extension AvailabilityRequestStrategy : ZMContextChangeTracker {
+extension AvailabilityRequestStrategy : ZMContextChangeTrackerSource {
     
-    public func objectsDidChange(_ objects: Set<NSManagedObject>) {
-        modifiedSync.objectsDidChange(objects)
-    }
-    
-    public func fetchRequestForTrackedObjects() -> NSFetchRequest<NSFetchRequestResult>? {
-        return modifiedSync.fetchRequestForTrackedObjects()
-    }
-    
-    public func addTrackedObjects(_ objects: Set<NSManagedObject>) {
-        modifiedSync.addTrackedObjects(objects)
+    public var contextChangeTrackers: [ZMContextChangeTracker] {
+        return [modifiedSync]
     }
     
 }

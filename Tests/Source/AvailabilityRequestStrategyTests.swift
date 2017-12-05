@@ -47,7 +47,7 @@ class AvailabilityRequestStrategyTests: MessagingTestBase {
         let selfUser = ZMUser.selfUser(in: syncMOC)
         selfUser.needsToBeUpdatedFromBackend = false
         selfUser.setLocallyModifiedKeys(Set(arrayLiteral: AvailabilityKey))
-        sut.addTrackedObjects(Set<NSManagedObject>(arrayLiteral: selfUser))
+        sut.contextChangeTrackers.forEach({ $0.addTrackedObjects(Set<NSManagedObject>(arrayLiteral: selfUser)) })
         
         // when
         let request = sut.nextRequest()
