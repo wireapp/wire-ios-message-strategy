@@ -96,15 +96,22 @@ extension AvailabilityRequestStrategy : OTREntity {
     }
     
     public func missesRecipients(_ recipients: Set<UserClient>!) {
-        // TODO check what to do
+        // BE notified us about a new client. A session will be established and then we'll try again
     }
     
     public func detectedRedundantClients() {
-        // TODO check what to do
+        // We were sending a message to clients which should not receive it. To recover
+        // from this we must restart the slow sync.
+        
+        applicationStatus?.requestSlowSync()
     }
     
     public func detectedMissingClient(for user: ZMUser) {
-        // TODO check what to do
+        // If we don't know about a user for a missing client we are out sync. To recover
+        // from this we must restart the slow sync.
+        if !ZMUser.connectionsAndTeamMembers(in: managedObjectContext).contains(user) {
+            applicationStatus?.requestSlowSync()
+        }
     }
     
     public var dependentObjectNeedingUpdateBeforeProcessing: AnyHashable? {

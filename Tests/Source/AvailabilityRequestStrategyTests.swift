@@ -80,7 +80,39 @@ class AvailabilityRequestStrategyTests: MessagingTestBase {
         
         // then
         XCTAssertEqual(selfUser.availability, .away)
+    }
+    
+    func testThatItRequestSlowSyncIfWeAreSendingToRedudantClients() {
         
+        // given when
+        sut.detectedRedundantClients()
+        
+        // then
+        XCTAssertTrue(applicationStatus.slowSyncWasRequested)
+    }
+    
+    func testThatItRequestSlowSyncIfWeAreMissingAUser() {
+        
+        // given
+        let missingUser = ZMUser(remoteID: UUID(), createIfNeeded: true, in: syncMOC)!
+        
+        // when
+        sut.detectedMissingClient(for: missingUser)
+        
+        // then
+        XCTAssertTrue(applicationStatus.slowSyncWasRequested)
+    }
+    
+    func testThatItDoesNotRequestSlowSyncIfWeAreNotMissingAUser() {
+        
+        // given
+        let connectedUser = otherUser!
+        
+        // when
+        sut.detectedMissingClient(for: connectedUser)
+        
+        // then
+        XCTAssertFalse(applicationStatus.slowSyncWasRequested)
     }
     
 }
