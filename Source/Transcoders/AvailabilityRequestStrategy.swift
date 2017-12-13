@@ -25,7 +25,12 @@ public class AvailabilityRequestStrategy : AbstractRequestStrategy {
     override public init(withManagedObjectContext managedObjectContext: NSManagedObjectContext, applicationStatus: ApplicationStatus) {
         
         super.init(withManagedObjectContext: managedObjectContext, applicationStatus: applicationStatus)
-        self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self, entityName: ZMUser.entityName(), keysToSync: [AvailabilityKey], managedObjectContext: managedObjectContext)
+        self.modifiedSync = ZMUpstreamModifiedObjectSync(transcoder: self,
+                                                         entityName: ZMUser.entityName(),
+                                                         update: nil,
+                                                         filter: ZMUser.predicateForSelfUser(),
+                                                         keysToSync: [AvailabilityKey],
+                                                         managedObjectContext: managedObjectContext)
     }
     
     public override func nextRequestIfAllowed() -> ZMTransportRequest? {

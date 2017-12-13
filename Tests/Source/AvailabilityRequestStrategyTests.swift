@@ -57,6 +57,20 @@ class AvailabilityRequestStrategyTests: MessagingTestBase {
         XCTAssertNotNil(request)
     }
     
+    func testThatItDoesntGenerateARequestWhenAvailabilityIsModifiedForOtherUsers() {
+        
+        // given
+        otherUser.needsToBeUpdatedFromBackend = false
+        otherUser.modifiedKeys = Set(arrayLiteral: AvailabilityKey)
+        sut.contextChangeTrackers.forEach({ $0.addTrackedObjects(Set<NSManagedObject>(arrayLiteral: otherUser)) })
+        
+        // when
+        let request = sut.nextRequest()
+        
+        // then
+        XCTAssertNil(request)
+    }
+    
     func testThatItUpdatesAvailabilityFromUpdateEvent() {
         
         // given
