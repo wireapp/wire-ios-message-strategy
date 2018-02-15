@@ -522,7 +522,7 @@
 			isa = PBXGroup;
 			children = (
 				F9F057A11D9419F600FA1AAD /* Test Host */,
-				F9F057541D94129600FA1AAD /* Source */,
+				F9F057541D94129600FA1AAD /* Helpers */,
 				F9F057591D94129600FA1AAD /* Resources */,
 			);
 			path = Tests;
@@ -590,7 +590,7 @@
 			path = Helpers;
 			sourceTree = "<group>";
 		};
-		F9F057541D94129600FA1AAD /* Source */ = {
+		F9F057541D94129600FA1AAD /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
 				F963E9481D9A651C00098AD3 /* RequestStrategyTestBase.swift */,
@@ -598,7 +598,7 @@
 				54FAE67D1E39F5CA00E6DE42 /* MessagingTest+Encryption.swift */,
 				F9F057F51D95511500FA1AAD /* MockObjects.swift */,
 			);
-			path = Source;
+			path = Helpers;
 			sourceTree = "<group>";
 		};
 		F9F057591D94129600FA1AAD /* Resources */ = {
