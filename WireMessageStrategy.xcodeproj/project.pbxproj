@@ -486,9 +486,9 @@
 		F9F056A91D93D22000FA1AAD = {
 			isa = PBXGroup;
 			children = (
-				F9F056D31D93D25D00FA1AAD /* Cartfile.resolved */,
 				F9F056D41D93D25D00FA1AAD /* Cartfile */,
 				F9F0575F1D9412C300FA1AAD /* Cartfile.private */,
+				F9F056D31D93D25D00FA1AAD /* Cartfile.resolved */,
 				F9F056F71D93D41A00FA1AAD /* Resources */,
 				F9F056CD1D93D25D00FA1AAD /* Source */,
 				F9F056D01D93D25D00FA1AAD /* Tests */,
