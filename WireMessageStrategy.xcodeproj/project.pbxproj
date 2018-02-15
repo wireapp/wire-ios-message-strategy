@@ -390,7 +390,7 @@
 			path = Protocols;
 			sourceTree = "<group>";
 		};
-		F1EC02342035D9B200F1A3F3 /* Base Strategy */ = {
+		F1EC02342035D9B200F1A3F3 /* Base Strategies */ = {
 			isa = PBXGroup;
 			children = (
 				16D0E0801DF88B820075DF8F /* OTREntityTranscoder.swift */,
@@ -400,7 +400,7 @@
 				160C31281E65EC500012E4BC /* AbstractRequestStrategy.swift */,
 				160C314B1E8426A70012E4BC /* AbstractRequestStrategyTests.swift */,
 			);
-			path = "Base Strategy";
+			path = "Base Strategies";
 			sourceTree = "<group>";
 		};
 		F1EC02352035D9C800F1A3F3 /* User Clients */ = {
@@ -531,7 +531,7 @@
 		F9F056DD1D93D3FF00FA1AAD /* Request Strategies */ = {
 			isa = PBXGroup;
 			children = (
-				F1EC02342035D9B200F1A3F3 /* Base Strategy */,
+				F1EC02342035D9B200F1A3F3 /* Base Strategies */,
 				F1EC02352035D9C800F1A3F3 /* User Clients */,
 				F1EC02362035D9D900F1A3F3 /* Assets */,
 				F1EC023B2035DB9A00F1A3F3 /* Client Message */,
