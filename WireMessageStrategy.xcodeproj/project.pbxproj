@@ -346,6 +346,118 @@
 			path = "zmc-config";
 			sourceTree = "<group>";
 		};
+		F16105D82035DEC100C22282 /* Availability */ = {
+			isa = PBXGroup;
+			children = (
+				16D95A441FCF0B6E00C96069 /* AvailabilityRequestStrategy.swift */,
+			);
+			path = Availability;
+			sourceTree = "<group>";
+		};
+		F16105DA2035E6D400C22282 /* Generic Message */ = {
+			isa = PBXGroup;
+			children = (
+				16D0E0781DF822E10075DF8F /* GenericMessageRequestStrategy.swift */,
+				BFABEB8D1E647C5D003BE9F3 /* GenericMessageNotificationRequestStrategy.swift */,
+			);
+			path = "Generic Message";
+			sourceTree = "<group>";
+		};
+		F16105DB2035E6EA00C22282 /* Link Preview */ = {
+			isa = PBXGroup;
+			children = (
+				BFED61BC1E5C52E700F352F8 /* LinkPreviewUploadRequestStrategy.swift */,
+				F963E9211D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift */,
+				F9F057D21D943D8000FA1AAD /* LinkPreviewAssetUploadRequestStrategy.swift */,
+			);
+			path = "Link Preview";
+			sourceTree = "<group>";
+		};
+		F1EC02332035D96B00F1A3F3 /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				16D0E0841DF8954F0075DF8F /* OTREntity.swift */,
+				1632C4B01F0E66BB007BE89D /* TearDownCapable.swift */,
+				160C312A1E65FB6D0012E4BC /* ApplicationStatus.swift */,
+				548F88AC1E54ABE700D179C7 /* PushMessageHandler.swift */,
+			);
+			path = Protocols;
+			sourceTree = "<group>";
+		};
+		F1EC02342035D9B200F1A3F3 /* Base Strategy */ = {
+			isa = PBXGroup;
+			children = (
+				16D0E0801DF88B820075DF8F /* OTREntityTranscoder.swift */,
+				160C31471E8152580012E4BC /* ZMAbstractRequestStrategy.h */,
+				160C31451E8152250012E4BC /* ZMAbstractRequestStrategy.m */,
+				160C31281E65EC500012E4BC /* AbstractRequestStrategy.swift */,
+			);
+			path = "Base Strategy";
+			sourceTree = "<group>";
+		};
+		F1EC02352035D9C800F1A3F3 /* User Clients */ = {
+			isa = PBXGroup;
+			children = (
+				F1EC023A2035DB4000F1A3F3 /* Helpers */,
+				CED80BAB1E03FAC40053915D /* FetchingClientRequestStrategy.swift */,
+				F963E9331D958BBE00098AD3 /* MissingClientsRequestFactory.swift */,
+				F963E9341D958BBE00098AD3 /* MissingClientsRequestStrategy.swift */,
+			);
+			path = "User Clients";
+			sourceTree = "<group>";
+		};
+		F1EC02362035D9D900F1A3F3 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				F1EC02372035D9EA00F1A3F3 /* V2 */,
+				F1EC02392035DAF700F1A3F3 /* Helpers */,
+				F16105DB2035E6EA00C22282 /* Link Preview */,
+				BFA94E631DCC99E000782005 /* AssetV3DownloadRequestStrategy.swift */,
+				BFC32F8B1DD1D37F00EDD540 /* AssetV3ImageUploadRequestStrategy.swift */,
+				BF3A460B1DD46FD500F5B16A /* AssetV3FileUploadRequestStrategy.swift */,
+				BF260C4F1DCA1FD9009C97D9 /* AssetV3PreviewDownloadStrategy.swift */,
+				BF420D421DD3241F003582F2 /* AssetClientMessageRequestStrategy.swift */,
+			);
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		F1EC02372035D9EA00F1A3F3 /* V2 */ = {
+			isa = PBXGroup;
+			children = (
+				F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */,
+				F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */,
+			);
+			path = V2;
+			sourceTree = "<group>";
+		};
+		F1EC02392035DAF700F1A3F3 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				F9F057E11D95377000FA1AAD /* LinkPreviewPreprocessor.swift */,
+				F9F057E01D95377000FA1AAD /* FilePreprocessor.swift */,
+				BFE85DEC1DD9F47C00BCD68B /* AssetAnalytics.swift */,
+				F963E9281D95890E00098AD3 /* AssetDownloadRequestFactory.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		F1EC023A2035DB4000F1A3F3 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				F9F057421D93DDA900FA1AAD /* ZMOTRMessage+Missing.swift */,
+			);
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		F1EC023B2035DB9A00F1A3F3 /* Client Message */ = {
+			isa = PBXGroup;
+			children = (
+				F9F0573F1D93DD5300FA1AAD /* ClientMessageRequestFactory.swift */,
+				54327FE51E545A8900B08FFC /* ClientMessageTranscoder.swift */,
+			);
+			path = "Client Message";
+			sourceTree = "<group>";
+		};
 		F9F056A91D93D22000FA1AAD = {
 			isa = PBXGroup;
 			children = (
@@ -374,9 +486,9 @@
 			isa = PBXGroup;
 			children = (
 				F9F057371D93DA9800FA1AAD /* Helpers */,
-				F9F056F61D93D40900FA1AAD /* Public */,
-				F9F056DD1D93D3FF00FA1AAD /* Transcoders */,
-				548F88AC1E54ABE700D179C7 /* PushMessageHandler.swift */,
+				F1EC02332035D96B00F1A3F3 /* Protocols */,
+				F9F056DD1D93D3FF00FA1AAD /* Request Strategies */,
+				F9F056CF1D93D25D00FA1AAD /* WireMessageStrategy.h */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -391,42 +503,17 @@
 			path = Tests;
 			sourceTree = "<group>";
 		};
-		F9F056DD1D93D3FF00FA1AAD /* Transcoders */ = {
+		F9F056DD1D93D3FF00FA1AAD /* Request Strategies */ = {
 			isa = PBXGroup;
 			children = (
-				160C31281E65EC500012E4BC /* AbstractRequestStrategy.swift */,
-				160C31451E8152250012E4BC /* ZMAbstractRequestStrategy.m */,
-				CED80BAB1E03FAC40053915D /* FetchingClientRequestStrategy.swift */,
-				F963E9331D958BBE00098AD3 /* MissingClientsRequestFactory.swift */,
-				F963E9341D958BBE00098AD3 /* MissingClientsRequestStrategy.swift */,
-				F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */,
-				BFA94E631DCC99E000782005 /* AssetV3DownloadRequestStrategy.swift */,
-				BFC32F8B1DD1D37F00EDD540 /* AssetV3ImageUploadRequestStrategy.swift */,
-				BF3A460B1DD46FD500F5B16A /* AssetV3FileUploadRequestStrategy.swift */,
-				BF420D421DD3241F003582F2 /* AssetClientMessageRequestStrategy.swift */,
-				BF260C4F1DCA1FD9009C97D9 /* AssetV3PreviewDownloadStrategy.swift */,
-				F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */,
-				F963E9211D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift */,
-				F9F057D21D943D8000FA1AAD /* LinkPreviewAssetUploadRequestStrategy.swift */,
-				54327FE51E545A8900B08FFC /* ClientMessageTranscoder.swift */,
-				54327FE71E54636400B08FFC /* MessageExpirationTimer.swift */,
-				BFED61BC1E5C52E700F352F8 /* LinkPreviewUploadRequestStrategy.swift */,
-				16D0E0781DF822E10075DF8F /* GenericMessageRequestStrategy.swift */,
-				BFABEB8D1E647C5D003BE9F3 /* GenericMessageNotificationRequestStrategy.swift */,
-				16D0E0801DF88B820075DF8F /* OTREntityTranscoder.swift */,
-				16D95A441FCF0B6E00C96069 /* AvailabilityRequestStrategy.swift */,
+				F1EC02342035D9B200F1A3F3 /* Base Strategy */,
+				F1EC02352035D9C800F1A3F3 /* User Clients */,
+				F1EC02362035D9D900F1A3F3 /* Assets */,
+				F1EC023B2035DB9A00F1A3F3 /* Client Message */,
+				F16105DA2035E6D400C22282 /* Generic Message */,
+				F16105D82035DEC100C22282 /* Availability */,
 			);
-			path = Transcoders;
-			sourceTree = "<group>";
-		};
-		F9F056F61D93D40900FA1AAD /* Public */ = {
-			isa = PBXGroup;
-			children = (
-				F9F056CF1D93D25D00FA1AAD /* WireMessageStrategy.h */,
-				160C312C1E65FDBB0012E4BC /* ZMStrategyConfigurationOption.h */,
-				160C31471E8152580012E4BC /* ZMAbstractRequestStrategy.h */,
-			);
-			name = Public;
+			path = "Request Strategies";
 			sourceTree = "<group>";
 		};
 		F9F056F71D93D41A00FA1AAD /* Resources */ = {
@@ -467,18 +554,11 @@
 		F9F057371D93DA9800FA1AAD /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
-				F963E9281D95890E00098AD3 /* AssetDownloadRequestFactory.swift */,
-				F9F057E01D95377000FA1AAD /* FilePreprocessor.swift */,
-				F9F057E11D95377000FA1AAD /* LinkPreviewPreprocessor.swift */,
-				F9F057421D93DDA900FA1AAD /* ZMOTRMessage+Missing.swift */,
-				16D0E0841DF8954F0075DF8F /* OTREntity.swift */,
-				F9F0573F1D93DD5300FA1AAD /* ClientMessageRequestFactory.swift */,
-				BFE85DEC1DD9F47C00BCD68B /* AssetAnalytics.swift */,
+				160C312C1E65FDBB0012E4BC /* ZMStrategyConfigurationOption.h */,
+				54327FE71E54636400B08FFC /* MessageExpirationTimer.swift */,
 				F9F0573C1D93DC8100FA1AAD /* ZMMessage+Dependency.swift */,
 				54979CB61E37CC95005EA09F /* EncryptionSessionDirectory+UpdateEvents.swift */,
 				54C8A3991F751738004961DF /* ZMConversation+Notifications.swift */,
-				160C312A1E65FB6D0012E4BC /* ApplicationStatus.swift */,
-				1632C4B01F0E66BB007BE89D /* TearDownCapable.swift */,
 			);
 			path = Helpers;
 			sourceTree = "<group>";
