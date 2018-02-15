@@ -521,7 +521,7 @@
 		F9F056D01D93D25D00FA1AAD /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				F9F057A11D9419F600FA1AAD /* WireMessageStrategy-Test-Host */,
+				F9F057A11D9419F600FA1AAD /* Test Host */,
 				F9F057541D94129600FA1AAD /* Source */,
 				F9F057591D94129600FA1AAD /* Resources */,
 			);
@@ -617,7 +617,7 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		F9F057A11D9419F600FA1AAD /* WireMessageStrategy-Test-Host */ = {
+		F9F057A11D9419F600FA1AAD /* Test Host */ = {
 			isa = PBXGroup;
 			children = (
 				F9F057A21D9419F600FA1AAD /* AppDelegate.h */,
@@ -625,7 +625,7 @@
 				F9F057A41D9419F600FA1AAD /* Info.plist */,
 				F9F057A51D9419F600FA1AAD /* main.m */,
 			);
-			path = "WireMessageStrategy-Test-Host";
+			path = "Test Host";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1056,7 +1056,7 @@
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
 				);
 				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include/libxml2";
-				INFOPLIST_FILE = "$(SRCROOT)/Tests/WireMessageStrategy-Test-Host/Info.plist";
+				INFOPLIST_FILE = "$(SRCROOT)/Tests/Test Host/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.wire.WireMessageStrategy-Test-Host";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1075,7 +1075,7 @@
 					"$(PROJECT_DIR)/Carthage/Build/iOS",
 				);
 				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include/libxml2";
-				INFOPLIST_FILE = "$(SRCROOT)/Tests/WireMessageStrategy-Test-Host/Info.plist";
+				INFOPLIST_FILE = "$(SRCROOT)/Tests/Test Host/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.wire.WireMessageStrategy-Test-Host";
 				PRODUCT_NAME = "$(TARGET_NAME)";
