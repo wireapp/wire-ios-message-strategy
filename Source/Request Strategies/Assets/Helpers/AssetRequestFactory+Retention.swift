@@ -20,7 +20,7 @@ import Foundation
 
 extension AssetRequestFactory {
     static func defaultAssetRetention(for sender: ZMUser, in conversation: ZMConversation) -> Retention {
-        if sender.isTeamMember || sender.team != nil {
+        if sender.isTeamMember || conversation.team != nil {
             return .eternal
         } else {
             return .persistent
