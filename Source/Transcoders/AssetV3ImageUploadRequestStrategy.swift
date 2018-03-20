@@ -238,7 +238,7 @@ extension AssetV3ImageUploadRequestStrategy: ZMUpstreamTranscoder {
             })
         }
 
-        return ZMUpstreamRequest(keys: Set(arrayLiteral: #keyPath(ZMAssetClientMessage.uploadState)), transportRequest: request)
+        return ZMUpstreamRequest(keys: [#keyPath(ZMAssetClientMessage.uploadState)], transportRequest: request)
     }
 
     public func shouldCreateRequest(toSyncObject managedObject: ZMManagedObject, forKeys keys: Set<String>, withSync sync: Any) -> Bool {

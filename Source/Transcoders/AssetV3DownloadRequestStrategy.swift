@@ -146,6 +146,7 @@ fileprivate let zmLog = ZMSLog(tag: "Asset V3")
         precondition(asset.original.hasRasterImage, "Should only be called for assets with image")
 
         let cache = managedObjectContext.zm_imageAssetCache!
+        let id = asset.uploaded.assetId
         cache.storeAssetData(nonce, format: .medium, encrypted: true, data: data)
         let success = cache.decryptFileIfItMatchesDigest(nonce, format: .medium, encryptionKey: keys.otrKey, sha256Digest: keys.sha256)
         if !success {

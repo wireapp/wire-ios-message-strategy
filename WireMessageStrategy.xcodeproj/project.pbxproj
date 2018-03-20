@@ -67,6 +67,8 @@
 		BFED61C11E5C59C700F352F8 /* LinkPreviewUploadRequestStrategyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFED61C01E5C59C700F352F8 /* LinkPreviewUploadRequestStrategyTests.swift */; };
 		CED80BAC1E03FAC40053915D /* FetchingClientRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED80BAB1E03FAC40053915D /* FetchingClientRequestStrategy.swift */; };
 		CED80BAE1E03FAD50053915D /* FetchingClientRequestStrategyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED80BAD1E03FAD50053915D /* FetchingClientRequestStrategyTests.swift */; };
+		D5740B50202B65B000278F57 /* PromiseNetworkStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5740B4F202B65B000278F57 /* PromiseNetworkStrategy.swift */; };
+		D5740B52202C5C3D00278F57 /* Promise.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D5740B51202C5C3D00278F57 /* Promise.framework */; };
 		F963E9221D95885700098AD3 /* AssetDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */; };
 		F963E9231D95885700098AD3 /* ImageDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */; };
 		F963E9241D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F963E9211D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift */; };
@@ -217,6 +219,8 @@
 		BFED61C01E5C59C700F352F8 /* LinkPreviewUploadRequestStrategyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinkPreviewUploadRequestStrategyTests.swift; sourceTree = "<group>"; };
 		CED80BAB1E03FAC40053915D /* FetchingClientRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FetchingClientRequestStrategy.swift; sourceTree = "<group>"; };
 		CED80BAD1E03FAD50053915D /* FetchingClientRequestStrategyTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FetchingClientRequestStrategyTests.swift; sourceTree = "<group>"; };
+		D5740B4F202B65B000278F57 /* PromiseNetworkStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromiseNetworkStrategy.swift; sourceTree = "<group>"; };
+		D5740B51202C5C3D00278F57 /* Promise.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Promise.framework; path = Carthage/Build/iOS/Promise.framework; sourceTree = "<group>"; };
 		F963E91F1D95885700098AD3 /* AssetDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AssetDownloadRequestStrategy.swift; sourceTree = "<group>"; };
 		F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDownloadRequestStrategy.swift; sourceTree = "<group>"; };
 		F963E9211D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinkPreviewAssetDownloadRequestStrategy.swift; sourceTree = "<group>"; };
@@ -273,6 +277,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D5740B52202C5C3D00278F57 /* Promise.framework in Frameworks */,
 				543BE0591F698BD4007D7409 /* WireDataModel.framework in Frameworks */,
 				5442A7341E4224DB00415104 /* libPhoneNumberiOS.framework in Frameworks */,
 				54E03A491E93C5810089AC69 /* WireLinkPreview.framework in Frameworks */,
@@ -408,6 +413,7 @@
 				F963E9201D95885700098AD3 /* ImageDownloadRequestStrategy.swift */,
 				F963E9211D95885700098AD3 /* LinkPreviewAssetDownloadRequestStrategy.swift */,
 				F9F057D21D943D8000FA1AAD /* LinkPreviewAssetUploadRequestStrategy.swift */,
+				D5740B4F202B65B000278F57 /* PromiseNetworkStrategy.swift */,
 				54327FE51E545A8900B08FFC /* ClientMessageTranscoder.swift */,
 				54327FE71E54636400B08FFC /* MessageExpirationTimer.swift */,
 				BFED61BC1E5C52E700F352F8 /* LinkPreviewUploadRequestStrategy.swift */,
@@ -441,6 +447,7 @@
 		F9F0571C1D93D4DE00FA1AAD /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				D5740B51202C5C3D00278F57 /* Promise.framework */,
 				54E03A3B1E93C5810089AC69 /* WireCryptobox.framework */,
 				54E03A3C1E93C5810089AC69 /* WireDataModel.framework */,
 				54E03A3D1E93C5810089AC69 /* WireImages.framework */,
@@ -774,6 +781,7 @@
 				160C31291E65EC500012E4BC /* AbstractRequestStrategy.swift in Sources */,
 				BFA94E641DCC99E000782005 /* AssetV3DownloadRequestStrategy.swift in Sources */,
 				BFC32F8C1DD1D37F00EDD540 /* AssetV3ImageUploadRequestStrategy.swift in Sources */,
+				D5740B50202B65B000278F57 /* PromiseNetworkStrategy.swift in Sources */,
 				54979CB71E37CC95005EA09F /* EncryptionSessionDirectory+UpdateEvents.swift in Sources */,
 				548F88AD1E54ABE700D179C7 /* PushMessageHandler.swift in Sources */,
 				16D0E0811DF88B820075DF8F /* OTREntityTranscoder.swift in Sources */,
