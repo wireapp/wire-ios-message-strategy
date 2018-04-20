@@ -1,3 +1,7 @@
+# THIS IS NO LONGER IN USE
+
+The contents of this framework was merged into [WireRequestStrategy](https://github.com/wireapp/wire-ios-request-strategy)
+
 # Wire™
 
 [![Wire logo](https://github.com/wireapp/wire/blob/master/assets/header-small.png?raw=true)](https://wire.com/jobs/)
